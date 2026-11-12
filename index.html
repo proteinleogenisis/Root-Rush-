@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Root Rush</title>
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Root Rush">
+<meta name="theme-color" content="#D85A30">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f6f5f1;--card:#fff;--ink:#1d1d1b;--mute:#6b6a64;--line:#e2e0d8;--root:#7F77DD;--pow:#1D9E75;--hot:#D85A30;--good:#3B6D11;--goodbg:#EAF3DE;--bad:#A32D2D;--badbg:#FCEBEB;--ghost:#B4B2A9}
+@media (prefers-color-scheme:dark){:root{--bg:#141413;--card:#1f1f1d;--ink:#f1efe8;--mute:#a3a199;--line:#33332f;--good:#97C459;--goodbg:#1f2a12;--bad:#F09595;--badbg:#3a1616;--ghost:#5F5E5A}}
+*{box-sizing:border-box;margin:0}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--ink);font-family:"Space Grotesk",system-ui,sans-serif;min-height:100dvh;display:flex;justify-content:center;padding:12px 14px 24px;touch-action:manipulation;-webkit-user-select:none;user-select:none;overscroll-behavior:none}
+@media (hover:none){.opt kbd,.kbhint{display:none}}
+@media (max-height:740px){.ex{font-size:22px;padding:10px 6px}.q{font-size:17px}.opt{min-height:52px;margin-top:8px}.hud{margin-bottom:8px}.stat b{font-size:20px}}
+.wrap{width:100%;max-width:460px}
+.mono{font-family:"JetBrains Mono",ui-monospace,monospace}
+.rt{color:var(--root);font-weight:700}.pw{color:var(--pow);font-weight:700}
+h1{font-size:44px;font-weight:700;letter-spacing:-1px;line-height:1}
+h1 span{color:var(--hot)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px}
+button{font:inherit;color:inherit;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .08s}
+button:active{transform:scale(.97)}
+.big{width:100%;background:var(--hot);border-color:var(--hot);color:#fff;font-size:20px;font-weight:700;padding:18px}
+.opt{display:flex;gap:12px;align-items:center;width:100%;text-align:left;margin-top:10px;font-size:17px;min-height:56px}
+.opt kbd{font-family:inherit;font-size:12px;color:var(--mute);border:1px solid var(--line);border-radius:6px;padding:2px 7px}
+.opt.ok{background:var(--goodbg);border-color:var(--good);color:var(--good)}
+.opt.no{background:var(--badbg);border-color:var(--bad);color:var(--bad)}
+.hud{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 10px}
+.stat small{display:block;font-size:11px;color:var(--mute);text-transform:lowercase}
+.stat b{font-size:22px}
+.time-bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin-bottom:6px}
+.time-fill{height:100%;background:var(--pow)}
+.race{position:relative;height:22px;margin:10px 0 14px}
+.track{position:absolute;top:10px;left:0;right:0;height:2px;background:var(--line)}
+.dot{position:absolute;top:3px;width:16px;height:16px;border-radius:50%;transform:translateX(-50%);}
+.you{background:var(--hot)}.gh{background:var(--ghost)}
+.tag{display:inline-block;font-size:12px;padding:3px 10px;border-radius:99px;background:var(--line);color:var(--mute);margin-bottom:10px}
+.ex{font-size:26px;text-align:center;padding:16px 8px;margin:6px 0 4px;border-radius:12px;background:var(--bg)}
+.q{font-size:18px;font-weight:500;line-height:1.4}
+.why{margin-top:12px;font-size:16px;line-height:1.6;border-left:3px solid var(--bad);padding-left:12px}
+.why .mono{display:block;margin:6px 0;font-size:15px}
+.combo{font-weight:700;color:var(--hot)}
+.pop{position:fixed;left:50%;top:38%;transform:translate(-50%,-50%);font-size:34px;font-weight:700;color:var(--hot);pointer-events:none;opacity:0;transition:opacity .2s,transform .5s}
+.pop.on{opacity:1;transform:translate(-50%,-90%)}
+.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border:0}
+.mute{color:var(--mute)}
+.hidden{display:none!important}
+.meter{height:4px;background:var(--line);border-radius:2px;margin-top:5px;overflow:hidden}
+.meter i{display:block;height:100%;width:0;background:var(--hot);transition:width .2s}
+.fire{border-color:var(--hot);box-shadow:0 0 0 2px var(--hot)}
+.banner{text-align:center;font-weight:700;color:var(--hot);font-size:14px;min-height:20px;margin-bottom:4px}
+.cd{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;font-size:130px;font-weight:700;color:var(--hot);background:var(--bg);z-index:5}
+body{transition:background .15s}
+body.fok{background:var(--goodbg)}body.fbad{background:var(--badbg)}
+.opt.words{font-size:15px;line-height:1.35;padding:12px 14px}
+.small{padding:8px 12px;font-size:14px}
+.pu{flex:1;padding:10px 8px;font-size:14px;font-weight:700;border-color:var(--root);color:var(--root);display:flex;gap:6px;align-items:center;justify-content:center}
+.pu.empty{border-style:dashed;color:var(--mute);border-color:var(--line);font-weight:400}
+.tag.rm{background:var(--hot);color:#fff}
+.slots{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.slot{border:1px dashed var(--line);border-radius:10px;padding:10px 12px;font-size:15px;color:var(--mute);min-height:42px}
+.slot.filled{border-style:solid;border-color:var(--good);color:var(--good);background:var(--goodbg)}
+.slot.fix{border-style:solid;border-color:var(--bad);color:var(--ink)}
+.tiles{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.tile{flex:1 1 45%;font-size:15px;padding:12px 10px;font-weight:500;border-color:var(--root)}
+.tile.used{opacity:.3}.tile.no{background:var(--badbg);border-color:var(--bad);color:var(--bad)}
+.nl{display:flex;gap:4px;margin-top:12px}
+.seg{flex:1;padding:14px 2px;display:flex;flex-direction:column;align-items:center;font-size:17px;font-weight:700;line-height:1.1;border-radius:8px}
+.seg span:nth-child(2){font-size:12px;color:var(--mute)}
+.seg.ok{background:var(--goodbg);border-color:var(--good);color:var(--good)}.seg.no{background:var(--badbg);border-color:var(--bad);color:var(--bad)}
+.nl-axis{height:3px;background:var(--ink);border-radius:2px;margin:6px 4px 0;opacity:.6}
+.tf{display:flex;gap:10px;margin-top:12px}
+.tfb{flex:1;font-size:22px;font-weight:700;padding:22px 0}
+.tfb.ok{background:var(--goodbg);border-color:var(--good);color:var(--good)}.tfb.no{background:var(--badbg);border-color:var(--bad);color:var(--bad)}
+.ltcard{border-color:var(--root);box-shadow:0 0 0 2px var(--root)}
+.ltcard .ex{font-size:40px;font-weight:700;color:var(--root)}
+.shake{animation:sh .3s}
+@keyframes sh{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:6px 0 14px;gap:8px;flex-wrap:wrap}
+.brand{font-size:28px;font-weight:700;letter-spacing:-.5px}.brand span{color:var(--hot)}
+.chips{display:flex;gap:6px}.chip{font-size:13px;background:var(--card);border:1px solid var(--line);border-radius:99px;padding:5px 10px}
+.hero{border-color:var(--hot);border-width:2px;margin-bottom:6px}
+.eyebrow{font-size:12px;font-weight:700;color:var(--hot);text-transform:uppercase;letter-spacing:.06em}
+.hero-t{font-size:22px;font-weight:700;margin:4px 0 10px;line-height:1.2}
+.formula{font-size:26px;text-align:center;background:var(--bg);border-radius:12px;padding:12px}
+.formula sup{font-size:15px}
+.legend{display:flex;justify-content:center;gap:16px;font-size:13px;margin:6px 0 12px}
+.goal{display:flex;gap:10px;align-items:center;font-size:15px;margin-bottom:12px}
+.check{width:22px;height:22px;border-radius:6px;border:2px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:14px}
+.goal.done .check{background:var(--good);border-color:var(--good);color:#fff}.goal.done{color:var(--good);font-weight:500}
+.mini{text-align:center;font-size:13px;margin-top:10px}
+.sec{display:flex;justify-content:space-between;align-items:baseline;margin:22px 2px 8px}
+.sec h3{font-size:18px;font-weight:700}.sec span{font-size:13px}
+.skills{padding:4px 14px}
+.sk{border-bottom:1px solid var(--line)}.sk:last-child{border:0}
+.sk-h{display:flex;align-items:center;gap:10px;width:100%;border:0;border-radius:0;padding:12px 0;background:none;text-align:left}
+.sk-n{flex:1;font-size:15px;font-weight:500}
+.sk-bar{width:70px;height:6px;background:var(--line);border-radius:3px;overflow:hidden}.sk-bar i{display:block;height:100%}
+.pill{font-size:11px;font-weight:700;border-radius:99px;padding:3px 8px;min-width:70px;text-align:center}
+.lv0{background:var(--line);color:var(--mute)}.lv1{background:#FAEEDA;color:#854F0B}.lv2{background:#E6F1FB;color:#185FA5}.lv3{background:var(--goodbg);color:var(--good)}
+@media (prefers-color-scheme:dark){.lv1{background:#412402;color:#FAC775}.lv2{background:#042C53;color:#B5D4F4}}
+.sk-b{padding:0 0 14px;animation:flipin .35s ease;transform-origin:top}
+@keyframes flipin{from{transform:rotateX(-80deg);opacity:0}to{transform:none;opacity:1}}
+.sk-rule{font-size:15px;line-height:1.5}.sk-ex{font-size:15px;background:var(--bg);border-radius:10px;padding:10px 12px;margin:8px 0 10px;line-height:1.6}
+.sk-stat{font-size:12px;margin-bottom:10px}
+.practice{width:100%;font-weight:700;border-color:var(--root);color:var(--root);padding:12px}
+.spark{display:flex;align-items:flex-end;gap:5px;height:110px}
+.spark .b{flex:1;border-radius:4px 4px 0 0;position:relative;min-height:4px}
+.spark .b span{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--mute);white-space:nowrap}
+.spark-empty{color:var(--mute);font-size:14px;align-self:center;width:100%;text-align:center}
+.road{padding:6px 14px}
+.rd{display:flex;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line)}.rd:last-child{border:0}
+.rd-n{font-weight:700;width:34px;font-size:15px}.rd-t{flex:1;font-size:15px}
+.rd.on .rd-n,.rd.on .rd-t{color:var(--hot);font-weight:700}.rd.off{opacity:.45}
+.rd-s{font-size:11px;font-weight:700;padding:3px 8px;border-radius:99px;background:var(--line);color:var(--mute)}
+.rd.on .rd-s{background:var(--hot);color:#fff}
+.rd.done .rd-s{background:var(--goodbg);color:var(--good)}
+.sk-grp{font-size:12px;font-weight:700;color:var(--mute);text-transform:uppercase;letter-spacing:.06em;padding:12px 0 2px}
+.how summary{font-weight:700;font-size:16px;cursor:pointer}
+.how{margin-top:22px}
+.rules52{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--bg);border-radius:12px;padding:12px;font-size:15px;text-align:center}
+.rules52 sup{font-size:10px}
+.learnrow{display:flex;align-items:center;gap:10px;margin:14px 0 8px;font-size:13px}
+.lbar{flex:1;height:6px;background:var(--line);border-radius:3px;overflow:hidden}.lbar i{display:block;height:100%;width:0;background:var(--root)}
+.learnbtn{background:var(--root);border-color:var(--root)}
+.ldots{display:flex;gap:5px;margin-bottom:12px}.ldots i{flex:1;height:5px;border-radius:3px;background:var(--line)}
+.ldots i.on{background:var(--hot)}.ldots i.done{background:var(--good)}
+.hwtag{display:inline-block;font-size:12px;font-weight:700;color:var(--root);border:1px solid var(--root);border-radius:99px;padding:2px 9px;margin-bottom:8px}
+.l-title{font-size:21px;font-weight:700;line-height:1.25;margin-bottom:10px}
+.l-rule{background:var(--bg);border-radius:12px;padding:12px 14px;font-size:16px;line-height:1.55;margin-bottom:14px}
+.l-rule .mono{display:block;font-size:18px;text-align:center;margin-top:6px}
+.l-h{font-size:12px;font-weight:700;color:var(--mute);text-transform:uppercase;letter-spacing:.06em;margin:4px 0 8px}
+.l-step{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid var(--line);animation:flipin .3s ease}
+.l-step b{min-width:22px;height:22px;border-radius:50%;background:var(--hot);color:#fff;font-size:12px;display:inline-flex;align-items:center;justify-content:center;margin-top:2px}
+.l-step .mono{font-size:17px;display:block}.l-step small{display:block;color:var(--mute);font-size:14px;margin-top:2px}
+.l-problem{font-size:22px;text-align:center;padding:10px 0 4px}
+.l-note{font-size:13px;color:var(--mute);margin-top:10px}
+.l-btn{width:100%;margin-top:12px;font-weight:700}
+.dsw{display:flex;gap:6px;margin-bottom:10px}.dsw button{flex:1;font-weight:700;padding:11px 6px;font-size:15px}
+.dsw button.on{background:var(--hot);border-color:var(--hot);color:#fff}
+.sync{font-size:12px;color:var(--mute);margin:-6px 2px 10px}.sync.cloud{color:var(--good)}
+.rd.click{cursor:pointer}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<section id="home">
+  <header class="topbar">
+    <div class="brand">Root<span>Rush</span></div>
+    <div class="chips"><span class="chip"><b id="hDay">0</b> day streak</span><span class="chip">Best <b id="hBest">0</b></span></div>
+  </header>
+  <div class="sync" id="sync"></div>
+  <div class="dsw" id="dsw"></div>
+  <div class="card hero">
+    <div class="eyebrow" id="heroEye"></div>
+    <h2 class="hero-t" id="heroTitle"></h2>
+    <div id="heroRules"></div>
+    <div class="learnrow"><span id="learnTxt" class="mute"></span><span class="lbar"><i id="learnBar"></i></span></div>
+    <button class="big learnbtn" id="learnBtn">Learn</button>
+    <div class="goal" id="goal" style="margin-top:12px"><span class="check" id="goalBox"></span><span id="goalTxt">Daily goal: finish 1 run</span></div>
+    <button class="big" id="start">Play Rush</button>
+    <div class="mini mute" id="rushMix"></div>
+    <div class="mini mute">Rank <b id="hRank">Square one</b> · Runs <b id="hRuns">0</b> · Freezes <b id="hFrz">0 / 2</b></div>
+  </div>
+
+  <div class="sec"><h3>Skills</h3><span class="mute" id="skSum"></span></div>
+  <div class="card skills" id="skills"></div>
+
+  <div class="sec"><h3>Recent runs</h3><span class="mute" id="sparkNote"></span></div>
+  <div class="card"><div class="spark" id="spark"></div></div>
+
+  <div class="sec"><h3>Unit 5 roadmap</h3></div>
+  <div class="card road" id="road"></div>
+
+  <details class="card how">
+    <summary>How to play</summary>
+    <div style="font-size:15px;line-height:1.7;margin-top:10px">
+    <div><b>Runs</b>: 90 seconds, racing a grey ghost of your best score</div>
+    <div><b>Question styles</b>: multiple choice, tap the steps in order, spot the mistake, and tap where a root lands on the number line</div>
+    <div><b>Lightning round</b>: at 50 seconds left, 10 seconds of rapid true/false for +100 each</div>
+    <div><b>Right answer</b>: +100 × combo, +1 second, and up to +75 for speed</div>
+    <div><b>Combo</b>: goes up every 3 in a row (max ×5)</div>
+    <div><b>Last 10 seconds</b>: double points</div>
+    <div><b>Wrong answer</b>: −3 seconds, combo resets, and the clock stops so you can read why</div>
+    <div><b>Power-ups</b>: every 5 in a row earns one (hold 2). Freeze stops the clock for 5s, Shield saves your combo once, Double makes the next 3 answers ×2</div>
+    <div><b>Rematch</b>: a type you miss comes back a few questions later. Get it right for +150</div>
+    <div><b>Practice this</b>: a run with only one skill. It counts for skills and your streak, not your best score</div>
+    <div><b>Day streak</b>: play once a day. Every 7 days earns a freeze that covers a missed day</div>
+    <div class="mute kbhint" style="margin-top:6px;font-size:13px">On a keyboard, keys 1–5 answer and Enter continues.</div>
+    </div>
+  </details>
+  <div style="text-align:center;margin:14px 0 8px"><button class="small" id="snd">Sound: on</button></div>
+</section>
+
+<section id="learn" class="hidden">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    <button class="small" id="lHome">Home</button><span class="mute" id="lCount" style="font-size:13px"></span>
+  </div>
+  <div class="ldots" id="lDots"></div>
+  <div class="card" id="lCard"></div>
+</section>
+
+<section id="game" class="hidden">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span class="mute" id="gMode" style="font-size:13px">Unit 5.1 · Rush</span><button class="small" id="quit">Quit</button></div>
+  <div class="hud">
+    <div class="stat"><small>score</small><b id="sc">0</b></div>
+    <div class="stat"><small>combo</small><b id="cb" class="combo">×1</b><div class="meter"><i id="mt"></i></div></div>
+    <div class="stat"><small>time</small><b id="tm">60</b></div>
+  </div>
+  <div class="time-bar"><div class="time-fill" id="tf" style="width:100%"></div></div>
+  <div class="race"><div class="track"></div><div class="dot gh" id="ghd" style="left:0"></div><div class="dot you" id="yd" style="left:0"></div></div>
+  <div class="mono mute" id="vs" style="font-size:13px;text-align:right;margin-top:-6px;margin-bottom:6px">no ghost yet</div>
+  <div class="banner" id="bn"></div>
+  <div id="pu" style="display:flex;gap:8px;margin-bottom:10px"></div>
+  <div class="card" id="qc">
+    <span class="tag" id="tg"></span>
+    <div class="q" id="qt"></div>
+    <div class="ex mono" id="ex"></div>
+    <div id="opts"></div>
+    <div id="why" class="why hidden"></div>
+    <button class="big hidden" id="go" style="margin-top:14px">Got it, keep going</button>
+  </div>
+</section>
+
+<section id="end" class="hidden">
+  <div style="padding:24px 0 14px">
+    <p class="mute" id="eHead">Run over</p>
+    <h1 id="eScore" style="font-size:56px">0</h1>
+    <p id="eRank" style="font-size:20px;font-weight:700;color:var(--hot);margin-top:4px"></p>
+  </div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="row"><span class="mute">Best</span><b id="eBest"></b></div>
+    <div class="row"><span class="mute">Accuracy</span><b id="eAcc"></b></div>
+    <div class="row"><span class="mute">Longest streak</span><b id="eStreak"></b></div>
+    <div class="row"><span class="mute">Weak spot</span><b id="eWeak"></b></div>
+    <div class="row"><span class="mute">Day streak</span><b id="eDay"></b></div>
+  </div>
+  <p class="mute" id="eTip" style="font-size:15px;line-height:1.6;margin-bottom:16px"></p>
+  <button class="big" id="again">Run it back</button>
+  <button id="toHome" style="width:100%;margin-top:10px;font-weight:700">Home</button>
+</section>
+
+<div class="pop" id="pop"></div>
+<div class="cd hidden" id="cd"></div>
+</div>
+
+<script>
+const R=t=>`<span class="rt">${t}</span>`,P=t=>`<span class="pw">${t}</span>`;
+const ri=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const sup=(m,n)=>`<sup>${P(m)}/${R(n)}</sup>`;
+
+const ROOT={2:"square",3:"cube",4:"4th",5:"5th"},NTH={2:"2nd",3:"3rd",4:"4th",5:"5th"};
+const TAGS={entry:"Typing it in",bottom:"Bottom = root",neg:"Negative bases",sols:"How many answers",iso:"Isolate first",shift:"Undo in reverse",order:"Order the steps",spot:"Spot the mistake",line:"Estimate the root",rules:"Exponent rules",radmul:"Multiply and divide radicals",simp:"Simplest form",vars:"Roots of variables",like:"Like radicals",spot2:"Spot the mistake (5.2)"};
+const LESSONS={"5.1":["entry","bottom","neg","sols","iso","shift","order","spot","line"],"5.2":["rules","radmul","simp","vars","like","spot2"]};
+
+const SUPD={"0":"⁰","1":"¹","2":"²","3":"³","4":"⁴","5":"⁵","6":"⁶","7":"⁷","8":"⁸","9":"⁹","−":"⁻"};
+function sp(n){return String(n).split("").map(c=>SUPD[c]||c).join("")}
+function rad(n,x){return n===2?"√"+x:n===3?"∛"+x:n===4?"∜"+x:sp(n)+"√"+x}
+function gcd(a,b){a=Math.abs(a);b=Math.abs(b);while(b){[a,b]=[b,a%b]}return a||1}
+function xp(b,num,den){if(num===0)return "1";const g=gcd(num,den);num/=g;den/=g;if(den<0){num=-num;den=-den}
+  const s=num<0?"−"+(-num):String(num);return den===1?(num===1?`${b}`:`${b}<sup>${s}</sup>`):`${b}<sup>${s}/${den}</sup>`}
+function co(n){return n<0?"−"+(-n):String(n)}
+function uniq(c,cands){const out=[];cands.forEach(x=>{if(x!==c&&!out.includes(x)&&out.length<3)out.push(x)});return out}
+const GEN={
+entry(){
+  const b=pick([8,16,27,32,64,81,125,243]),n=ri(2,5);let m=ri(1,4);if(m===n)m=n+1;
+  return{q:`Which keypresses give ${b}<sup>${m}/${n}</sup>?`,ex:`${b}${sup(m,n)}`,
+  c:`${b} ^ (${m}/${n})`,w:[`${b} ^ ${m} / ${n}`,`${b} ^ (${n}/${m})`,`${b} × ${m} / ${n}`],
+  why:`A fraction exponent needs parentheses. Without them the calculator does ${b}<sup>${m}</sup> first, then divides by ${n}.<span class="mono">${b} ^ (${m}/${n}) ✓</span>And the fraction stays in its original order: ${P("top")} over ${R("bottom")}.`};
+},
+bottom(){
+  const r=ri(2,5),n=r===5?ri(2,3):ri(2,4);let m=ri(1,3);if(m===n)m=n===3?2:3;
+  const b=r**n,ans=r**m;
+  const w=new Set();[r*m,r**(m+1),Math.round(b*m/n),r+m,ans*r,ans+r,ans*2,ans+1,b,ans+2,ans+3].forEach(v=>{if(v!==ans&&v>0&&w.size<3)w.add(v)});
+  return{q:`What does ${b}<sup>${m}/${n}</sup> equal?`,ex:`${b}${sup(m,n)}`,c:String(ans),w:[...w].map(String),
+  why:`The ${R("bottom")} is the root, the ${P("top")} is the power. Root first keeps it small:<span class="mono">${R(n===2?"√":n+"th root of")} ${b} = ${r}</span><span class="mono">${r}${P("^"+m)} = ${ans}</span>`};
+},
+neg(){
+  const n=ri(2,5),r=ri(2,n>=4?3:4),b=r**n,odd=n%2===1;
+  return{q:`What is (−${b})<sup>1/${n}</sup>?`,ex:`(−${b})<sup>1/${R(n)}</sup>`,c:odd?`−${r}`:"Not a real number",
+  w:odd?[`${r}`,"Not a real number",`±${r}`]:[`−${r}`,`${r}`,`±${r}`],
+  why:odd?`${R(n)} is odd, so a negative works. Negative × itself an odd number of times stays negative:<span class="mono">(−${r})^${n} = −${b}</span>`
+  :`${R(n)} is even. Any number to an even power is positive, so nothing gives −${b}.<span class="mono">even root of a negative → not real</span>Watch out: typing −${b} ^ (1/${n}) without parentheses shows −${r}. That's the calculator lying to you.`};
+},
+sols(){
+  const n=ri(2,5),r=ri(2,n>=4?3:5),even=n%2===0,negK=Math.random()<.3,k=negK?-(r**n):r**n;
+  let c;if(even&&!negK)c=`x = ±${r}`;else if(even&&negK)c="No real solution";else if(!even&&!negK)c=`x = ${r}`;else c=`x = −${r}`;
+  const all=[`x = ${r}`,`x = −${r}`,`x = ±${r}`,"No real solution"];
+  const why=even&&!negK?`The power ${P(n)} is even, so the sign disappears. Both work:<span class="mono">${r}^${n} = ${k} and (−${r})^${n} = ${k}</span>The calculator only shows ${r}. Adding the ± is your job.`
+  :even?`An even power can never be negative, so nothing works.<span class="mono">x^${n} ≥ 0 always</span>`
+  :negK?`The power ${P(n)} is odd, so the sign survives. Only the negative works:<span class="mono">(−${r})^${n} = ${k}</span>`
+  :`The power ${P(n)} is odd, so there's one answer and no ±:<span class="mono">(−${r})^${n} = −${r**n}, so that doesn't work</span>`;
+  return{q:`Solve x<sup>${n}</sup> = ${k}`,ex:`x<sup>${P(n)}</sup> = ${k}`,c,w:all.filter(a=>a!==c),why};
+},
+iso(){
+  const a=ri(2,6),n=ri(2,4),r=ri(2,n===4?3:5),c=ri(4,60),d=a*r**n+c,rt=ROOT[n];
+  return{words:1,q:`${a}x<sup>${n}</sup> + ${c} = ${d}. What do you do?`,ex:`${a}x<sup>${P(n)}</sup> + ${c} = ${d}`,
+  c:`Subtract ${c}, divide by ${a}, then take the ${rt} root`,
+  w:[`Take the ${rt} root, then subtract ${c} and divide by ${a}`,`Divide by ${a}, subtract ${c}, then take the ${rt} root`,`Subtract ${c}, divide by ${a}, then raise to the ${NTH[n]} power`],
+  why:`Get x<sup>${n}</sup> alone first: undo the + ${c}, then the × ${a}, and the ${P("power")} goes last:<span class="mono">x^${n} = (${d} − ${c}) / ${a} = ${r**n}</span><span class="mono">x = ${R(rt+" root")} of ${r**n} = ${r}</span>If you divide first, the ${c} gets divided too, so it's not ${c} anymore. ${n%2===0?`The power is even, so the full answer is x = ±${r}.`:""}`};
+},
+shift(){
+  const n=pick([3,5]),h=ri(2,15),k=ri(20,400),rt=ROOT[n];
+  return{words:1,q:`(x + ${h})<sup>${n}</sup> = ${k}. What do you do?`,ex:`(x + ${h})<sup>${P(n)}</sup> = ${k}`,
+  c:`Take the ${rt} root, then subtract ${h}`,w:[`Subtract ${h}, then take the ${rt} root`,`Take the ${rt} root, then add ${h}`,`Raise both sides to the ${NTH[n]} power, then subtract ${h}`],
+  why:`Undo things in reverse order. The ${P("power")} happened last, so the root goes first, then subtract ${h}:<span class="mono">x + ${h} = ${k} ^ (1/${n}) ≈ ${(k**(1/n)).toFixed(2)}</span><span class="mono">x ≈ ${(k**(1/n)-h).toFixed(2)}</span>`};
+},
+order(){
+  const a=ri(2,5),n=pick([2,3]),h=ri(2,9),c=ri(10,40),r=ri(1,4),d=a*r**n+c,rt=ROOT[n];
+  const steps=[`Subtract ${c}`,`Divide by ${a}`,`Take the ${rt} root`,`Subtract ${h}`];
+  const decoy=pick([`Add ${c}`,`Raise to the ${NTH[n]} power`,`Add ${h}`,`Multiply by ${a}`]);
+  return{type:"order",win:9,q:`Tap the steps in order to get x alone`,ex:`${a}(x + ${h})<sup>${P(n)}</sup> + ${c} = ${d}`,
+  steps,tiles:shuffle([...steps,decoy]),
+  why:`Peel it from the outside in. The last thing done to x gets undone first:<span class="mono">(x + ${h})^${n} = (${d} − ${c}) / ${a} = ${r**n}</span><span class="mono">x + ${h} = ${r}  →  x = ${r-h}</span>${n===2?`Even power, so x + ${h} = −${r} works too: x = ${-r-h}.`:""}`};
+},
+spot(){
+  const v=ri(1,4);
+  if(v===1){const b=pick([64,729]),n=pick([2,3]),m=5-n,rootOf=k=>k===2?Math.round(Math.sqrt(b)):Math.round(Math.cbrt(b)),wv=rootOf(m),cv=rootOf(n);
+    const sym=k=>k===2?"√":"∛";
+    return{type:"spot",q:"Tap the line where the mistake happens",ex:`${b}${sup(m,n)}`,bad:1,
+    lines:[`${b}^(${m}/${n})`,`= (${sym(m)}${b})^${n}`,`= ${wv}^${n}`,`= ${(wv**n).toLocaleString()}`],
+    why:`They used the top number as the root. The ${R("bottom ("+n+")")} is the root:<span class="mono">(${sym(n)}${b})^${m} = ${cv}^${m} = ${(cv**m).toLocaleString()}</span>`};}
+  if(v===2){const r=ri(2,4),b=r**3;
+    return{type:"spot",q:"Tap the line where the mistake happens",ex:`(−${b})${sup(5,3)}`,bad:2,
+    lines:[`(−${b})^(5/3)`,`= (∛−${b})^5`,`= ${r}^5`,`= ${r**5}`],
+    why:`The cube root of a negative is negative: ∛−${b} = −${r}, not ${r}.<span class="mono">(−${r})^5 = −${r**5}</span>`};}
+  if(v===3){const n=pick([2,4]),r=ri(2,n===4?4:9),k=r**n;
+    return{type:"spot",q:"Tap the line where the mistake happens",ex:`x<sup>${P(n)}</sup> = ${k}`,bad:2,
+    lines:[`x^${n} = ${k}`,`x = ${k}^(1/${n})`,`x = ${r}`],
+    why:`The last line misses an answer. The power ${P(n)} is even, so −${r} works too:<span class="mono">x = ±${r}</span>`};}
+  const a=ri(2,6),r=ri(2,5),d=a*r**3;
+  return{type:"spot",q:"Tap the line where the mistake happens",ex:`${a}x<sup>3</sup> = ${d}`,bad:1,
+  lines:[`${a}x³ = ${d}`,`${a}x = ∛${d}`,`x = (∛${d}) / ${a}`,`x ≈ ${(Math.cbrt(d)/a).toFixed(2)}`],
+  why:`They took the cube root while the ${a} was still attached. Divide first:<span class="mono">x³ = ${d} / ${a} = ${r**3}  →  x = ${r}</span>`};
+},
+line(){
+  const n=pick([2,2,3,3,4,5]),a=n>=4?ri(2,3):ri(2,7),lo=a**n,hi=(a+1)**n,k=ri(lo+1,hi-1),s=Math.max(1,a-ri(0,3));
+  const sym=n===2?"√":n===3?"∛":n===4?"∜":"⁵√";
+  return{type:"line",q:`Tap the gap where ${sym}${k} lands`,ex:`${k}<sup>1/${R(n)}</sup>`,segs:[0,1,2,3,4].map(i=>s+i),ans:a,
+  why:`Check the whole numbers to the ${n===2?"2nd":n===3?"3rd":n+"th"} power:<span class="mono">${a}^${n} = ${lo}   and   ${a+1}^${n} = ${hi}</span>${k} is between them, so the root is between ${a} and ${a+1} (about ${(k**(1/n)).toFixed(2)}).`};
+}
+,
+rules(){
+  const b=pick([2,3,5,6,7,10]),v=ri(1,6);
+  if(v===1){const n=pick([2,3,4,5,6]);let p=ri(1,n+1),q=ri(1,n+1);if(p===q)q=p+1;
+    const c=xp(b,p+q,n);
+    return{q:`Simplify ${xp(b,p,n)} · ${xp(b,q,n)}`,ex:`${xp(b,p,n)} · ${xp(b,q,n)}`,c,
+    w:uniq(c,[xp(b,p*q,n*n),xp(b,p+q,2*n),xp(b,p,q*n),xp(b,Math.abs(p-q)||n+1,n),xp(b*b,p+q,n)]),
+    why:`Same base, multiplying → ${P("add")} the exponents:<span class="mono">${p}/${n} + ${q}/${n} = ${p+q}/${n}</span>`};}
+  if(v===2){const n=pick([2,3,4,5,6]);const whole=Math.random()<.5;const p=whole?n:ri(2,n+3);const q=ri(1,p-1);
+    const top=whole?`${b}`:xp(b,p,n),c=xp(b,p-q,n);
+    return{q:`Simplify ${top} ÷ ${xp(b,q,n)}`,ex:`<span style="display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle"><span>${top}</span><span style="border-top:2px solid currentColor;padding-top:2px">${xp(b,q,n)}</span></span>`,c,
+    w:uniq(c,[xp(b,p+q,n),xp(b,p,q),xp(b,q-p,n),`1<sup>${p-q}/${n}</sup>`,xp(b,p*q,n*n)]),
+    why:`Same base, dividing → ${P("subtract")} the exponents.${whole?` ${b} is ${b}<sup>${n}/${n}</sup>.`:""}<span class="mono">${p}/${n} − ${q}/${n} = ${p-q}/${n}</span>`};}
+  if(v===3){const m=ri(2,4),n=pick([2,3,4,5]),c=xp(b,m,n);
+    return{q:`Simplify (${b}<sup>${m}</sup>)<sup>1/${n}</sup>`,ex:`(${b}<sup>${m}</sup>)<sup>1/${n}</sup>`,c,
+    w:uniq(c,[xp(b,m*n+1,n),xp(b,n,m),xp(b,1,m*n),xp(b,m*n,1)]),
+    why:`Power of a power → ${P("multiply")} the exponents:<span class="mono">${m} × 1/${n} = ${m}/${n}</span>`};}
+  if(v===4){const n=pick([2,3,4,5]);let m=ri(1,n+1);if(m===n)m=n+1;const pos=xp(b,m,n),c=`1 / ${pos}`;
+    return{q:`Which is the same as ${b}<sup>−${m}/${n}</sup>?`,ex:`${b}<sup>−${m}/${n}</sup>`,c,
+    w:uniq(c,[`−${pos}`,`−1 / ${pos}`,xp(b,n,m)]),
+    why:`A negative exponent means ${R("flip it")} under 1. It does not make the answer negative.<span class="mono">${b}^(−${m}/${n}) = 1 / ${b}^(${m}/${n})</span>`};}
+  if(v===5){const pr=pick([[6,2],[12,4],[10,5],[15,5],[8,2],[14,7],[20,4]]);const sw=Math.random()<.5;const a=sw?pr[1]:pr[0],d=sw?pr[0]:pr[1];
+    const g=gcd(a,d),A=a/g,D=d/g,c=A===1?`${D}`:D===1?`1/${A}`:`${D}/${A}`;
+    const fr=(x,y)=>y===1?`${x}`:`${x}/${y}`;
+    return{q:`Simplify (${a}³ / ${d}³)<sup>−1/3</sup>`,ex:`(${a}<sup>3</sup> / ${d}<sup>3</sup>)<sup>−1/3</sup>`,c,
+    w:uniq(c,[fr(A,D),"−"+fr(A,D),fr(D**3,A**3),fr(A**3,D**3)]),
+    why:`Same power on top and bottom, so it's (${a}/${d})³ = (${fr(A,D)})³. Multiply exponents: 3 × (−1/3) = −1, and a −1 power flips the fraction:<span class="mono">(${fr(A,D)})^(−1) = ${c}</span>`};}
+  const k=pick([2,3,4,5]),c=xp(b,1,k);
+  return{q:`Simplify (${b}<sup>1/2</sup> · ${b}<sup>−3/2</sup>)<sup>−1/${k}</sup>`,ex:`(${b}<sup>1/2</sup> · ${b}<sup>−3/2</sup>)<sup>−1/${k}</sup>`,c,
+  w:uniq(c,[xp(b,-1,k),xp(b,3,4*k),xp(b,-3,4*k),xp(b,k,1)]),
+  why:`Inside first: same base, multiplying → add: 1/2 + (−3/2) = −1. Then power of a power → multiply:<span class="mono">−1 × (−1/${k}) = 1/${k}</span>`};
+},
+radmul(){
+  const n=pick([2,2,3,4]);
+  if(Math.random()<.65){const r=n===2?ri(4,15):n===3?ri(2,6):ri(2,4),T=r**n;
+    let divs=[];for(let d=2;d<T;d++)if(T%d===0&&Math.round(d**(1/n))**n!==d)divs.push(d);
+    if(!divs.length)for(let d=2;d<T;d++)if(T%d===0)divs.push(d);
+    let a=pick(divs),b=T/a;if(a>b)[a,b]=[b,a];const c=String(r);
+    return{q:`Simplify ${rad(n,a)} · ${rad(n,b)}`,ex:`${rad(n,a)} · ${rad(n,b)}`,c,w:uniq(c,[rad(n,a+b),String(T),rad(n*2,T),String(r+1),String(a*b*2)]),
+    why:`Same index, so multiply them under one root:<span class="mono">${rad(n,a)} · ${rad(n,b)} = ${rad(n,T)} = ${r}</span>This only works when the indexes match.`};}
+  const a=pick([2,3,5]),r=n===2?ri(2,6):n===3?ri(2,4):ri(2,3),b=a*r**n,c=`1/${r}`;
+  return{q:`Simplify ${rad(n,a)} / ${rad(n,b)}`,ex:`${rad(n,a)} / ${rad(n,b)}`,c,w:uniq(c,[String(r),`1/${r**n}`,rad(n,b-a),`1/${r*2}`]),
+  why:`Same index, so divide under one root:<span class="mono">${rad(n,a+"/"+b)} = ${rad(n,"(1/"+r**n+")")} = 1/${r}</span>`};
+},
+simp(){
+  const n=pick([2,2,3]),p=n===2?ri(2,7):ri(2,4),s=pick(n===2?[2,3,5,6,7,10,11]:[2,3,4,5,6,7,9]),x=p**n*s,c=`${p}${rad(n,s)}`;
+  return{q:`Write ${rad(n,x)} in simplest form`,ex:rad(n,x),c,w:uniq(c,[`${s}${rad(n,p)}`,`${p**n}${rad(n,s)}`,`${p}${rad(n,p*s)}`,`${p*s}`,`${p+1}${rad(n,s)}`]),
+  why:`Find the biggest perfect ${n===2?"square":"cube"} that goes into ${x}:<span class="mono">${x} = ${p**n} · ${s}</span><span class="mono">${rad(n,p**n)} = ${p}, so ${rad(n,x)} = ${p}${rad(n,s)}</span>`};
+},
+vars(){
+  const n=pick([2,3,4,5]),pr=pick([["x","y"],["r","t"],["m","n"],["a","b"],["k","z"]]),k=n<=3?ri(2,5):ri(2,3),C=k**n;
+  let a1=ri(1,4),a2=ri(1,3);if(n%2===0){a1=2*ri(1,2);a2=2*ri(1,2)}
+  const fr=Math.random()<.4,v=(L,e)=>e===1?L:`${L}<sup>${e}</sup>`;
+  const mk=(cf,e1,e2)=>fr?`${cf}${v(pr[0],e1)} / ${v(pr[1],e2)}`:`${cf}${v(pr[0],e1)}${v(pr[1],e2)}`;
+  const inside=mk(C,n*a1,n*a2),c=mk(k,a1,a2);
+  return{q:`Simplify ${rad(n,"("+inside+")")}`,ex:rad(n,"("+inside+")"),c,
+  w:uniq(c,[mk(C,a1,a2),mk(k,n*a1,n*a2),mk(Math.round(C/n),a1,a2),mk(k+1,a1,a2),mk(k,a1+1,a2)]),
+  why:`Take the ${ROOT[n]} root of each piece. Number: ${rad(n,C)} = ${k}. Variables: ${R("divide each exponent by "+n)}:<span class="mono">${n*a1} ÷ ${n} = ${a1},  ${n*a2} ÷ ${n} = ${a2}</span>`};
+},
+like(){
+  if(Math.random()<.72){const n=pick([2,3,4,6]),s=pick([2,3,5,7,12,14]),a=ri(2,12),b=ri(2,12),minus=Math.random()<.4,res=minus?a-b:a+b,ef=Math.random()<.3;
+    const term=(cf,ss=s,nn=n)=>ef?`${co(cf)}(${ss}<sup>1/${nn}</sup>)`:`${co(cf)}${rad(nn,ss)}`,c=res===0?"0":term(res);
+    return{q:`Simplify ${term(a)} ${minus?"−":"+"} ${term(b)}`,ex:`${term(a)} ${minus?"−":"+"} ${term(b)}`,c,
+    w:uniq(c,[term(res,2*s),term(a*b),term(res,s,2*n),term(res,s*s),term(res+1)]),
+    why:`Same index and same radicand, so they're like terms. Combine the numbers in front and ${R("keep the radical the same")}:<span class="mono">${a} ${minus?"−":"+"} ${b} = ${res}</span>Never add the radicands.`};}
+  const s=pick([2,3,5,7]),a=ri(2,9),b=ri(2,9),c="They can't be combined";
+  return{words:1,q:`Simplify ${a}√${s} + ${b}∛${s}`,ex:`${a}√${s} + ${b}∛${s}`,c,w:[`${a+b}√${s}`,`${a+b}${rad(5,s)}`,`${a+b}${rad(6,s)}`],
+  why:`Like radicals need the ${R("same index")} AND the same radicand. A square root and a cube root aren't like terms, so it stays as is.`};
+},
+spot2(){
+  const v=ri(1,4),b=pick([2,3,5,7]);
+  if(v===1){const s=pick([5,6,7,10,11,12]),a=ri(2,7),d=ri(2,7);
+    return{type:"spot",q:"Tap the line where the mistake happens",ex:`${a}∛${s} + ${d}∛${s}`,bad:1,
+    lines:[`${a}∛${s} + ${d}∛${s}`,`= (${a} + ${d})∛${2*s}`,`= ${a+d}∛${2*s}`],
+    why:`When you add like radicals, the radicand stays the same. Only the numbers in front add:<span class="mono">${a}∛${s} + ${d}∛${s} = ${a+d}∛${s}</span>`};}
+  if(v===2){const m=ri(2,4),n=pick([2,3,5]);
+    return{type:"spot",q:"Tap the line where the mistake happens",ex:`(${b}<sup>${m}</sup>)<sup>1/${n}</sup>`,bad:1,
+    lines:[`(${b}^${m})^(1/${n})`,`= ${b}^(${m} + 1/${n})`,`= ${b}^(${m*n+1}/${n})`],
+    why:`Power of a power means ${P("multiply")} the exponents, not add:<span class="mono">${m} × 1/${n} = ${m}/${n}  →  ${b}^(${m}/${n})</span>`};}
+  if(v===3)return{type:"spot",q:"Tap the line where the mistake happens",ex:`${b}<sup>1/2</sup> · ${b}<sup>1/3</sup>`,bad:1,
+    lines:[`${b}^(1/2) · ${b}^(1/3)`,`= ${b}^(1/2 · 1/3)`,`= ${b}^(1/6)`],
+    why:`Multiplying powers with the same base means ${P("add")} the exponents:<span class="mono">1/2 + 1/3 = 5/6  →  ${b}^(5/6)</span>`};
+  const p=ri(2,7),s=pick([2,3,5,6,7]),x=p*p*s;
+  return{type:"spot",q:"Tap the line where the mistake happens",ex:`√${x}`,bad:2,
+    lines:[`√${x}`,`= √(${p*p} · ${s})`,`= ${p*p}√${s}`],
+    why:`The ${p*p} comes out of the square root as √${p*p} = ${p}, not ${p*p}:<span class="mono">√${x} = ${p}√${s}</span>`};
+}
+
+};
+const KEYS=Object.keys(GEN);
+
+const LT=[
+()=>{const r=ri(2,3),n=pick([2,4]),b=r**n;return{s:`(−${b})<sup>1/${n}</sup> is a real number`,t:false,why:"Even root of a negative isn't real."}},
+()=>{const r=ri(2,4),b=r**3;return{s:`(−${b})<sup>1/3</sup> = −${r}`,t:true,why:"Odd roots keep the negative."}},
+()=>{const r=ri(2,9),n=pick([2,4]);return{s:`x<sup>${n}</sup> = ${r**n} has two real solutions`,t:true,why:"Even power → ±."}},
+()=>{const r=ri(2,4),n=pick([3,5]);return{s:`x<sup>${n}</sup> = ${r**n} has two real solutions`,t:false,why:"Odd power → just one answer."}},
+()=>{const m=ri(2,5);let n=ri(2,5);if(n===m)n=m===5?2:m+1;const t=Math.random()<.5;return{s:`In 64<sup>${m}/${n}</sup>, the ${t?n:m} tells you which root`,t,why:"Bottom number = root."}},
+()=>{const n=pick([2,4,6]),k=ri(4,80);return{s:`x<sup>${n}</sup> = −${k} has no real solution`,t:true,why:"Even powers are never negative."}},
+()=>{const b=pick([8,27,64]),m=ri(2,4);return{s:`Typing ${b} ^ ${m} / 3 gives ${b}<sup>${m}/3</sup>`,t:false,why:"You need parentheses: ^ (m/3)."}},
+()=>{const r=ri(2,9);return{s:`${r*r}<sup>1/2</sup> = ${r}`,t:true,why:"A 1/2 power is a square root."}},
+()=>{const r=ri(2,4),b=r**3;return{s:`${b}<sup>1/3</sup> = ${Math.round(b/3)}`,t:false,why:`1/3 means cube root: ${r}.`}},
+()=>{const r=ri(2,5);return{s:`To solve 2x<sup>3</sup> = ${2*r**3}, cube root first`,t:false,why:"Divide by 2 first."}}
+];
+const LT52=[
+()=>{const a=pick([2,3,5]),b=pick([8,18,27,50]);return{s:`√${a} · √${b} = √${a*b}`,t:true,why:"Same index: multiply under one root."}},
+()=>{const a=ri(2,9),b=ri(2,9);return{s:`√${a} + √${b} = √${a+b}`,t:false,why:"You can't add radicands."}},
+()=>{const b=pick([2,3,5]),m=ri(2,4),n=ri(2,5);return{s:`(${b}<sup>${m}</sup>)<sup>1/${n}</sup> = ${b}<sup>${m}/${n}</sup>`,t:true,why:"Power of a power: multiply."}},
+()=>{const b=pick([2,3,5]);return{s:`${b}<sup>1/2</sup> · ${b}<sup>1/3</sup> = ${b}<sup>1/6</sup>`,t:false,why:"Add exponents: 5/6."}},
+()=>{const a=ri(2,6),d=ri(2,6),s=pick([3,5,7]);return{s:`${a}√${s} + ${d}√${s} = ${a+d}√${2*s}`,t:false,why:`Keep the radicand: ${a+d}√${s}.`}},
+()=>{const b=pick([2,3,7]),n=pick([2,3,4]);return{s:`${b}<sup>−1/${n}</sup> = 1 / ${rad(n,b)}`,t:true,why:"Negative exponent = flip."}},
+()=>{const b=pick([2,3,7]);return{s:`${b}<sup>−1/2</sup> is a negative number`,t:false,why:"Negative exponents flip, they don't make it negative."}},
+()=>{const p=ri(2,6),s=pick([2,3,5]),ok=Math.random()<.5;return{s:`√${p*p*s} = ${ok?p:p*p}√${s}`,t:ok,why:`√${p*p} = ${p}, so ${p}√${s}.`}},
+()=>{const k=ri(2,3);return{s:`∜(${k**4}x<sup>8</sup>) = ${k}x<sup>2</sup>`,t:true,why:"Divide exponents by the index."}},
+()=>{const s=pick([2,3,5]);return{s:`2√${s} + 3∛${s} = 5√${s}`,t:false,why:"Different indexes aren't like terms."}}];
+let st={done:true},lastKey=null,raf=null,runSeq=0;
+const $=id=>document.getElementById(id);
+const LS={get(k,d){try{const v=localStorage.getItem("rootrush_"+k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem("rootrush_"+k,JSON.stringify(v))}catch(e){}}};
+let runs=LS.get("runs",0);
+let bestBy=LS.get("bestBy",null);if(!bestBy){bestBy={"5.1":{best:LS.get("best",0),dur:LS.get("bestDur",60)}};LS.set("bestBy",bestBy)}
+let selDay=LS.get("selDay","5.2");
+function bestOf(d){return (bestBy[d]||{}).best||0}
+function durOf(d){return (bestBy[d]||{}).dur||60}
+let day=LS.get("day",{streak:0,last:null,freezes:0});
+const TOTAL=90,LT_AT=50;
+const PU={freeze:{name:"Freeze",icon:"❄"},shield:{name:"Shield",icon:"◆"},double:{name:"Double",icon:"×2"}};
+
+let ac=null,sound=LS.get("sound",true);
+function beep(f,d=.09,type="sine",v=.14,delay=0){if(!sound||!ac)return;try{const t=ac.currentTime+delay,o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g).connect(ac.destination);o.start(t);o.stop(t+d)}catch(e){}}
+function buzz(ms){try{navigator.vibrate&&navigator.vibrate(ms)}catch(e){}}
+function flash(c){document.body.classList.add(c);setTimeout(()=>document.body.classList.remove(c),170)}
+function sndLabel(){$("snd").textContent="Sound: "+(sound?"on":"off")}
+$("snd").onclick=()=>{sound=!sound;LS.set("sound",sound);sndLabel()};sndLabel();
+
+function rank(s){return s>=9000?"Radical legend":s>=6000?"Exponent ace":s>=3000?"Root apprentice":"Square one"}
+function dayKey(d){return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate()}
+function daysBetween(a,b){const p=s=>{const[y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};return Math.round((p(b)-p(a))/864e5)}
+function liveStreak(){if(!day.last)return 0;const gap=daysBetween(day.last,dayKey(new Date()));return gap-1<=day.freezes?day.streak:0}
+const SKILLS=[
+{k:"rules",L:"5.2",n:"Exponent rules",rule:`Same base: multiply → ${P("add")}, divide → ${P("subtract")}, power of a power → ${P("multiply")}. Negative exponent → flip.`,ex:`5<sup>1/3</sup> · 5<sup>1/3</sup> = 5<sup>2/3</sup><br>(8<sup>2</sup>)<sup>1/3</sup> = 8<sup>2/3</sup><br>2<sup>−1</sup> = 1/2`},
+{k:"radmul",L:"5.2",n:"Multiply and divide radicals",rule:`Same index → combine under one radical, then simplify.`,ex:`√3 · √27 = √81 = 9<br>√3 / √75 = √(1/25) = 1/5`},
+{k:"simp",L:"5.2",n:"Simplest form",rule:"Pull the biggest perfect square (or cube) out of the radical.",ex:`√50 = √(25 · 2) = 5√2<br>∛54 = ∛(27 · 2) = 3∛2`},
+{k:"vars",L:"5.2",n:"Roots of variables",rule:`Root of the number, and ${R("divide each exponent by the index")}.`,ex:`∜(16x<sup>8</sup>y<sup>4</sup>) = 2x<sup>2</sup>y`},
+{k:"like",L:"5.2",n:"Like radicals",rule:"Same index AND same radicand → add the numbers in front. The radical stays the same.",ex:`4∛7 + 9∛7 = 13∛7<br>4∛7 + 9∛7 ≠ 13∛14`},
+{k:"spot2",L:"5.2",n:"Spot the mistake (5.2)",rule:"Watch for added radicands, added exponents in a power of a power, and perfect squares pulled out without rooting.",ex:`(2<sup>3</sup>)<sup>1/2</sup> = 2<sup>3/2</sup> ✓<br>(2<sup>3</sup>)<sup>1/2</sup> = 2<sup>3 + 1/2</sup> ✗`},
+{k:"bottom",n:"Bottom = root",rule:`In a<sup>m/n</sup>, the ${R("bottom")} is the root and the ${P("top")} is the power. Do the root first.`,ex:`8<sup>${P(2)}/${R(3)}</sup> = (${R("∛")}8)${P("²")} = 2² = 4`},
+{k:"entry",n:"Typing it in",rule:"Fraction exponents always go in parentheses, in the same top/bottom order.",ex:`8 ^ (2/3) → 4 ✓<br>8 ^ 2 / 3 → 21.33 ✗`},
+{k:"neg",n:"Negative bases",rule:`${R("Odd")} root of a negative is negative. ${R("Even")} root of a negative isn't real.`,ex:`(−27)<sup>1/3</sup> = −3<br>(−16)<sup>1/4</sup> → not real`},
+{k:"sols",n:"How many answers",rule:`${P("Even")} power → ± (or no solution if it equals a negative). ${P("Odd")} power → one answer that keeps its sign.`,ex:`x⁴ = 16 → x = ±2<br>x³ = −8 → x = −2<br>x⁴ = −16 → no real solution`},
+{k:"iso",n:"Isolate first",rule:"Get the power by itself before you take any root.",ex:`5x³ = 1080<br>x³ = 216<br>x = 6`},
+{k:"shift",n:"Undo in reverse",rule:"Whatever happened to x last gets undone first: the root, then the + or −.",ex:`(x + 10)⁵ = 70<br>x + 10 = 70<sup>1/5</sup> ≈ 2.34<br>x ≈ −7.66`},
+{k:"order",n:"Order the steps",rule:"Peel from the outside in: ± the constant, ÷ the coefficient, root, then the inside ±.",ex:`3(x + 5)² + 20 = 47<br>−20 → ÷3 → √ → −5<br>x = −2 or −8`},
+{k:"spot",n:"Spot the mistake",rule:"Check each line: right root? Sign kept? ± added? Isolated before rooting?",ex:`64<sup>3/2</sup> = (∛64)² ✗<br>64<sup>3/2</sup> = (√64)³ = 512 ✓`},
+{k:"line",n:"Estimate the root",rule:"List whole numbers to that power and see which two the number lands between.",ex:`3³ = 27 &lt; 50 &lt; 64 = 4³<br>so ∛50 is between 3 and 4`}];
+const ROAD=[["5.1","nth roots and rational exponents","Day 1"],["5.2","Properties of rational exponents and radicals","Day 2"],["5.3","Graphing radical functions","Next"],["5.4","Solving radical equations and inequalities","Later"],["Test","Review and unit test","Later"]];
+let sk=LS.get("skills",{}),hist=LS.get("hist",[]),openSkill=null;
+function lvl(k){const s=sk[k]||{r:0,t:0};if(!s.t)return 0;const a=s.r/s.t;if(s.t>=8&&a>=.9)return 3;if(s.t>=4&&a>=.75)return 2;return 1}
+const LVN=["New","Learning","Solid","Mastered"],LVC=["var(--line)","#BA7517","#378ADD","var(--good)"];
+function renderSkills(){
+  const box=$("skills");box.innerHTML="";let m=0,lastL=null;
+  const ord=[...SKILLS].sort((x,y)=>((x.L||"5.1")===selDay?0:1)-((y.L||"5.1")===selDay?0:1));
+  ord.forEach(S=>{const LL=S.L||"5.1";if(LL!==lastL){lastL=LL;const hd=document.createElement("div");hd.className="sk-grp";hd.textContent=`${LL} · Day ${DAYS[LL].n}`+(LL===selDay?"":LL<selDay?" · review":" · next");box.appendChild(hd)}
+    const s=sk[S.k]||{r:0,t:0},L=lvl(S.k);if(L===3)m++;
+    const pct=s.t?Math.min(1,s.t/8)*(s.r/s.t)*100:0;
+    const row=document.createElement("div");row.className="sk";
+    row.innerHTML=`<button class="sk-h"><span class="sk-n">${S.n}</span><span class="sk-bar"><i style="width:${pct}%;background:${LVC[L]}"></i></span><span class="pill lv${L}">${LVN[L]}</span></button>`;
+    if(openSkill===S.k){const b=document.createElement("div");b.className="sk-b";
+      b.innerHTML=`<div class="sk-rule">${S.rule}</div><div class="sk-ex mono">${S.ex}</div><div class="sk-stat mute">${s.t?`${s.r} of ${s.t} right (${Math.round(s.r/s.t*100)}%)`:"Not tried yet"}${L<3?" · Mastered = 8+ tries at 90%+":""}</div>`;
+      const pb=document.createElement("button");pb.className="practice";pb.textContent="Practice this";pb.onclick=()=>start(S.k);b.appendChild(pb);row.appendChild(b)}
+    row.querySelector(".sk-h").onclick=()=>{openSkill=openSkill===S.k?null:S.k;renderSkills()};
+    box.appendChild(row)});
+  $("skSum").textContent=`${m} / ${SKILLS.length} mastered`;
+}
+function renderSpark(){
+  const box=$("spark"),last=hist.slice(-10);box.innerHTML="";
+  if(!last.length){box.innerHTML='<div class="spark-empty">Play a run to start your chart</div>';$("sparkNote").textContent="";return}
+  const mx=Math.max(...last.map(h=>h.score),1);
+  last.forEach(h=>{const b=document.createElement("div");b.className="b";b.style.height=Math.max(4,h.score/mx*92)+"%";b.style.background=h.focus?"var(--root)":"var(--hot)";
+    b.innerHTML=`<span>${h.score>=1000?(h.score/1000).toFixed(1)+"k":h.score}</span>`;box.appendChild(b)});
+  $("sparkNote").innerHTML=`<span style="color:var(--hot)">Rush</span> · <span style="color:var(--root)">Practice</span>`;
+}
+function renderRoad(){$("road").innerHTML=ROAD.map(r=>`<div class="rd ${r[0]===selDay?"on":DAYS[r[0]]?"done click":"off"}" data-d="${r[0]}"><span class="rd-n">${r[0]}</span><span class="rd-t">${r[1]}</span><span class="rd-s">${r[0]===selDay?"Viewing":r[2]}</span></div>`).join("")+`<div class="mute" style="font-size:12px;padding:8px 0 4px">5.5 and 5.6 are skipped in St. Vrain's pacing. Tap a day to switch to it.</div>`;
+  $("road").querySelectorAll(".rd.click").forEach(el=>el.onclick=()=>setDay(el.dataset.d))}
+const DAYS={"5.1":{n:1,t:"5.1 nth roots and rational exponents",mix:"Rush uses only 5.1 questions",rules:`<div class="formula mono">a<sup><span class="pw">m</span>/<span class="rt">n</span></sup> = (<span class="rt">ⁿ√</span>a)<sup class="pw">m</sup></div><div class="legend"><span class="pw">top = power</span><span class="rt">bottom = root</span></div>`},
+"5.2":{n:2,t:"5.2 Properties of rational exponents and radicals",mix:"Rush mixes 60% 5.2 with 40% 5.1 review",rules:`<div class="rules52 mono"><div>a<sup>m</sup> · a<sup>n</sup> = a<sup>m+n</sup></div><div>a<sup>m</sup> / a<sup>n</sup> = a<sup>m−n</sup></div><div>(a<sup>m</sup>)<sup>n</sup> = a<sup>mn</sup></div><div>ⁿ√a · ⁿ√b = ⁿ√(ab)</div></div>`}};
+const LATEST="5.2";
+function setDay(d){if(!DAYS[d])return;selDay=d;LS.set("selDay",d);openSkill=null;beep(700,.05);home()}
+function home(){
+  const D=DAYS[selDay],b=bestOf(selDay);
+  $("dsw").innerHTML="";Object.keys(DAYS).forEach(d=>$("dsw").appendChild(mkBtn(d===selDay?"on":"",`Day ${DAYS[d].n} · ${d}`,()=>setDay(d))));
+  $("heroEye").textContent=`Unit 5 · Day ${D.n}`+(selDay===LATEST?" · Today":" · Review");$("heroTitle").textContent=D.t;$("heroRules").innerHTML=D.rules;$("rushMix").textContent=D.mix;
+  $("hBest").textContent=b.toLocaleString();$("hRank").textContent=rank(b);$("hRuns").textContent=runs;
+  $("hDay").textContent=liveStreak();$("hFrz").textContent=day.freezes+" / 2";
+  const done=day.last===dayKey(new Date());$("goal").classList.toggle("done",done);$("goalBox").textContent=done?"✓":"";
+  $("goalTxt").textContent=done?"Daily goal done. Your streak is safe today":"Daily goal: finish 1 run";
+  renderSkills();renderSpark();renderRoad();
+  const L=LRN(),ld=LD();
+  $("learnTxt").textContent=`${ld.length} of ${L.length} lessons done`;$("learnBar").style.width=(ld.length/L.length*100)+"%";
+  $("learnBtn").textContent=ld.length===0?`Learn ${selDay} · about ${L.length} min`:ld.length<L.length?`Continue learning · lesson ${Math.max(0,L.findIndex((_,j)=>!ld.includes(j)))+1}`:`Review ${selDay} lessons`;
+  setSync(syncState);show("home");window.scrollTo(0,0);
+}
+const LEARN52=[
+{hw:"Homework #1",t:"Power of a power",rule:`When a power is raised to another power, ${P("multiply")} the exponents.<span class="mono">(a<sup>m</sup>)<sup>n</sup> = a<sup>m·n</sup></span>`,
+ prob:`(8<sup>2</sup>)<sup>1/3</sup>`,steps:[[`= 8<sup>2/3</sup>`,"Multiply the exponents: 2 × 1/3 = 2/3"],[`= (∛8)<sup>2</sup>`,"Bottom 3 = cube root, top 2 = power"],[`= 2<sup>2</sup> = 4`,"Root first keeps it small"]],
+ chk:{q:`Simplify (27<sup>2</sup>)<sup>1/3</sup>`,o:["9","3","27<sup>7/3</sup>","81"],a:0,why:"2 × 1/3 = 2/3, and 27<sup>2/3</sup> = (∛27)² = 3² = 9."}},
+{hw:"Homework #2",t:"Dividing powers",rule:`Same base, dividing → ${P("subtract")} the exponents. A plain number like 5 has an exponent of 1.<span class="mono">a<sup>m</sup> / a<sup>n</sup> = a<sup>m−n</sup></span>`,
+ prob:`5 / 5<sup>1/3</sup>`,steps:[[`= 5<sup>1</sup> / 5<sup>1/3</sup>`,"5 is 5 to the 1st power"],[`= 5<sup>1 − 1/3</sup>`,"Same base, dividing: subtract"],[`= 5<sup>2/3</sup>`,"1 = 3/3, and 3/3 − 1/3 = 2/3"]],
+ chk:{q:`Simplify 7 / 7<sup>1/4</sup>`,o:["7<sup>3/4</sup>","7<sup>5/4</sup>","7<sup>4</sup>","1<sup>3/4</sup>"],a:0,why:"1 − 1/4 = 3/4, so it's 7<sup>3/4</sup>."}},
+{hw:"Homework #3",t:"Power of a fraction and negative exponents",rule:`If the top and bottom have the same power, put the fraction inside: a<sup>m</sup>/b<sup>m</sup> = (a/b)<sup>m</sup>. A ${R("negative exponent flips")} the fraction.<span class="mono">x<sup>−1</sup> = 1/x</span>`,
+ prob:`(8<sup>3</sup> / 4<sup>3</sup>)<sup>−1/3</sup>`,steps:[[`= ((8/4)<sup>3</sup>)<sup>−1/3</sup> = (2<sup>3</sup>)<sup>−1/3</sup>`,"Same power on top and bottom, so combine: 8/4 = 2"],[`= 2<sup>−1</sup>`,"Multiply exponents: 3 × (−1/3) = −1"],[`= 1/2`,"Negative exponent: flip it. It's not negative"]],
+ chk:{q:`Simplify (12<sup>3</sup> / 4<sup>3</sup>)<sup>−1/3</sup>`,o:["1/3","3","−3","1/27"],a:0,why:"12/4 = 3, then 3 × (−1/3) = −1, and 3<sup>−1</sup> = 1/3."}},
+{hw:"Homework #4",t:"Inside first, then the outside power",rule:`Work inside the parentheses first: same base, multiplying → ${P("add")}. Then multiply by the outside exponent.`,
+ prob:`(3<sup>1/2</sup> · 3<sup>−5/2</sup>)<sup>−1/2</sup>`,steps:[[`= (3<sup>−2</sup>)<sup>−1/2</sup>`,"Add inside: 1/2 + (−5/2) = −4/2 = −2"],[`= 3<sup>1</sup>`,"Multiply: −2 × (−1/2) = 1"],[`= 3`,"Negative times negative is positive"]],
+ chk:{q:`Simplify (2<sup>1/2</sup> · 2<sup>−3/2</sup>)<sup>−1/3</sup>`,o:["2<sup>1/3</sup>","2<sup>−1/3</sup>","2<sup>3</sup>","2<sup>3/4</sup>"],a:0,why:"Inside: 1/2 − 3/2 = −1. Then −1 × (−1/3) = 1/3."}},
+{hw:"Homework #5 and #6",t:"Multiplying radicals",rule:`If the ${R("index matches")}, multiply everything under one radical, then simplify.<span class="mono">ⁿ√a · ⁿ√b = ⁿ√(ab)</span>`,
+ prob:`√3 · √27`,steps:[[`= √(3 · 27)`,"Both are square roots, so they combine"],[`= √81`,"Multiply inside"],[`= 9`,"81 is a perfect square"]],
+ chk:{q:`Simplify ∛4 · ∛16`,o:["4","∛20","64","2∛8"],a:0,why:"∛(4 · 16) = ∛64 = 4."}},
+{hw:"Homework #7 and #8",t:"Dividing radicals",rule:`Same index → divide under one radical. Reduce the fraction inside before taking the root.<span class="mono">ⁿ√a / ⁿ√b = ⁿ√(a/b)</span>`,
+ prob:`√3 / √75`,steps:[[`= √(3/75)`,"Same index, so combine"],[`= √(1/25)`,"Reduce: 3/75 = 1/25"],[`= 1/5`,"√1 = 1 and √25 = 5"]],
+ chk:{q:`Simplify √2 / √50`,o:["1/5","5","1/25","√48"],a:0,why:"√(2/50) = √(1/25) = 1/5."},
+ note:"For a problem with multiplying AND dividing, do the top and bottom first, then divide. Change roots with different indexes to the same index if needed."},
+{hw:"Homework #9 and #10",t:"Roots of numbers and variables",rule:`Take the root of the number. For each variable, ${R("divide the exponent by the index")}.<span class="mono">ⁿ√(xᵃ) = x<sup>a/n</sup></span>`,
+ prob:`∜(16x<sup>8</sup>y<sup>4</sup>)`,steps:[[`= ∜16 · ∜x<sup>8</sup> · ∜y<sup>4</sup>`,"Split it into pieces"],[`= 2 · x<sup>2</sup> · y`,"∜16 = 2, 8 ÷ 4 = 2, 4 ÷ 4 = 1"],[`= 2x<sup>2</sup>y`,"Put it back together"]],
+ chk:{q:`Simplify ∛(27a<sup>6</sup>b<sup>3</sup>)`,o:["3a<sup>2</sup>b","9a<sup>2</sup>b","3a<sup>6</sup>b<sup>3</sup>","27a<sup>2</sup>b"],a:0,why:"∛27 = 3, 6 ÷ 3 = 2, 3 ÷ 3 = 1."}},
+{hw:"Homework #11 and #12",t:"Roots of fractions with variables",rule:`Take the root of the top and the bottom separately, using the same divide-the-exponent rule.<span class="mono">ⁿ√(a/b) = ⁿ√a / ⁿ√b</span>`,
+ prob:`⁵√(x<sup>15</sup> / 32y<sup>10</sup>)`,steps:[[`= ⁵√x<sup>15</sup> / ⁵√(32y<sup>10</sup>)`,"Top and bottom separately"],[`= x<sup>3</sup> / 2y<sup>2</sup>`,"15 ÷ 5 = 3, ⁵√32 = 2, 10 ÷ 5 = 2"]],
+ chk:{q:`Simplify ∛(a<sup>9</sup> / 8b<sup>6</sup>)`,o:["a<sup>3</sup> / 2b<sup>2</sup>","a<sup>6</sup> / 2b<sup>3</sup>","a<sup>3</sup> / 8b<sup>2</sup>","a<sup>3</sup>b<sup>2</sup> / 2"],a:0,why:"9 ÷ 3 = 3, ∛8 = 2, 6 ÷ 3 = 2."},
+ note:"With an even root (like ∜), if a variable comes out with an odd power, some teachers want absolute value bars, like |z|. Check what your teacher does."},
+{hw:"Homework #13, #14, and the error",t:"Adding like radicals",rule:`Like radicals have the ${R("same index AND same radicand")}. Add the numbers in front and keep the radical exactly the same.<span class="mono">a·ⁿ√x + b·ⁿ√x = (a+b)·ⁿ√x</span>`,
+ prob:`4∛7 + 9∛7`,steps:[[`= (4 + 9)∛7`,"Same index (3) and same radicand (7)"],[`= 13∛7`,"The ∛7 stays. Never add to get ∛14"]],
+ chk:{q:`Simplify 5∜3 − 8∜3`,o:["−3∜3","−3∜6","13∜3","−3√3"],a:0,why:"5 − 8 = −3, and the ∜3 stays the same."},
+ note:"Exponent form works the same way: 2(6<sup>1/3</sup>) + 5(6<sup>1/3</sup>) = 7(6<sup>1/3</sup>)."}];
+const LEARN51=[
+{hw:"5.1 · Homework #1",t:"What a 1/n exponent means",rule:`An exponent of 1/n means the ${R("nth root")}.<span class="mono">a<sup>1/n</sup> = ⁿ√a</span>`,
+ prob:`81<sup>1/4</sup>`,steps:[[`= ∜81`,"1/4 means 4th root"],[`= 3`,"Because 3 · 3 · 3 · 3 = 81"]],
+ chk:{q:`What is 125<sup>1/3</sup>?`,o:["5","41.67","375","25"],a:0,why:"1/3 means cube root, and 5 · 5 · 5 = 125."}},
+{hw:"5.1 · Homework #2–3",t:"Bottom = root, top = power",rule:`In a<sup>m/n</sup>, the ${R("bottom (n)")} is the root and the ${P("top (m)")} is the power. Do the root first to keep the numbers small.<span class="mono">a<sup>m/n</sup> = (ⁿ√a)<sup>m</sup></span>`,
+ prob:`16<sup>3/2</sup>`,steps:[[`= (√16)<sup>3</sup>`,"Bottom 2 = square root, top 3 = power"],[`= 4<sup>3</sup>`,"√16 = 4"],[`= 64`,"4 · 4 · 4"]],
+ chk:{q:`What is 8<sup>4/3</sup>?`,o:["16","4096","10.67","2"],a:0,why:"(∛8)⁴ = 2⁴ = 16."}},
+{hw:"5.1 · Homework #4–5",t:"Negative bases",rule:`An ${R("odd")} root of a negative is negative. An ${R("even")} root of a negative is not a real number.`,
+ prob:`(−64)<sup>1/3</sup>`,steps:[[`= ∛−64`,"Cube root is odd, so a negative works"],[`= −4`,"Because (−4)(−4)(−4) = −64"]],
+ chk:{q:`What is (−125)<sup>1/3</sup>?`,o:["−5","5","Not real","±5"],a:0,why:"(−5)³ = −125. Odd roots keep the negative."},
+ note:"(−16)<sup>1/4</sup> is not real, because nothing to the 4th power is negative."},
+{hw:"5.1 · Homework #6",t:"Spotting the root/power swap",rule:`The most common mistake is using the top number as the root. Always check: ${R("bottom = root")}.`,
+ prob:`64<sup>2/3</sup>`,steps:[[`= (∛64)<sup>2</sup>`,"Bottom 3 → cube root (not square root)"],[`= 4<sup>2</sup> = 16`,"∛64 = 4"]],
+ chk:{q:`Someone wrote 9<sup>3/2</sup> = (∛9)². What's right?`,o:["(√9)³ = 27","(∛9)² ≈ 4.33","9 × 3/2 = 13.5","(√9)² = 9"],a:0,why:"The bottom is 2, so it's a square root: (√9)³ = 3³ = 27."}},
+{hw:"5.1 · Homework #7–10",t:"Typing it into a calculator",rule:`Put fraction exponents in ${R("parentheses")}. Without them, the calculator divides after doing the power.<span class="mono">50 ^ (2/5)  ✓     50 ^ 2 / 5  ✗</span>`,
+ prob:`(∜187)<sup>3</sup>`,steps:[[`= 187<sup>3/4</sup>`,"Root 4 goes on the bottom, power 3 on top"],[`187 ^ (3/4)`,"Type it with parentheses"],[`≈ 50.57`,"Round to two decimals"]],
+ chk:{q:`Which keypresses give 85<sup>1/6</sup>?`,o:["85 ^ (1/6)","85 ^ 1 / 6","85 × 1 / 6","85 ^ (6/1)"],a:0,why:"Parentheses keep 1/6 together as the exponent."}},
+{hw:"5.1 · Homework #11–14",t:"Solving x<sup>n</sup> = k",rule:`Get the power alone, then take the root. ${P("Even")} power → ± (two answers). ${P("Odd")} power → one answer.`,
+ prob:`2x<sup>4</sup> + 10 = 172`,steps:[[`2x<sup>4</sup> = 162`,"Subtract 10"],[`x<sup>4</sup> = 81`,"Divide by 2"],[`x = ±∜81 = ±3`,"Even power, so ±"]],
+ chk:{q:`Solve 4x<sup>3</sup> = 500`,o:["x = 5","x = ±5","x ≈ 7.94","x = 125"],a:0,why:"x³ = 125, so x = 5. The power is odd, so there's no ±."},
+ note:"For (x + h)<sup>n</sup> = k, take the root first, then subtract h."}];
+const LEARNS={"5.1":LEARN51,"5.2":LEARN52};
+let learnedBy=LS.get("learnedBy",null);if(!learnedBy){learnedBy={"5.1":[],"5.2":LS.get("learned52",[])};LS.set("learnedBy",learnedBy)}
+function LRN(){return LEARNS[selDay]}function LD(){return learnedBy[selDay]||(learnedBy[selDay]=[])}
+let li=0,lStep=0,lState=null;
+function openLearn(i){li=i==null?Math.max(0,LRN().findIndex((_,j)=>!LD().includes(j))):i;if(li<0)li=0;lStep=0;lState=null;renderLearn();show("learn");window.scrollTo(0,0)}
+function renderLearn(){
+  $("lCount").textContent=li>=LRN().length?"Done":`Lesson ${li+1} of ${LRN().length}`;
+  $("lDots").innerHTML=LRN().map((_,j)=>`<i class="${j===li?"on":LD().includes(j)?"done":""}"></i>`).join("");
+  const box=$("lCard");
+  if(li>=LRN().length){box.innerHTML=`<div class="l-title">You've got ${selDay}</div><div class="l-rule">${LD().length} of ${LRN().length} lessons done. Each one matches a part of your homework, so you can go back to any of them while you work. Next, lock it in with a Rush.</div>`;
+    box.appendChild(mkBtn("big l-btn","Play Rush",()=>start(null)));box.appendChild(mkBtn("l-btn","Home",home));return}
+  const L=LRN()[li];
+  let h=`<span class="hwtag">${L.hw}</span><div class="l-title">${L.t}</div><div class="l-rule">${L.rule}</div><div class="l-h">Example</div><div class="l-problem mono">${L.prob}</div>`;
+  L.steps.slice(0,lStep).forEach((s,j)=>{h+=`<div class="l-step"><b>${j+1}</b><div><span class="mono">${s[0]}</span><small>${s[1]}</small></div></div>`});
+  box.innerHTML=h;
+  if(lStep<L.steps.length){box.appendChild(mkBtn("big l-btn",lStep===0?"Show step 1":"Next step",()=>{lStep++;beep(700+lStep*80,.06);renderLearn()}));
+    const sk=mkBtn("l-btn","Show all steps",()=>{lStep=L.steps.length;renderLearn()});box.appendChild(sk);return}
+  if(L.note){const n=document.createElement("div");n.className="l-note";n.innerHTML=L.note;box.appendChild(n)}
+  const t=document.createElement("div");t.innerHTML=`<div class="l-h" style="margin-top:16px">Your turn</div><div class="q">${L.chk.q}</div>`;box.appendChild(t);
+  if(!lState)lState={order:shuffle(L.chk.o.map((_,j)=>j)),tried:[],ok:false};
+  lState.order.forEach(j=>{const b=mkBtn("opt mono",L.chk.o[j],()=>{
+      if(lState.ok||lState.tried.includes(j))return;
+      if(j===L.chk.a){lState.ok=true;if(!LD().includes(li)){LD().push(li);persist()}beep(880,.1);beep(1320,.12,"sine",.12,.08);flash("fok")}
+      else{lState.tried.push(j);beep(150,.2,"square",.07);flash("fbad")}
+      renderLearn()});
+    if(lState.ok&&j===L.chk.a)b.classList.add("ok");if(lState.tried.includes(j))b.classList.add("no");box.appendChild(b)});
+  if(lState.tried.length||lState.ok){const w=document.createElement("div");w.className="why";w.style.borderColor=lState.ok?"var(--good)":"var(--bad)";
+    w.innerHTML=(lState.ok?"<b>Yes.</b> ":"<b>Not that one. Try again.</b> ")+(lState.ok||lState.tried.length>1?L.chk.why:"Look back at step "+L.steps.length+" of the example.");box.appendChild(w)}
+  if(lState.ok)box.appendChild(mkBtn("big l-btn",li===LRN().length-1?"Finish":"Next lesson",()=>{li++;lStep=0;lState=null;renderLearn();window.scrollTo(0,0)}));
+}
+let cloud=null,cloudBusy=false,cloudAgain=false,cloudT=null,syncState="local";
+function saveLocal(){LS.set("runs",runs);LS.set("bestBy",bestBy);LS.set("day",day);LS.set("skills",sk);LS.set("hist",hist);LS.set("learnedBy",learnedBy)}
+function packSave(){return{v:1,runs,bestBy,day,skills:sk,hist,learnedBy,updated:Date.now()}}
+function mergeSave(c){
+  if(!c||typeof c!=="object")return;
+  runs=Math.max(runs,+c.runs||0);
+  for(const d in (c.bestBy||{})){const x=c.bestBy[d];if(x&&(+x.best||0)>bestOf(d))bestBy[d]={best:+x.best,dur:+x.dur||60}}
+  if(c.day&&c.day.last){if(!day.last||daysBetween(day.last,c.day.last)>0||(c.day.last===day.last&&(c.day.streak||0)>day.streak))day={streak:c.day.streak||0,last:c.day.last,freezes:c.day.freezes||0}}
+  for(const k in (c.skills||{})){const x=c.skills[k];if(x&&(!sk[k]||(x.t||0)>sk[k].t))sk[k]={r:x.r||0,t:x.t||0}}
+  const key=h=>h.id?String(h.id):h.d+"|"+h.score;const seen=new Set(hist.map(key));
+  (c.hist||[]).forEach(h=>{if(h&&!seen.has(key(h))){hist.push({...h});seen.add(key(h))}});
+  hist.sort((a,b)=>(a.id||0)-(b.id||0));hist=hist.slice(-30);
+  for(const d in (c.learnedBy||{}))learnedBy[d]=[...new Set([...(learnedBy[d]||[]),...(c.learnedBy[d]||[])])];
+  saveLocal();
+}
+function persist(){saveLocal();if(!cloud)return;clearTimeout(cloudT);cloudT=setTimeout(pushCloud,800)}
+async function pushCloud(){
+  if(!cloud)return;if(cloudBusy){cloudAgain=true;return}cloudBusy=true;
+  try{await cloud.set(packSave());setSync("cloud")}catch(e){setSync(e&&e.code==="revoked"?"local":"retry")}
+  cloudBusy=false;if(cloudAgain){cloudAgain=false;pushCloud()}
+}
+function setSync(x){syncState=x;const el=$("sync");if(!el)return;
+  el.textContent=x==="cloud"?"✓ Saved to your Claude account · syncs between your devices":x==="loading"?"Loading your saved progress…":x==="retry"?"Saved on this device · couldn't reach your account just now":"Saved on this device";
+  el.className="sync "+x}
+async function initCloud(){
+  if(!window.claude||typeof window.claude.use!=="function"){setSync("local");return}
+  setSync("loading");const timer=setTimeout(()=>{if(syncState==="loading")setSync("retry")},10000);
+  try{
+    const db=await window.claude.use("db"),user=await window.claude.use("user");const id=user?await user.id():null;
+    if(!db||!id){clearTimeout(timer);setSync("local");return}
+    const ref=db.doc("data/users/"+id+"/save");const snap=await ref.get();clearTimeout(timer);
+    cloud=ref;if(snap.exists)mergeSave(snap.data());
+    await pushCloud();
+    if(!$("home").classList.contains("hidden"))home();
+  }catch(e){clearTimeout(timer);setSync("retry")}
+}
+function show(id){["home","learn","game","end"].forEach(s=>$(s).classList.toggle("hidden",s!==id))}
+
+function start(f){
+  const focus=typeof f==="string"?f:null;st.lastFocus=focus;
+  try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();ac.resume()}catch(e){}
+  st={score:0,streak:0,maxStreak:0,time:TOTAL,elapsed:0,right:0,total:0,miss:{},paused:true,done:false,counting:true,
+      pu:[],freeze:0,shield:false,dbl:0,queue:[],qn:0,lastSec:TOTAL+1,mode:"main",ltDone:!!focus,focus,lastFocus:focus,day:selDay,gBest:bestOf(selDay),gDur:durOf(selDay)};
+  $("gMode").textContent=focus?"Practice · "+TAGS[focus]:"Unit "+selDay+" · Rush";
+  $("sc").textContent="0";$("bn").textContent="";hudCombo();renderPU();
+  $("vs").textContent=st.gBest?"":"no ghost yet: set one this run";
+  show("game");next();cancelAnimationFrame(raf);let last=performance.now();
+  const loop=now=>{const dt=Math.min(.1,(now-last)/1000);last=now;frame(dt);if(!st.done)raf=requestAnimationFrame(loop)};raf=requestAnimationFrame(loop);
+  const el=$("cd"),rid=++runSeq;let n=3;el.classList.remove("hidden");
+  const step=()=>{if(rid!==runSeq||st.done)return;if(n>0){el.textContent=n;beep(440,.12);n--;setTimeout(step,600)}
+    else{el.textContent="Go";beep(880,.2);setTimeout(()=>{if(rid!==runSeq)return;el.classList.add("hidden");st.paused=false;st.counting=false;st.qStart=performance.now()},350)}};
+  step();
+}
+function mult(){return Math.min(5,1+Math.floor(st.streak/3))}
+function hudCombo(){const m=mult();$("cb").textContent="×"+m;$("mt").style.width=(m===5?100:(st.streak%3)/3*100)+"%";$("qc").classList.toggle("fire",m===5)}
+function frame(dt){
+  if(st.done)return;
+  if(st.mode==="lt"){
+    st.ltTime-=dt;$("ex").textContent=Math.max(0,Math.ceil(st.ltTime))+"s";
+    $("bn").textContent="Lightning round: tap fast";
+    if(st.ltTime<=0)endLightning();
+    return;
+  }
+  if(!st.paused){
+    st.elapsed+=dt;
+    if(st.freeze>0)st.freeze=Math.max(0,st.freeze-dt);else st.time-=dt;
+    const sec=Math.ceil(st.time);if(sec<st.lastSec){st.lastSec=sec;if(sec<=5&&sec>0)beep(660,.05,"square",.05)}
+    if(!st.ltDone&&st.time<=LT_AT&&!st.locked){st.ltDone=true;return startLightning()}
+  }
+  if(st.time<=0){st.time=0;return finish()}
+  $("tm").textContent=Math.ceil(st.time);$("tf").style.width=Math.min(100,st.time/TOTAL*100)+"%";
+  $("tf").style.background=st.freeze>0?"var(--root)":st.time<=10?"var(--hot)":"var(--pow)";
+  let b="";
+  if(!st.counting){if(st.freeze>0)b=`Clock frozen: ${Math.ceil(st.freeze)}s`;else if(st.time<=10)b="Double points: last 10 seconds";else if(st.dbl>0)b=`Double: ${st.dbl} left`;else if(mult()===5)b="On fire: ×5";else if(!st.ltDone&&st.time<=LT_AT+5)b="Lightning round incoming";}
+  if(st.shield&&!b)b="Shield up: your combo is protected";
+  $("bn").textContent=b;
+  const ghostScore=st.gBest*Math.min(1,st.elapsed/st.gDur);
+  const top=Math.max(st.gBest,st.score,1)*1.05;
+  $("yd").style.left=(st.score/top*100)+"%";
+  if(st.gBest){$("ghd").style.left=(ghostScore/top*100)+"%";
+    const d=Math.round(st.score-ghostScore);$("vs").innerHTML=d>=0?`<span style="color:var(--good)">+${d.toLocaleString()} ahead of your best</span>`:`<span style="color:var(--bad)">${d.toLocaleString()} behind your best</span>`}
+}
+function renderPU(){
+  const box=$("pu");box.innerHTML="";
+  for(let s=0;s<2;s++){const k=st.pu[s],b=document.createElement("button");
+    if(k){b.className="pu";b.innerHTML=`<span>${PU[k].icon}</span>${PU[k].name}`;b.onclick=()=>usePU(s)}
+    else{b.className="pu empty";b.textContent="Power-up slot";b.disabled=true}
+    box.appendChild(b)}
+}
+function usePU(s){
+  if(st.paused||st.done||st.mode!=="main")return;const k=st.pu.splice(s,1)[0];if(!k)return;
+  if(k==="freeze")st.freeze+=5;if(k==="shield")st.shield=true;if(k==="double")st.dbl+=3;
+  beep(990,.12,"triangle",.12);beep(1480,.15,"triangle",.1,.08);popup(PU[k].name+"!","var(--root)");renderPU();
+}
+function mkBtn(cls,html,fn){const b=document.createElement("button");b.className=cls;b.innerHTML=html;b.onclick=fn;return b}
+function next(){
+  if(st.done||st.mode!=="main")return;
+  st.qn++;let k,rematch=false;
+  const due=st.queue.findIndex(q=>q.at<=st.qn);
+  if(due>=0){k=st.queue.splice(due,1)[0].key;rematch=true}
+  else if(st.focus)k=st.focus;
+  else{const pool=st.day==="5.1"?LESSONS["5.1"]:(Math.random()<.6?LESSONS["5.2"]:LESSONS["5.1"]);do{k=pick(pool)}while(k===lastKey)}
+  lastKey=k;
+  const p=GEN[k]();st.cur={...p,key:k,rematch};
+  $("tg").textContent=rematch?"Rematch: "+TAGS[k]:TAGS[k];$("tg").classList.toggle("rm",rematch);
+  $("qt").innerHTML=p.q;$("ex").innerHTML=p.ex;
+  $("why").classList.add("hidden");$("go").classList.add("hidden");
+  const box=$("opts");box.innerHTML="";
+  if(p.type==="order"){
+    st.seq=[];
+    const slots=document.createElement("div");slots.id="slots";slots.className="slots";
+    p.steps.forEach((_,i)=>{const s=document.createElement("div");s.className="slot";s.textContent=i+1;slots.appendChild(s)});
+    box.appendChild(slots);
+    const tiles=document.createElement("div");tiles.className="tiles";
+    p.tiles.forEach(t=>tiles.appendChild(mkBtn("tile",t,e=>tapTile(t,e.currentTarget))));
+    box.appendChild(tiles);
+  }else if(p.type==="spot"){
+    p.lines.forEach((l,i)=>box.appendChild(mkBtn("opt mono line-step",`<kbd>${i+1}</kbd><span>${l}</span>`,()=>pickIdx(i))));
+  }else if(p.type==="line"){
+    const row=document.createElement("div");row.className="nl";
+    p.segs.forEach((s,i)=>row.appendChild(mkBtn("seg",`<span>${s}</span><span>–</span><span>${s+1}</span>`,()=>pickIdx(i))));
+    box.appendChild(row);
+    const ax=document.createElement("div");ax.className="nl-axis";box.appendChild(ax);
+  }else{
+    const opts=shuffle([p.c,...p.w.slice(0,3)]);st.cur.opts=opts;
+    opts.forEach((o,i)=>box.appendChild(mkBtn("opt "+(p.words?"words":"mono"),`<kbd>${i+1}</kbd><span>${o}</span>`,()=>pickIdx(i))));
+  }
+  st.locked=false;st.qStart=performance.now();
+}
+function pickIdx(i){
+  if(st.locked||st.done||st.paused||st.mode!=="main")return;
+  const p=st.cur,bs=[...$("opts").querySelectorAll(p.type==="line"?".seg":".opt")];if(!bs[i])return;
+  let ci;
+  if(p.type==="spot")ci=p.bad;else if(p.type==="line")ci=p.segs.indexOf(p.ans);else ci=p.opts.indexOf(p.c);
+  bs[ci].classList.add("ok");if(i!==ci)bs[i].classList.add("no");
+  resolve(i===ci);
+}
+function tapTile(t,el){
+  if(st.locked||st.done||st.paused||st.mode!=="main"||el.disabled)return;
+  const p=st.cur,want=p.steps[st.seq.length],slots=[...$("slots").children];
+  if(t===want){
+    slots[st.seq.length].textContent=t;slots[st.seq.length].classList.add("filled");st.seq.push(t);el.disabled=true;el.classList.add("used");
+    beep(700+st.seq.length*90,.06,"sine",.08);
+    if(st.seq.length===p.steps.length)resolve(true);
+  }else{
+    el.classList.add("no");
+    p.steps.forEach((s,i)=>{if(i>=st.seq.length){slots[i].textContent=s;slots[i].classList.add("fix")}});
+    resolve(false);
+  }
+}
+function popup(t,c){const p=$("pop");p.innerHTML=t;p.style.color=c;p.classList.remove("on");void p.offsetWidth;p.classList.add("on");setTimeout(()=>p.classList.remove("on"),550)}
+function resolve(ok){
+  st.locked=true;st.total++;
+  {const k=st.cur.key,o=sk[k]||{r:0,t:0};o.t++;if(ok)o.r++;sk[k]=o;LS.set("skills",sk)}
+  if(ok){
+    const before=mult();
+    st.streak++;st.maxStreak=Math.max(st.maxStreak,st.streak);st.right++;
+    const win=st.cur.win||5,secs=(performance.now()-st.qStart)/1000,speed=Math.max(0,Math.round((win-secs)*75/win));
+    let x=1;if(st.time<=10)x*=2;if(st.dbl>0){x*=2;st.dbl--}
+    const red=st.cur.rematch?150:0;
+    const pts=(100*mult()+speed+red)*x;
+    st.score+=pts;st.time=Math.min(TOTAL,st.time+1);
+    const up=mult()>before;
+    let extra="";
+    if(red)extra+='<div style="font-size:16px">rematch won</div>';
+    else if(speed>=45)extra+='<div style="font-size:16px">fast</div>';
+    if(up)extra+=`<div style="font-size:20px">combo ×${mult()}</div>`;
+    if(st.streak%5===0&&st.pu.length<2){const k=pick(Object.keys(PU));st.pu.push(k);renderPU();extra+=`<div style="font-size:18px;color:var(--root)">power-up: ${PU[k].name}</div>`}
+    popup(`+${pts}${extra}`,"var(--hot)");
+    beep(Math.min(1200,520+st.streak*45),.1);if(up)beep(1320,.15,"triangle",.12,.08);
+    flash("fok");buzz(15);
+    $("sc").textContent=st.score.toLocaleString();hudCombo();
+    setTimeout(next,st.cur.type==="order"?600:340);
+  }else{
+    $("qc").classList.remove("shake");void $("qc").offsetWidth;$("qc").classList.add("shake");
+    st.time-=3;st.miss[st.cur.key]=(st.miss[st.cur.key]||0)+1;
+    st.queue.push({key:st.cur.key,at:st.qn+ri(2,4)});
+    let note="−3s";
+    if(st.shield){st.shield=false;note="−3s · shield saved your combo"}else st.streak=0;
+    hudCombo();popup(note,"var(--bad)");beep(140,.28,"square",.08);buzz([60,40,60]);flash("fbad");
+    st.paused=true;$("why").innerHTML=st.cur.why+'<div class="mute" style="font-size:13px;margin-top:6px">This type comes back as a rematch in a few questions.</div>';
+    $("why").classList.remove("hidden");$("go").classList.remove("hidden");
+    setTimeout(()=>$("go").scrollIntoView({behavior:"smooth",block:"nearest"}),60);
+  }
+}
+$("go").onclick=()=>{st.paused=false;if(st.time<=0)return finish();window.scrollTo({top:0,behavior:"smooth"});next()};
+
+function startLightning(){
+  st.mode="lt";st.ltTime=10;st.ltScore=0;st.ltLock=false;
+  beep(660,.1,"square",.08);beep(880,.1,"square",.08,.1);beep(1320,.2,"square",.08,.2);buzz([30,30,30]);
+  popup("Lightning round!","var(--root)");
+  $("qc").classList.add("ltcard");ltNext();
+}
+function ltNext(){
+  if(st.mode!=="lt")return;
+  const s=(st.day==="5.2"&&Math.random()<.6?pick(LT52):pick(LT))();st.lt=s;st.ltLock=false;
+  $("tg").textContent="Lightning: true or false, +100 each";$("tg").classList.add("rm");
+  $("qt").innerHTML=s.s;$("go").classList.add("hidden");$("why").classList.add("hidden");
+  const box=$("opts");box.innerHTML="";const row=document.createElement("div");row.className="tf";
+  row.appendChild(mkBtn("tfb","True",()=>ltAnswer(true)));row.appendChild(mkBtn("tfb","False",()=>ltAnswer(false)));box.appendChild(row);
+}
+function ltAnswer(v){
+  if(st.mode!=="lt"||st.ltLock)return;st.ltLock=true;
+  const bs=[...$("opts").querySelectorAll(".tfb")],ok=v===st.lt.t;
+  bs[st.lt.t?0:1].classList.add("ok");
+  if(ok){st.score+=100;st.ltScore+=100;$("sc").textContent=st.score.toLocaleString();beep(900+st.ltScore/5,.06);flash("fok");setTimeout(ltNext,160)}
+  else{bs[v?0:1].classList.add("no");beep(160,.15,"square",.07);flash("fbad");buzz(40);
+    $("why").innerHTML=st.lt.why;$("why").classList.remove("hidden");setTimeout(ltNext,1100)}
+}
+function endLightning(){
+  st.mode="main";$("qc").classList.remove("ltcard");$("tg").classList.remove("rm");
+  popup(`Lightning +${st.ltScore}`,"var(--root)");beep(1047,.2);
+  st.qStart=performance.now();next();
+}
+
+function updateDay(){
+  const today=dayKey(new Date());let msg="";
+  if(day.last===today)return "";
+  if(!day.last){day.streak=1}
+  else{const gap=daysBetween(day.last,today);
+    if(gap===1)day.streak++;
+    else if(gap-1<=day.freezes){day.freezes-=gap-1;day.streak++;msg=` (used ${gap-1} freeze${gap-1>1?"s":""})`}
+    else day.streak=1}
+  if(day.streak%7===0&&day.freezes<2){day.freezes++;msg+=" · earned a streak freeze"}
+  day.last=today;LS.set("day",day);return msg;
+}
+function finish(){
+  if(st.done)return;st.done=true;cancelAnimationFrame(raf);
+  runs++;LS.set("runs",runs);
+  hist.push({id:Date.now(),score:st.score,focus:st.focus||null,d:dayKey(new Date()),day:st.day});hist=hist.slice(-30);LS.set("hist",hist);
+  const nb=!st.focus&&st.score>st.gBest;if(nb){bestBy[st.day]={best:st.score,dur:Math.max(30,st.elapsed)}}
+  const dm=updateDay();
+  $("eHead").textContent=st.focus?"Practice · "+TAGS[st.focus]:nb?"New personal best":"Run over";
+  $("eScore").textContent=st.score.toLocaleString();$("eRank").textContent=rank(st.score);
+  $("eBest").textContent=bestOf(st.day).toLocaleString();
+  $("eAcc").textContent=st.total?Math.round(st.right/st.total*100)+"% ("+st.right+"/"+st.total+")":"—";
+  $("eStreak").textContent=st.maxStreak;
+  $("eDay").textContent=day.streak+(day.streak===1?" day":" days")+dm;
+  const w=Object.entries(st.miss).sort((a,b)=>b[1]-a[1])[0];
+  $("eWeak").textContent=w?TAGS[w[0]]:"None";
+  const tips={entry:"Fraction exponents always go in parentheses, and keep the order: top over bottom.",bottom:"Bottom is the root, top is the power. Take the root first.",neg:"Odd root of a negative gives a negative. Even root of a negative isn't real.",sols:"Even power → ± (or no solution if it equals a negative). Odd power → one answer that keeps its sign.",iso:"Get the power alone before you take any root: undo +/−, then ×/÷, then the power.",shift:"Undo in reverse order: the power first, then the + or −.",order:"Peel from the outside in: whatever was done to x last gets undone first.",spot:"Check each line against the rules: bottom = root, odd roots keep the negative, even powers get ±, isolate before rooting.",line:"To estimate a root, list whole numbers to that power and see which two the number lands between.",rules:"Same base: multiply → add exponents, divide → subtract, power of a power → multiply. Negative exponent → flip.",radmul:"Only combine radicals with the same index, then simplify the one radical.",simp:"Pull out the biggest perfect square or cube factor.",vars:"Divide each variable's exponent by the index.",like:"Like radicals need the same index and radicand. Add the front numbers and keep the radical.",spot2:"Check for added radicands, added exponents in a power of a power, and perfect squares pulled out without rooting."};
+  $("eTip").textContent=w?tips[w[0]]:"Flawless. Next run, push the combo harder and save Double for when you're at ×5.";
+  persist();
+  beep(523,.12);beep(659,.12,"sine",.14,.12);beep(nb?1047:784,.25,"sine",.14,.24);
+  show("end");
+}
+$("start").onclick=()=>start(null);$("learnBtn").onclick=()=>openLearn(LD().length>=LRN().length?0:null);$("lHome").onclick=home;$("again").onclick=()=>start(st.lastFocus||null);$("toHome").onclick=home;
+$("quit").onclick=()=>{if(st.done)return;st.done=true;runSeq++;cancelAnimationFrame(raf);$("cd").classList.add("hidden");home()};
+document.addEventListener("keydown",e=>{
+  if(!$("game").classList.contains("hidden")){
+    if(st.mode==="lt"){if(e.key==="1"||e.key==="ArrowLeft"||e.key==="t")ltAnswer(true);else if(e.key==="2"||e.key==="ArrowRight"||e.key==="f")ltAnswer(false);return}
+    if(e.key>="1"&&e.key<="5"){const i=+e.key-1;if(st.cur&&st.cur.type==="order"){const t=[...document.querySelectorAll(".tile")][i];if(t)t.click()}else pickIdx(i)}
+    else if(e.key==="Enter"&&!$("go").classList.contains("hidden"))$("go").click();
+  }else if(e.key==="Enter"){(!$("home").classList.contains("hidden")?$("start"):$("again")).click()}
+});
+home();
+initCloud();
+</script>
+</body>
+</html>
