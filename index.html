@@ -184,6 +184,15 @@ body.calc-open .calc-fab{display:none}
 .rv-next{font-size:13px;margin:16px 2px 0}
 .mchip{font:inherit;font-size:13px;cursor:pointer;color:var(--root);border-color:var(--root);font-weight:700}.mchip.off{color:var(--mute);border-color:var(--line);font-weight:400}
 .chips{flex-wrap:wrap;justify-content:flex-end}
+.splash{position:fixed;inset:0;z-index:20;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;cursor:pointer;transition:opacity .35s}
+.splash.gone{opacity:0;pointer-events:none}
+.splash-sq{width:110px;height:110px;border-radius:26px;background:var(--hot);color:#fff;font-size:70px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.splash-tap{font-size:18px;font-weight:700;color:var(--mute);animation:blink 1.4s ease-in-out infinite}@keyframes blink{50%{opacity:.35}}
+.mus-top{display:flex;align-items:center;gap:10px;margin-bottom:12px}.mus-top input{flex:1;accent-color:var(--root)}
+.mus-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mus-opt{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px;text-align:left}
+.mus-opt b{font-size:15px}.mus-opt small{font-size:12px;color:var(--mute)}
+.mus-opt.on{border-color:var(--root);background:color-mix(in srgb,var(--root) 14%,transparent)}.mus-opt.on b{color:var(--root)}
 </style>
 </head>
 <body>
@@ -221,6 +230,9 @@ body.calc-open .calc-fab{display:none}
   <div class="sec"><h3>Unit 5 roadmap</h3></div>
   <div class="card road" id="road"></div>
 
+  <div class="sec"><h3>Music</h3></div>
+  <div class="card" id="musCard"></div>
+
   <details class="card how">
     <summary>How to play</summary>
     <div style="font-size:15px;line-height:1.7;margin-top:10px">
@@ -241,7 +253,7 @@ body.calc-open .calc-fab{display:none}
     <div class="mute kbhint" style="margin-top:6px;font-size:13px">On a keyboard, keys 1–5 answer and Enter continues.</div>
     </div>
   </details>
-  <div style="text-align:center;margin:14px 0 8px"><button class="small" id="snd">Sound: on</button> <button class="small" id="musBtn2">Music: on</button></div>
+  <div style="text-align:center;margin:14px 0 8px"><button class="small" id="snd">Sound: on</button></div>
 </section>
 
 <section id="learn" class="hidden">
@@ -300,6 +312,7 @@ body.calc-open .calc-fab{display:none}
   <div class="ckeys" id="cKeys"></div>
   <div class="mute" style="font-size:12px;margin-top:8px">For 8<sup>2/3</sup> type 8 ^ ( 2 ÷ 3 ). Without the ( ) it works like a real calculator and gives the wrong answer.</div>
 </div>
+<div class="splash" id="splash"><div class="brand" style="font-size:48px">Root<span>Rush</span></div><div class="splash-sq">√</div><div class="splash-tap">Tap to start</div></div>
 <div class="pop" id="pop"></div>
 <div class="cd hidden" id="cd"></div>
 </div>
@@ -551,34 +564,91 @@ function buzz(ms){try{navigator.vibrate&&navigator.vibrate(ms)}catch(e){}}
 function flash(c){document.body.classList.add(c);setTimeout(()=>document.body.classList.remove(c),170)}
 function sndLabel(){$("snd").textContent="Sound: "+(sound?"on":"off")}
 $("snd").onclick=()=>{sound=!sound;LS.set("sound",sound);sndLabel()};sndLabel();
-let musicOn=LS.get("music",true),mus=null;
-function musLabel(){$("musBtn").textContent=musicOn?"♪ Music on":"♪ Music off";$("musBtn").classList.toggle("off",!musicOn);$("musBtn2").textContent="Music: "+(musicOn?"on":"off")}
-function musStart(){
-  if(!musicOn||mus||document.hidden)return;
-  try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();ac.resume()}catch(e){return}
-  const out=ac.createGain();out.gain.setValueAtTime(0,ac.currentTime);out.gain.linearRampToValueAtTime(.085,ac.currentTime+2.5);
-  const lp=ac.createBiquadFilter();lp.type="lowpass";lp.frequency.value=2400;lp.connect(out);out.connect(ac.destination);
-  const bpm=84,s16=60/bpm/4,prog=[[57,60,64,67],[53,57,60,64],[48,52,55,59],[55,59,62,65]],F=m=>440*Math.pow(2,(m-69)/12);
-  const note=(fr,t,d,ty,v)=>{const o=ac.createOscillator(),g=ac.createGain();o.type=ty;o.frequency.value=fr;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.03);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(lp);o.start(t);o.stop(t+d+.05)};
-  const nz=(t,d,v,hp)=>{const n=Math.floor(ac.sampleRate*d),b=ac.createBuffer(1,n,ac.sampleRate),x=b.getChannelData(0);for(let i=0;i<n;i++)x[i]=(Math.random()*2-1)*(1-i/n);const src=ac.createBufferSource();src.buffer=b;const fl=ac.createBiquadFilter();fl.type="highpass";fl.frequency.value=hp;const g=ac.createGain();g.gain.value=v;src.connect(fl);fl.connect(g);g.connect(lp);src.start(t)};
-  const kick=t=>{const o=ac.createOscillator(),g=ac.createGain();o.frequency.setValueAtTime(110,t);o.frequency.exponentialRampToValueAtTime(42,t+.16);g.gain.setValueAtTime(.45,t);g.gain.exponentialRampToValueAtTime(.001,t+.28);o.connect(g);g.connect(lp);o.start(t);o.stop(t+.3)};
-  const arp=[0,2,1,3,2,1,3,2];
-  mus={out,next:ac.currentTime+.1,step:0,timer:null};
-  const sched=()=>{while(mus&&mus.next<ac.currentTime+.3){const t=mus.next,st_=mus.step,bar=Math.floor(st_/16)%4,b=st_%16,ch=prog[bar];
-      if(b===0){ch.forEach(m=>note(F(m),t,s16*15,"triangle",.035));note(F(ch[0]-24),t,s16*7,"sine",.16)}
-      if(b===8)note(F(ch[0]-24),t,s16*7,"sine",.13);
-      if(b%2===0)note(F(ch[arp[(b/2)%8]]+12),t,s16*1.8,"sine",.03);
-      if(b===0||b===7||b===10)kick(t);
-      if(b===4||b===12)nz(t,.14,.07,1800);
-      if(b%2===1)nz(t,.03,.025,8000);
-      mus.next+=s16;mus.step++}};
-  mus.timer=setInterval(sched,50);sched();
-}
-function musStop(){if(!mus)return;const m=mus;mus=null;clearInterval(m.timer);try{const t=ac.currentTime;m.out.gain.cancelScheduledValues(t);m.out.gain.setValueAtTime(m.out.gain.value,t);m.out.gain.linearRampToValueAtTime(0,t+.6);setTimeout(()=>{try{m.out.disconnect()}catch(e){}},900)}catch(e){}}
-function musToggle(){musicOn=!musicOn;LS.set("music",musicOn);musLabel();if(musicOn)musStart();else musStop()}
-$("musBtn").onclick=musToggle;$("musBtn2").onclick=musToggle;musLabel();
-document.addEventListener("pointerdown",e=>{if(!(e.target.closest&&e.target.closest("#musBtn,#musBtn2")))musStart()},{passive:true});document.addEventListener("keydown",()=>musStart());
-document.addEventListener("visibilitychange",()=>{if(document.hidden)musStop();else if(musicOn)musStart()});
+let musicOn=LS.get("music",true),musTrack=LS.get("musTrack","auto"),musVol=LS.get("musVol",70),musReady=false,musBus=null,musTimer=null,musActive=[],musCur=null,curScreen="home";
+const MF=m=>440*Math.pow(2,(m-69)/12);
+let NB=null;function noiseBuf(){if(!NB){NB=ac.createBuffer(1,ac.sampleRate,ac.sampleRate);const d=NB.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1}return NB}
+function inst(dest){
+  const env=(g,t,a,v,d)=>{g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(v,t+a);g.gain.exponentialRampToValueAtTime(.0001,t+Math.max(d,a+.01))};
+  const osc=(type,f,t,d,v,a,cut)=>{const o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.value=f;let n=o;if(cut){const fl=ac.createBiquadFilter();fl.type="lowpass";fl.frequency.setValueAtTime(cut*3,t);fl.frequency.exponentialRampToValueAtTime(cut,t+d*.6+.01);o.connect(fl);n=fl}n.connect(g);g.connect(dest);env(g,t,a||.005,v,d);o.start(t);o.stop(t+d+.05)};
+  const nz=(t,d,v,type,f,q)=>{const s=ac.createBufferSource();s.buffer=noiseBuf();const fl=ac.createBiquadFilter();fl.type=type;fl.frequency.value=f;fl.Q.value=q||1;const g=ac.createGain();s.connect(fl);fl.connect(g);g.connect(dest);env(g,t,.002,v,d);s.start(t,Math.random()*.5);s.stop(t+d+.05)};
+  return{
+    K:(t,v=1,f0=150,d=.32)=>{const o=ac.createOscillator(),g=ac.createGain();o.frequency.setValueAtTime(f0,t);o.frequency.exponentialRampToValueAtTime(42,t+.14);g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g);g.connect(dest);o.start(t);o.stop(t+d+.02)},
+    S:(t,v=.5)=>{nz(t,.18,v,"bandpass",1900,.8);osc("triangle",190,t,.1,v*.5)},
+    C:(t,v=.45)=>nz(t,.13,v,"bandpass",1200,1.3),
+    H:(t,v=.15,d=.04)=>nz(t,d,v,"highpass",7500),
+    B:(m,t,d,v=.35,cut=500,type="sawtooth")=>osc(type,MF(m),t,d,v,.005,cut),
+    P:(ch,t,d,v=.05,type="sawtooth")=>ch.forEach(m=>{osc(type,MF(m)*1.004,t,d,v,d*.25,2000);osc(type,MF(m)*.996,t,d,v,d*.25,2000)}),
+    L:(m,t,d,v=.08,type="square")=>osc(type,MF(m),t,d,v,.005),
+    E:(m,t,d,v=.12)=>{osc("sine",MF(m),t,d,v,.004);osc("sine",MF(m)*2,t,d*.4,v*.3,.004)},
+    SUB:(m,t,d,v=.6,from)=>{const o=ac.createOscillator(),g=ac.createGain();o.type="sine";o.frequency.setValueAtTime(MF(from==null?m:from),t);if(from!=null)o.frequency.exponentialRampToValueAtTime(MF(m),t+.12);g.gain.setValueAtTime(v,t);g.gain.setValueAtTime(v,t+d*.7);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g);g.connect(dest);o.start(t);o.stop(t+d+.02)}
+  }}
+const AM=[[57,60,64,67],[53,57,60,64],[48,52,55,59],[55,59,62,65]];
+const TRACKS={
+  chill:{lv:1.3,n:"Chill",tag:"soft",bpm:84,pat(I,t,s,u){const b=s%16,ch=AM[Math.floor(s/16)%4];
+    if(b===0)I.P(ch,t,u*16,.03,"triangle");if(b===0||b===8)I.B(ch[0]-24,t,u*7,.4,350,"sine");
+    if(b%2===0)I.E(ch[[0,2,1,3,2,1,3,2][b/2]]+12,t,u*2,.08);if(b===0||b===7||b===10)I.K(t,.8);if(b===4||b===12)I.S(t,.22);if(b%2)I.H(t,.06)}},
+  dream:{lv:2.2,n:"Dream",tag:"soft",bpm:70,pat(I,t,s,u){const b=s%16,ch=[[60,64,67,71],[57,60,64,67],[53,57,60,64],[55,59,62,64]][Math.floor(s/16)%4];
+    if(b===0)I.P(ch,t,u*16,.022,"sine");if(b===0)I.B(ch[0]-24,t,u*16,.35,300,"sine");
+    if([0,3,6,10,12].includes(b))I.E(ch[(s*7+b)%4]+12+(b===6?12:0),t,u*5,.1);if(b===8)I.H(t,.03,.08)}},
+  drive:{lv:1.45,n:"Drive",tag:"dynamic",bpm:110,pat(I,t,s,u){const b=s%16,ch=AM[Math.floor(s/16)%4];
+    if(b===0)I.P(ch,t,u*16,.035);if(b%2===0)I.B(ch[0]-24+(b%4?12:0),t,u*1.9,.3,700);
+    I.L(ch[s%4]+24,t,u*.9,.04);if(b===0||b===8)I.K(t,1);if(b===4||b===12)I.S(t,.45);if(b%2===0)I.H(t,.09)}},
+  pulse:{lv:1.0,n:"Pulse",tag:"dynamic",bpm:124,pat(I,t,s,u){const b=s%16,ch=[[50,53,57,60],[46,50,53,57],[43,46,50,53],[45,49,52,55]][Math.floor(s/16)%4];
+    if(b%4===0)I.K(t,1.05);if(b===4||b===12)I.C(t,.4);if(b%4===2){I.H(t,.13,.13);I.B(ch[0]-12,t,u*1.5,.35,900)}
+    if(b===3||b===11)I.P(ch.map(x=>x+12),t,u*1.3,.045);if(b%2===1)I.H(t,.05)}},
+  blast:{lv:1.0,n:"Blast",tag:"explosive",bpm:172,pat(I,t,s,u){const b=s%16,bar=Math.floor(s/16),ch=[[52,55,59],[48,52,55],[55,59,62],[50,54,57]][bar%4];
+    if(b===0||b===10)I.K(t,1.1);if(b===4||b===12)I.S(t,.65);if(b===15&&bar%2)I.S(t,.35);I.H(t,b%2?.05:.1);
+    if(b===0||b===8){I.B(ch[0]-24,t,u*8,.26,280);I.B(ch[0]-23.88,t,u*8,.26,280)}
+    if(b===0)I.P(ch.map(x=>x+12),t,u*16,.03);if(bar%2===1&&[0,3,6,8].includes(b))I.L(ch[b%3]+24,t,u*1.2,.06,"sawtooth")}},
+  boss:{lv:0.4,n:"Boss",tag:"explosive",bpm:140,pat(I,t,s,u){const b=s%16,bar=Math.floor(s/16),ch=[[60,63,67],[56,60,63],[53,56,60],[55,59,62]][bar%4];
+    if(b===0||b===6||b===10)I.K(t,1.1,120);if(b===8)I.S(t,.7);if(b%2===0)I.H(t,.09);if(b>=13){I.H(t,.07,.02);I.H(t+u/2,.07,.02)}
+    if(b===0)I.SUB(ch[0]-36,t,u*6,.75);if(b===10)I.SUB(ch[0]-36,t,u*6,.75,ch[0]-24);
+    if([0,3,6].includes(b))I.E(ch[b/3]+12,t,u*3,.09);if(b===0)I.P(ch,t,u*16,.02,"triangle")}},
+  arcade:{lv:1.9,n:"Arcade",tag:"retro",bpm:150,pat(I,t,s,u){const b=s%16,ch=[[60,64,67],[57,60,64],[53,57,60],[55,59,62]][Math.floor(s/16)%4];
+    const mel=[0,1,2,1,2,3,2,1];if(b%2===0)I.L(ch[mel[b/2]%3]+12+(mel[b/2]===3?12:0),t,u*1.6,.06,"square");
+    if(b%2===0)I.B(ch[0]-24,t,u*1.8,.3,2500,"triangle");if(b===0||b===8)I.K(t,.8,200,.15);if(b===4||b===12)I.H(t,.15,.09);if(b%2)I.H(t,.05)}}
+};
+function musWant(){
+  if(musTrack!=="auto")return musTrack;
+  if(curScreen==="learn")return "dream";
+  if(curScreen==="game"&&st&&!st.done){if(st.quiz)return "dream";if(st.mode==="lt")return "blast";if(st.time<=20)return "boss";if(st.focus)return "pulse";return "drive"}
+  return "chill"}
+function musUnlock(){
+  try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();ac.resume()}catch(e){return false}
+  try{if(navigator.audioSession)navigator.audioSession.type="playback"}catch(e){}
+  if(!musBus){const comp=ac.createDynamicsCompressor();comp.threshold.value=-16;comp.ratio.value=4;comp.attack.value=.005;comp.release.value=.2;
+    musBus=ac.createGain();musBus.gain.value=musVol/100*1.4;musBus.connect(comp);comp.connect(ac.destination)}
+  musReady=true;return true}
+function musPlay(id){
+  if(!musReady||!musicOn||document.hidden)return;
+  if(musCur&&musCur.id===id)return;
+  const now=ac.currentTime;
+  musActive.forEach(tr=>{if(!tr.stop){tr.stop=now+1;tr.g.gain.cancelScheduledValues(now);tr.g.gain.setValueAtTime(tr.g.gain.value,now);tr.g.gain.linearRampToValueAtTime(0,now+.9)}});
+  const g=ac.createGain();g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(TRACKS[id].lv||1,now+1.2);g.connect(musBus);
+  musCur={id,def:TRACKS[id],g,I:inst(g),next:now+.08,step:0,stop:0};musActive.push(musCur);
+  if(!musTimer)musTimer=setInterval(musTick,25);musLabel()}
+function musTick(){
+  const now=ac.currentTime;
+  musActive=musActive.filter(tr=>{if(tr.stop&&now>tr.stop){try{tr.g.disconnect()}catch(e){}return false}return true});
+  musActive.forEach(tr=>{if(tr.stop)return;const u=60/tr.def.bpm/4;while(tr.next<now+.2){try{tr.def.pat(tr.I,tr.next,tr.step,u)}catch(e){}tr.next+=u;tr.step++}});
+  if(!musActive.length){clearInterval(musTimer);musTimer=null}}
+function musStopAll(){if(!musReady)return;const now=ac.currentTime;musActive.forEach(tr=>{if(!tr.stop){tr.stop=now+.7;tr.g.gain.cancelScheduledValues(now);tr.g.gain.setValueAtTime(tr.g.gain.value,now);tr.g.gain.linearRampToValueAtTime(0,now+.6)}});musCur=null}
+function musUpdate(){if(musReady&&musicOn&&!document.hidden){const w=musWant();if(!musCur||musCur.id!==w)musPlay(w)}}
+function musLabel(){$("musBtn").textContent=musicOn?`♪ ${musCur?TRACKS[musCur.id].n:"Music on"}`:"♪ Music off";$("musBtn").classList.toggle("off",!musicOn);renderMusic()}
+function musToggle(){musicOn=!musicOn;LS.set("music",musicOn);if(musicOn){musUnlock();musUpdate()}else musStopAll();musLabel()}
+function renderMusic(){
+  const box=$("musCard");if(!box)return;
+  const opts=[["auto","Auto","changes with the game"],...Object.entries(TRACKS).map(([k,v])=>[k,v.n,v.tag])];
+  box.innerHTML=`<div class="mus-top"><button class="small" id="musTog">${musicOn?"Music on":"Music off"}</button><span class="mute" style="font-size:13px">Volume</span><input type="range" id="musVol" min="0" max="100" step="5" value="${musVol}"></div><div class="mus-grid">${opts.map(o=>`<button class="mus-opt${musTrack===o[0]?" on":""}" data-k="${o[0]}"><b>${o[1]}</b><small>${o[2]}</small></button>`).join("")}</div><div class="mute" style="font-size:12px;margin-top:8px">${musCur&&musicOn?"Now playing: "+TRACKS[musCur.id].n+(musTrack==="auto"?" (Auto)":""):"Tap a track to play it."}</div>`;
+  $("musTog").onclick=musToggle;
+  $("musVol").oninput=e=>{musVol=+e.target.value;LS.set("musVol",musVol);if(musBus)musBus.gain.setTargetAtTime(musVol/100*1.4,ac.currentTime,.05)};
+  box.querySelectorAll(".mus-opt").forEach(b=>b.onclick=()=>{musTrack=b.dataset.k;LS.set("musTrack",musTrack);if(!musicOn){musicOn=true;LS.set("music",true)}musUnlock();const w=musTrack==="auto"?musWant():musTrack;if(musCur&&musCur.id===w){musLabel()}else musPlay(w);musLabel()})}
+$("musBtn").onclick=musToggle;
+document.addEventListener("pointerdown",e=>{if(!musReady&&!(e.target.closest&&e.target.closest("#musBtn,#musTog")))  {musUnlock();musUpdate()}},{passive:true});
+document.addEventListener("keydown",()=>{if(!musReady){musUnlock();musUpdate()}});
+document.addEventListener("visibilitychange",()=>{if(document.hidden)musStopAll();else musUpdate()});
+$("splash").onclick=()=>{$("splash").classList.add("gone");musUnlock();musUpdate();setTimeout(()=>$("splash").remove(),400)};
+musLabel();
 
 function rank(s){return s>=18000?"Radical legend":s>=12000?"Exponent ace":s>=6000?"Root apprentice":"Square one"}
 function dayKey(d){return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate()}
@@ -793,7 +863,7 @@ async function initCloud(){
     if(!$("home").classList.contains("hidden"))home();
   }catch(e){clearTimeout(timer);setSync("retry")}
 }
-function show(id){["home","learn","game","end"].forEach(s=>$(s).classList.toggle("hidden",s!==id));const cv=id==="game"||id==="learn";$("calcBtn").classList.toggle("hidden",!cv);if(!cv&&calcOpen)toggleCalc(false)}
+function show(id){curScreen=id;["home","learn","game","end"].forEach(s=>$(s).classList.toggle("hidden",s!==id));setTimeout(musUpdate,0);const cv=id==="game"||id==="learn";$("calcBtn").classList.toggle("hidden",!cv);if(!cv&&calcOpen)toggleCalc(false)}
 
 function start(f){
   let focus=null,pool=null,label=null;
@@ -821,7 +891,7 @@ function start(f){
 function mult(){return Math.min(5,1+Math.floor(st.streak/3))}
 function hudCombo(){const m=mult();$("cb").textContent="×"+m;$("mt").style.width=(m===5?100:(st.streak%3)/3*100)+"%";$("qc").classList.toggle("fire",m===5)}
 function frame(dt){
-  if(st.done)return;
+  if(st.done)return;musUpdate();
   if(st.quiz){const N=st.qlist.length;$("tm").textContent=`${Math.min(st.qi+1,N)}/${N}`;$("cb").textContent=`${Math.ceil(N*.8)}`;$("tf").style.width=(st.qi/N*100)+"%";$("tf").style.background="var(--root)";$("bn").textContent="Final quiz · no timer · no hints until you answer";$("vs").textContent="";return}
   if(st.mode==="lt"){
     st.ltTime-=dt;$("ex").textContent=Math.max(0,Math.ceil(st.ltTime))+"s";
