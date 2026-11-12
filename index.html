@@ -176,6 +176,8 @@ body.calc-open .calc-fab{display:none}
 .wk-tag{color:var(--bad);font-style:normal;font-weight:700}
 .wk-sum{margin-top:12px;font-size:15px;border-top:1px solid var(--line);padding-top:10px}
 .why .l-step .mono{font-size:17px}
+.quizbtn{background:var(--good);border-color:var(--good);margin-bottom:6px}
+#game.quizmode #pu,#game.quizmode .race,#game.quizmode #mt{display:none}
 </style>
 </head>
 <body>
@@ -224,7 +226,7 @@ body.calc-open .calc-fab{display:none}
     <div><b>Wrong answer</b>: −3 seconds, combo resets, and the clock stops so you can read why</div>
     <div><b>Power-ups</b>: every 4 in a row earns one (hold 2). Freeze stops the clock for 5s. Shield saves your combo and mastery on one miss. Double makes the next 3 answers worth ×2 points. Boost makes the next 3 answers worth ×2 mastery</div>
     <div><b>Rematch</b>: a type you miss comes back a few questions later. Get it right for +150</div>
-    <div><b>Mastery</b>: each skill fills to 100. A right answer is +20 (+25 at combo ×3 or higher), a miss is −10. Once a skill hits 100 it stays Mastered. Master every skill in a day to unlock the next day. Mastery run practices only the skills you haven't mastered</div>
+    <div><b>Mastery</b>: each skill fills to 100. A right answer is +20 (+25 at combo ×3 or higher), a miss is −10. Once a skill hits 100 it stays Mastered and stops showing up in runs. When every skill in a day is mastered, take the <b>final quiz</b> (2 questions per skill, no timer, 80% to pass) to unlock the next day. Skills you miss on the quiz drop back to 60. Mastery run practices only the skills you haven't mastered</div>
     <div><b>Practice this</b>: a run with only one skill. It counts for skills and your streak, not your best score</div>
     <div><b>Day streak</b>: play once a day. Every 7 days earns a freeze that covers a missed day</div>
     <div><b>Calculator</b>: tap Calculator during a run or lesson. The clock keeps running</div>
@@ -556,7 +558,9 @@ function lvl(k){const s=sk[k];if(!s||!s.t)return 0;const x=xpOf(k);return x>=MX?
 const DAY_ORDER=["5.1","5.2"];
 function masteredCount(d){return LESSONS[d].filter(k=>lvl(k)===3).length}
 function dayMastered(d){return masteredCount(d)===LESSONS[d].length}
-function dayUnlocked(d){const i=DAY_ORDER.indexOf(d);return i<=0||dayMastered(DAY_ORDER[i-1])}
+let passed=LS.get("passed",{});
+function dayPassed(d){return !!passed[d]}
+function dayUnlocked(d){const i=DAY_ORDER.indexOf(d);return i<=0||dayPassed(DAY_ORDER[i-1])}
 const LVN=["New","Learning","Solid","Mastered"],LVC=["var(--line)","#BA7517","#378ADD","var(--good)"];
 function renderSkills(){
   const box=$("skills");box.innerHTML="";let m=0,lastL=null;
@@ -568,7 +572,7 @@ function renderSkills(){
     row.innerHTML=`<button class="sk-h"><span class="sk-n">${S.n}</span><span class="sk-bar"><i style="width:${pct}%;background:${LVC[L]}"></i></span><span class="pill lv${L}">${LVN[L]}</span></button>`;
     if(openSkill===S.k){const b=document.createElement("div");b.className="sk-b";
       b.innerHTML=`<div class="sk-rule">${S.rule}</div><div class="sk-ex mono">${S.ex}</div><div class="sk-stat mute">${!s.t?"Not tried yet · ":""}Mastery ${xpOf(S.k)} / ${MX}${L<3?` · +${MX_GAIN} per right answer, −${MX_LOSS} per miss`:" · Mastered ✓"}</div>`;
-      const pb=document.createElement("button");pb.className="practice";pb.textContent="Practice this";pb.onclick=()=>start(S.k);b.appendChild(pb);row.appendChild(b)}
+      if(L<3){const pb=document.createElement("button");pb.className="practice";pb.textContent="Practice this";pb.onclick=()=>start(S.k);b.appendChild(pb)}else{const n=document.createElement("div");n.className="mute";n.style.fontSize="13px";n.textContent="Mastered skills are skipped in runs until the final quiz.";b.appendChild(n)}row.appendChild(b)}
     row.querySelector(".sk-h").onclick=()=>{openSkill=openSkill===S.k?null:S.k;renderSkills()};
     box.appendChild(row)});
   $("skSum").textContent=`${m} / ${SKILLS.length} mastered`;
@@ -581,20 +585,22 @@ function renderSpark(){
     b.innerHTML=`<span>${h.score>=1000?(h.score/1000).toFixed(1)+"k":h.score}</span>`;box.appendChild(b)});
   $("sparkNote").innerHTML=`<span style="color:var(--hot)">Rush</span> · <span style="color:var(--root)">Practice</span>`;
 }
-function renderRoad(){$("road").innerHTML=ROAD.map(r=>`<div class="rd ${r[0]===selDay?"on":DAYS[r[0]]&&dayUnlocked(r[0])?"done click":"off"}" data-d="${r[0]}"><span class="rd-n">${r[0]}</span><span class="rd-t">${r[1]}</span><span class="rd-s">${r[0]===selDay?"Viewing":DAYS[r[0]]?(dayMastered(r[0])?"Mastered":dayUnlocked(r[0])?r[2]:"Locked"):r[2]}</span></div>`).join("")+`<div class="mute" style="font-size:12px;padding:8px 0 4px">5.5 and 5.6 are skipped in St. Vrain's pacing. Tap a day to switch to it.</div>`;
+function renderRoad(){$("road").innerHTML=ROAD.map(r=>`<div class="rd ${r[0]===selDay?"on":DAYS[r[0]]&&dayUnlocked(r[0])?"done click":"off"}" data-d="${r[0]}"><span class="rd-n">${r[0]}</span><span class="rd-t">${r[1]}</span><span class="rd-s">${r[0]===selDay?"Viewing":DAYS[r[0]]?(dayPassed(r[0])?"Complete":dayMastered(r[0])?"Quiz ready":dayUnlocked(r[0])?r[2]:"Locked"):r[2]}</span></div>`).join("")+`<div class="mute" style="font-size:12px;padding:8px 0 4px">5.5 and 5.6 are skipped in St. Vrain's pacing. Tap a day to switch to it.</div>`;
   $("road").querySelectorAll(".rd.click").forEach(el=>el.onclick=()=>setDay(el.dataset.d))}
 const DAYS={"5.1":{n:1,t:"5.1 nth roots and rational exponents",mix:"Rush uses only 5.1 questions",rules:`<div class="formula mono">a<sup><span class="pw">m</span>/<span class="rt">n</span></sup> = (<span class="rt">ⁿ√</span>a)<sup class="pw">m</sup></div><div class="legend"><span class="pw">top = power</span><span class="rt">bottom = root</span></div>`},
 "5.2":{n:2,t:"5.2 Properties of rational exponents and radicals",mix:"Rush mixes 60% 5.2 with 40% 5.1 review",rules:`<div class="rules52 mono"><div>a<sup>m</sup> · a<sup>n</sup> = a<sup>m+n</sup></div><div>a<sup>m</sup> / a<sup>n</sup> = a<sup>m−n</sup></div><div>(a<sup>m</sup>)<sup>n</sup> = a<sup>mn</sup></div><div>ⁿ√a · ⁿ√b = ⁿ√(ab)</div></div>`}};
 const LATEST="5.2";
-function setDay(d){if(!DAYS[d])return;if(!dayUnlocked(d)){const pv=DAY_ORDER[DAY_ORDER.indexOf(d)-1];$("dnote").textContent=`Day ${DAYS[d].n} unlocks when all ${LESSONS[pv].length} Day ${DAYS[pv].n} skills are Mastered (${masteredCount(pv)} of ${LESSONS[pv].length} so far).`;beep(200,.12,"square",.05);return}selDay=d;LS.set("selDay",d);openSkill=null;beep(700,.05);home()}
+function setDay(d){if(!DAYS[d])return;if(!dayUnlocked(d)){const pv=DAY_ORDER[DAY_ORDER.indexOf(d)-1];$("dnote").textContent=`Day ${DAYS[d].n} unlocks after you pass the Day ${DAYS[pv].n} final quiz. First master all ${LESSONS[pv].length} Day ${DAYS[pv].n} skills (${masteredCount(pv)} of ${LESSONS[pv].length} so far).`;beep(200,.12,"square",.05);return}selDay=d;LS.set("selDay",d);openSkill=null;beep(700,.05);home()}
 function home(){
   if(!dayUnlocked(selDay)){selDay=[...DAY_ORDER].reverse().find(dayUnlocked)||"5.1";LS.set("selDay",selDay)}
   const D=DAYS[selDay],b=bestOf(selDay);$("dnote").textContent="";
-  $("dsw").innerHTML="";DAY_ORDER.forEach(d=>{const u=dayUnlocked(d),m=dayMastered(d);$("dsw").appendChild(mkBtn(d===selDay?"on":u?"":"lock",`Day ${DAYS[d].n} · ${d}`+(m?" ✓":u?"":" · locked"),()=>setDay(d)))});
+  $("dsw").innerHTML="";DAY_ORDER.forEach(d=>{const u=dayUnlocked(d),m=dayMastered(d);$("dsw").appendChild(mkBtn(d===selDay?"on":u?"":"lock",`Day ${DAYS[d].n} · ${d}`+(dayPassed(d)?" ✓":u?"":" · locked"),()=>setDay(d)))});
   const mc=masteredCount(selDay),mt=LESSONS[selDay].length;$("mTxt").textContent=`Mastery: ${mc} of ${mt} skills`;$("mBar").style.width=(mc/mt*100)+"%";
-  $("mSlot").innerHTML="";if(mc===mt)$("mSlot").innerHTML=`<span class="mbadge">Day ${D.n} mastered ✓${DAY_ORDER[DAY_ORDER.indexOf(selDay)+1]?" · next day unlocked":""}</span>`;
-  else $("mSlot").appendChild(mkBtn("mbtn",`Mastery run · ${mt-mc} skill${mt-mc>1?"s":""} left`,()=>start({mastery:true})));
-  $("heroEye").textContent=`Unit 5 · Day ${D.n}`+(selDay===[...DAY_ORDER].reverse().find(dayUnlocked)?" · Current day":" · Review");$("heroTitle").textContent=D.t;$("heroRules").innerHTML=D.rules;$("rushMix").textContent=D.mix;
+  $("mSlot").innerHTML="";const nxd=DAY_ORDER[DAY_ORDER.indexOf(selDay)+1],qN=mt*2,qNeed=Math.ceil(qN*.8);
+  if(dayPassed(selDay)){$("mSlot").innerHTML=`<span class="mbadge">Day ${D.n} complete ✓${nxd?` · Day ${DAYS[nxd].n} unlocked`:""}</span>`;$("start").textContent="Review Rush · every skill";$("start").classList.remove("hidden")}
+  else if(mc===mt){$("mSlot").appendChild(mkBtn("big quizbtn",`Take the final quiz · ${qN} questions`,()=>start({quiz:true})));const n=document.createElement("div");n.className="mini mute";n.textContent=`No timer. Get ${qNeed} of ${qN} right to unlock ${nxd?"Day "+DAYS[nxd].n:"the next level"}. Skills you miss drop back to 60 mastery.`;$("mSlot").appendChild(n);$("start").classList.add("hidden")}
+  else{$("mSlot").appendChild(mkBtn("mbtn",`Mastery run · ${mt-mc} skill${mt-mc>1?"s":""} left`,()=>start({mastery:true})));$("start").textContent="Play Rush";$("start").classList.remove("hidden")}
+  $("heroEye").textContent=`Unit 5 · Day ${D.n}`+(selDay===[...DAY_ORDER].reverse().find(dayUnlocked)?" · Current day":" · Review");$("heroTitle").textContent=D.t;$("heroRules").innerHTML=D.rules;$("rushMix").textContent=dayPassed(selDay)?"Review mode: every skill, just for practice":masteredCount(selDay)===LESSONS[selDay].length?"":D.mix+" · mastered skills are skipped";
   $("hBest").textContent=b.toLocaleString();$("hRank").textContent=rank(b);$("hRuns").textContent=runs;
   $("hDay").textContent=liveStreak();$("hFrz").textContent=day.freezes+" / 2";
   const done=day.last===dayKey(new Date());$("goal").classList.toggle("done",done);$("goalBox").textContent=done?"✓":"";
@@ -688,8 +694,8 @@ function renderLearn(){
   if(lState.ok)box.appendChild(mkBtn("big l-btn",li===LRN().length-1?"Finish":"Next lesson",()=>{li++;lStep=0;lState=null;renderLearn();window.scrollTo(0,0)}));
 }
 let cloud=null,cloudBusy=false,cloudAgain=false,cloudT=null,syncState="local";
-function saveLocal(){LS.set("runs",runs);LS.set("bestBy",bestBy);LS.set("day",day);LS.set("skills",sk);LS.set("hist",hist);LS.set("learnedBy",learnedBy)}
-function packSave(){return{v:1,runs,bestBy,day,skills:sk,hist,learnedBy,updated:Date.now()}}
+function saveLocal(){LS.set("passed",passed);LS.set("runs",runs);LS.set("bestBy",bestBy);LS.set("day",day);LS.set("skills",sk);LS.set("hist",hist);LS.set("learnedBy",learnedBy)}
+function packSave(){return{v:1,passed,runs,bestBy,day,skills:sk,hist,learnedBy,updated:Date.now()}}
 function mergeSave(c){
   if(!c||typeof c!=="object")return;
   runs=Math.max(runs,+c.runs||0);
@@ -699,6 +705,7 @@ function mergeSave(c){
   const key=h=>h.id?String(h.id):h.d+"|"+h.score;const seen=new Set(hist.map(key));
   (c.hist||[]).forEach(h=>{if(h&&!seen.has(key(h))){hist.push({...h});seen.add(key(h))}});
   hist.sort((a,b)=>(a.id||0)-(b.id||0));hist=hist.slice(-30);
+  for(const d in (c.passed||{}))if(c.passed[d])passed[d]=true;
   for(const d in (c.learnedBy||{}))learnedBy[d]=[...new Set([...(learnedBy[d]||[]),...(c.learnedBy[d]||[])])];
   saveLocal();
 }
@@ -728,11 +735,15 @@ function show(id){["home","learn","game","end"].forEach(s=>$(s).classList.toggle
 function start(f){
   let focus=null,pool=null,label=null;
   if(typeof f==="string"){focus=f;pool=[f];label="Practice · "+TAGS[f]}
+  let quiz=false,qlist=null;
+  if(f&&f.quiz){quiz=true;focus="quiz";label="Final quiz · Day "+DAYS[selDay].n;qlist=shuffle([...LESSONS[selDay],...LESSONS[selDay]]);for(let i=1;i<qlist.length;i++)if(qlist[i]===qlist[i-1]){const j=(i+2)%qlist.length;[qlist[i],qlist[j]]=[qlist[j],qlist[i]]}}
   else if(f&&f.mastery){const um=LESSONS[selDay].filter(k=>lvl(k)<3);pool=um.length?um:LESSONS[selDay].slice();focus="mastery";label="Mastery run · Day "+DAYS[selDay].n}
   try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();ac.resume()}catch(e){}
   st={score:0,streak:0,maxStreak:0,time:TOTAL,elapsed:0,right:0,total:0,miss:{},paused:true,done:false,counting:true,
-      pu:[],freeze:0,shield:false,dbl:0,boost:0,queue:[],qn:0,lastSec:TOTAL+1,mode:"main",ltDone:!!focus,focus,pool,label,lastFocus:f||null,wasM:dayMastered(selDay),day:selDay,gBest:bestOf(selDay),gDur:durOf(selDay)};
-  $("gMode").textContent=label||"Unit "+selDay+" · Rush";
+      pu:[],freeze:0,shield:false,dbl:0,boost:0,queue:[],qn:0,lastSec:TOTAL+1,mode:"main",ltDone:!!focus,focus,pool,label,quiz,qlist,qi:0,qres:[],review:!f&&dayPassed(selDay),lastFocus:f||null,wasM:dayMastered(selDay),day:selDay,gBest:bestOf(selDay),gDur:durOf(selDay)};
+  $("gMode").textContent=label||"Unit "+selDay+(st.review?" · Review Rush":" · Rush");
+  {const L=document.querySelectorAll("#game .stat small");L[0].textContent=quiz?"correct":"score";L[1].textContent=quiz?"to pass":"combo";L[2].textContent=quiz?"question":"time"}
+  $("game").classList.toggle("quizmode",quiz);
   $("sc").textContent="0";$("bn").textContent="";hudCombo();renderPU();
   $("vs").textContent=st.gBest?"":"no ghost yet: set one this run";
   show("game");next();cancelAnimationFrame(raf);let last=performance.now();
@@ -746,6 +757,7 @@ function mult(){return Math.min(5,1+Math.floor(st.streak/3))}
 function hudCombo(){const m=mult();$("cb").textContent="×"+m;$("mt").style.width=(m===5?100:(st.streak%3)/3*100)+"%";$("qc").classList.toggle("fire",m===5)}
 function frame(dt){
   if(st.done)return;
+  if(st.quiz){const N=st.qlist.length;$("tm").textContent=`${Math.min(st.qi+1,N)}/${N}`;$("cb").textContent=`${Math.ceil(N*.8)}`;$("tf").style.width=(st.qi/N*100)+"%";$("tf").style.background="var(--root)";$("bn").textContent="Final quiz · no timer · no hints until you answer";$("vs").textContent="";return}
   if(st.mode==="lt"){
     st.ltTime-=dt;$("ex").textContent=Math.max(0,Math.ceil(st.ltTime))+"s";
     $("bn").textContent="Lightning round: tap fast";
@@ -784,17 +796,26 @@ function usePU(s){
   beep(990,.12,"triangle",.12);beep(1480,.15,"triangle",.1,.08);popup(PU[k].name+"!","var(--root)");renderPU();
 }
 function mkBtn(cls,html,fn){const b=document.createElement("button");b.className=cls;b.innerHTML=html;b.onclick=fn;return b}
+function playPool(){
+  if(st.review)return st.day==="5.1"?LESSONS["5.1"]:(Math.random()<.6?LESSONS["5.2"]:LESSONS["5.1"]);
+  const um=a=>a.filter(k=>lvl(k)<3);
+  if(st.pool)return um(st.pool);
+  if(st.day==="5.1")return um(LESSONS["5.1"]);
+  const a=um(LESSONS["5.2"]),b=um(LESSONS["5.1"]);if(!a.length)return b;if(!b.length)return a;return Math.random()<.6?a:b}
 function next(){
   if(st.done||st.mode!=="main")return;
   st.qn++;let k,rematch=false;
+  if(st.quiz){if(st.qi>=st.qlist.length)return finishQuiz();k=st.qlist[st.qi]}
+  else{
+  if(!st.review)st.queue=st.queue.filter(q=>lvl(q.key)<3);
   const due=st.queue.findIndex(q=>q.at<=st.qn);
   if(due>=0){k=st.queue.splice(due,1)[0].key;rematch=true}
-  else if(st.pool){if(st.pool.length===1)k=st.pool[0];else{do{k=pick(st.pool)}while(k===lastKey)}}
-  else{let pool=st.day==="5.1"?LESSONS["5.1"]:(Math.random()<.6?LESSONS["5.2"]:LESSONS["5.1"]);const um=pool.filter(x=>lvl(x)<3);if(um.length>1&&Math.random()<.7)pool=um;do{k=pick(pool)}while(k===lastKey&&pool.length>1)}
+  else{const pool=playPool();if(!pool.length){st.allDone=true;return finish()}do{k=pick(pool)}while(k===lastKey&&pool.length>1)}
+  }
   lastKey=k;
   const p=GEN[k]();st.cur={...p,key:k,rematch};
   $("tg").textContent=rematch?"Rematch: "+TAGS[k]:TAGS[k];$("tg").classList.toggle("rm",rematch);
-  $("qt").innerHTML=p.q;$("ex").innerHTML=p.ex;setQM(k,false);
+  $("qt").innerHTML=p.q;$("ex").innerHTML=p.ex;setQM(k,false);if(st.quiz){$("qm").classList.add("hidden");$("tg").textContent=`Question ${st.qi+1}`}
   $("why").classList.add("hidden");$("go").classList.add("hidden");
   const box=$("opts");box.innerHTML="";
   if(p.type==="order"){
@@ -865,6 +886,10 @@ function setQM(k,anim){const x=xpOf(k);$("qm").classList.remove("hidden");$("qmB
 function popup(t,c){const p=$("pop");p.innerHTML=t;p.style.color=c;p.classList.remove("on");void p.offsetWidth;p.classList.add("on");setTimeout(()=>p.classList.remove("on"),550)}
 function resolve(ok){
   st.locked=true;st.total++;
+  if(st.quiz){st.qi++;st.qres.push([st.cur.key,ok?1:0]);
+    if(ok){st.right++;$("sc").textContent=st.right;popup("Correct","var(--good)");beep(880,.08);flash("fok");setTimeout(next,450)}
+    else{popup("Missed","var(--bad)");beep(150,.2,"square",.07);flash("fbad");st.paused=true;showWalk();$("go").classList.remove("hidden");$("why").classList.remove("hidden");setTimeout(()=>$("go").scrollIntoView({behavior:"smooth",block:"nearest"}),60)}
+    return}
   const mk=st.cur.key,mo=sk[mk]||{r:0,t:0},xb=xpOf(mk),wasSM=xb>=MX;let mg=0;
   if(!wasSM){if(ok){mg=(MX_GAIN+(mult()>=3?5:0))*(st.boost>0?2:1)}else if(!st.shield)mg=-MX_LOSS}
   if(st.boost>0)st.boost--;
@@ -944,6 +969,23 @@ function updateDay(){
   if(day.streak%7===0&&day.freezes<2){day.freezes++;msg+=" · earned a streak freeze"}
   day.last=today;LS.set("day",day);return msg;
 }
+function finishQuiz(){
+  if(st.done)return;st.done=true;cancelAnimationFrame(raf);
+  const d=st.day,N=st.qlist.length,need=Math.ceil(N*.8),pass=st.right>=need,nx=DAY_ORDER[DAY_ORDER.indexOf(d)+1];
+  const missed=[...new Set(st.qres.filter(x=>!x[1]).map(x=>x[0]))];
+  if(pass)passed[d]=true;else missed.forEach(k=>{const o=sk[k];if(o){o.xp=60;o.m=false}});
+  updateDay();persist();
+  $("eHead").textContent=pass?`Day ${DAYS[d].n} complete!`+(nx?` Day ${DAYS[nx].n} unlocked`:""):"Not quite yet";
+  $("eScore").textContent=`${st.right}/${N}`;$("eRank").textContent=pass?"Passed":`Need ${need} to pass`;
+  $("eBest").closest(".card").classList.add("hidden");
+  $("eTip").textContent=pass?(missed.length?`You passed. Worth a quick look: ${missed.map(k=>TAGS[k]).join(", ")}.`:"Perfect quiz. You've proven every skill.")+(nx?` Day ${DAYS[nx].n} is open.`:"")
+    :`Missed: ${missed.map(k=>TAGS[k]).join(", ")}. Those skills dropped back to 60 mastery. Win them back in a Mastery run, then retake the quiz.`;
+  if(pass&&nx){$("again").textContent=`Go to Day ${DAYS[nx].n}`;$("again").onclick=()=>setDay(nx)}
+  else if(pass){$("again").textContent="Home";$("again").onclick=home}
+  else{$("again").textContent="Practice missed skills";$("again").onclick=()=>start({mastery:true})}
+  if(pass){[523,659,784,1047,1319].forEach((f,i)=>beep(f,.18,"triangle",.12,i*.12))}else beep(300,.3,"sine",.1);
+  show("end");
+}
 function finish(){
   if(st.done)return;st.done=true;cancelAnimationFrame(raf);
   runs++;LS.set("runs",runs);
@@ -951,7 +993,9 @@ function finish(){
   const nb=!st.focus&&st.score>st.gBest;if(nb){bestBy[st.day]={best:st.score,dur:Math.max(30,st.elapsed)}}
   const dm=updateDay();
   const newM=!st.wasM&&dayMastered(st.day),nx=DAY_ORDER[DAY_ORDER.indexOf(st.day)+1];
-  $("eHead").textContent=newM?`Day ${DAYS[st.day].n} mastered!`+(nx?` Day ${DAYS[nx].n} unlocked`:""):st.label?st.label:nb?"New personal best":"Run over";
+  $("eBest").closest(".card").classList.remove("hidden");$("again").textContent="Run it back";$("again").onclick=()=>start(st.lastFocus||null);
+  $("eHead").textContent=newM?`Every Day ${DAYS[st.day].n} skill mastered! Final quiz unlocked`:st.label?st.label:nb?"New personal best":"Run over";
+  if(newM){$("again").textContent="Take the final quiz";$("again").onclick=()=>start({quiz:true})}
   $("eScore").textContent=st.score.toLocaleString();$("eRank").textContent=rank(st.score);
   $("eBest").textContent=bestOf(st.day).toLocaleString();
   $("eAcc").textContent=st.total?Math.round(st.right/st.total*100)+"% ("+st.right+"/"+st.total+")":"—";
@@ -963,7 +1007,7 @@ function finish(){
   $("eTip").textContent=w?tips[w[0]]:"Flawless. Next run, push the combo harder and save Double for when you're at ×5.";
   persist();
   beep(523,.12);beep(659,.12,"sine",.14,.12);beep(nb||newM?1047:784,.25,"sine",.14,.24);if(newM){beep(1319,.2,"triangle",.12,.4);beep(1568,.3,"triangle",.12,.55)}
-  {const m=masteredCount(st.day),t=LESSONS[st.day].length;$("eTip").textContent=$("eTip").textContent+(m<t?` Mastery: ${m} of ${t} skills for Day ${DAYS[st.day].n}.`:"")}
+  {const m=masteredCount(st.day),t=LESSONS[st.day].length;$("eTip").textContent=$("eTip").textContent+(m<t?` Mastery: ${m} of ${t} skills for Day ${DAYS[st.day].n}.`:dayPassed(st.day)?"":" Every skill is mastered. Take the final quiz to unlock the next day.")}
   show("end");
 }
 $("start").onclick=()=>start(null);$("learnBtn").onclick=()=>openLearn(LD().length>=LRN().length?0:null);$("lHome").onclick=home;$("again").onclick=()=>start(st.lastFocus||null);$("toHome").onclick=home;
