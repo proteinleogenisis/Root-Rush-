@@ -305,7 +305,7 @@ const sup=(m,n)=>`<sup>${P(m)}/${R(n)}</sup>`;
 
 const ROOT={2:"square",3:"cube",4:"4th",5:"5th"},NTH={2:"2nd",3:"3rd",4:"4th",5:"5th"};
 const TAGS={entry:"Typing it in",bottom:"Bottom = root",neg:"Negative bases",sols:"How many answers",iso:"Isolate first",shift:"Undo in reverse",order:"Order the steps",spot:"Spot the mistake",line:"Estimate the root",rules:"Exponent rules",radmul:"Multiply and divide radicals",simp:"Simplest form",vars:"Roots of variables",like:"Like radicals",spot2:"Spot the mistake (5.2)"};
-const LESSONS={"5.1":["entry","bottom","neg","sols","iso","shift","order","spot","line"],"5.2":["rules","radmul","simp","vars","like","spot2"]};
+const LESSONS={"5.1":["entry","bottom","neg","sols","iso","shift","order","line"],"5.2":["rules","radmul","simp","vars","like"]};
 
 const SUPD={"0":"⁰","1":"¹","2":"²","3":"³","4":"⁴","5":"⁵","6":"⁶","7":"⁷","8":"⁸","9":"⁹","−":"⁻"};
 function sp(n){return String(n).split("").map(c=>SUPD[c]||c).join("")}
@@ -564,7 +564,7 @@ function dayUnlocked(d){const i=DAY_ORDER.indexOf(d);return i<=0||dayPassed(DAY_
 const LVN=["New","Learning","Solid","Mastered"],LVC=["var(--line)","#BA7517","#378ADD","var(--good)"];
 function renderSkills(){
   const box=$("skills");box.innerHTML="";let m=0,lastL=null;
-  const ord=[...SKILLS].sort((x,y)=>((x.L||"5.1")===selDay?0:1)-((y.L||"5.1")===selDay?0:1));
+  const ord=SKILLS.filter(S=>Object.values(LESSONS).some(L=>L.includes(S.k))).sort((x,y)=>((x.L||"5.1")===selDay?0:1)-((y.L||"5.1")===selDay?0:1));
   ord.forEach(S=>{const LL=S.L||"5.1";if(LL!==lastL){lastL=LL;const hd=document.createElement("div");hd.className="sk-grp";hd.textContent=`${LL} · Day ${DAYS[LL].n}`+(LL===selDay?"":LL<selDay?" · review":" · next");box.appendChild(hd)}
     const s=sk[S.k]||{r:0,t:0},L=lvl(S.k);if(L===3)m++;
     const pct=xpOf(S.k)/MX*100;
@@ -575,7 +575,7 @@ function renderSkills(){
       if(L<3){const pb=document.createElement("button");pb.className="practice";pb.textContent="Practice this";pb.onclick=()=>start(S.k);b.appendChild(pb)}else{const n=document.createElement("div");n.className="mute";n.style.fontSize="13px";n.textContent="Mastered skills are skipped in runs until the final quiz.";b.appendChild(n)}row.appendChild(b)}
     row.querySelector(".sk-h").onclick=()=>{openSkill=openSkill===S.k?null:S.k;renderSkills()};
     box.appendChild(row)});
-  $("skSum").textContent=`${m} / ${SKILLS.length} mastered`;
+  $("skSum").textContent=`${m} / ${Object.values(LESSONS).flat().length} mastered`;
 }
 function renderSpark(){
   const box=$("spark"),last=hist.slice(-10);box.innerHTML="";
