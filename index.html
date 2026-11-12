@@ -152,6 +152,20 @@ body.fok{background:var(--goodbg)}body.fbad{background:var(--badbg)}
 .dsw button.on{background:var(--hot);border-color:var(--hot);color:#fff}
 .sync{font-size:12px;color:var(--mute);margin:-6px 2px 10px}.sync.cloud{color:var(--good)}
 .rd.click{cursor:pointer}
+.calc-fab{position:fixed;right:14px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:8;background:var(--ink);color:var(--bg);border-color:var(--ink);border-radius:99px;padding:12px 18px;font-weight:700;font-size:15px}
+.calc{position:fixed;left:0;right:0;bottom:0;z-index:9;max-width:460px;margin:0 auto;background:var(--card);border:1px solid var(--line);border-bottom:0;border-radius:18px 18px 0 0;padding:12px 14px calc(14px + env(safe-area-inset-bottom));box-shadow:0 -8px 30px rgba(0,0,0,.2)}
+.cdisp{background:var(--bg);border-radius:12px;padding:10px 12px;margin-bottom:10px;text-align:right}
+#cExpr{font-size:20px;min-height:28px;word-break:break-all}#cRes{font-size:26px;font-weight:700;min-height:34px;color:var(--hot)}
+.ckeys{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.ckeys button{padding:9px 0;font-size:19px;font-weight:500;border-radius:10px}
+.ckeys .op{color:var(--root);font-weight:700}.ckeys .fn{color:var(--mute)}.ckeys .eq{background:var(--hot);border-color:var(--hot);color:#fff;font-weight:700}
+body.calc-open .wrap{padding-bottom:420px}
+body.calc-open .calc-fab{display:none}
+.dnote{font-size:13px;color:var(--mute);margin:-4px 2px 10px}
+.dsw button.lock{opacity:.5}
+.mrow{display:flex;align-items:center;gap:10px;margin:14px 0 8px;font-size:13px}
+.mbtn{width:100%;font-weight:700;border-color:var(--good);color:var(--good);padding:12px;margin-bottom:4px}
+.mbadge{display:block;text-align:center;font-weight:700;color:var(--good);background:var(--goodbg);border-radius:10px;padding:10px;margin-bottom:4px}
 </style>
 </head>
 <body>
@@ -164,10 +178,13 @@ body.fok{background:var(--goodbg)}body.fbad{background:var(--badbg)}
   </header>
   <div class="sync" id="sync"></div>
   <div class="dsw" id="dsw"></div>
+  <div class="dnote" id="dnote"></div>
   <div class="card hero">
     <div class="eyebrow" id="heroEye"></div>
     <h2 class="hero-t" id="heroTitle"></h2>
     <div id="heroRules"></div>
+    <div class="mrow"><span id="mTxt" class="mute"></span><span class="lbar"><i id="mBar" style="background:var(--good)"></i></span></div>
+    <div id="mSlot"></div>
     <div class="learnrow"><span id="learnTxt" class="mute"></span><span class="lbar"><i id="learnBar"></i></span></div>
     <button class="big learnbtn" id="learnBtn">Learn</button>
     <div class="goal" id="goal" style="margin-top:12px"><span class="check" id="goalBox"></span><span id="goalTxt">Daily goal: finish 1 run</span></div>
@@ -188,17 +205,19 @@ body.fok{background:var(--goodbg)}body.fbad{background:var(--badbg)}
   <details class="card how">
     <summary>How to play</summary>
     <div style="font-size:15px;line-height:1.7;margin-top:10px">
-    <div><b>Runs</b>: 90 seconds, racing a grey ghost of your best score</div>
+    <div><b>Runs</b>: 3 minutes, racing a grey ghost of your best score</div>
     <div><b>Question styles</b>: multiple choice, tap the steps in order, spot the mistake, and tap where a root lands on the number line</div>
-    <div><b>Lightning round</b>: at 50 seconds left, 10 seconds of rapid true/false for +100 each</div>
+    <div><b>Lightning round</b>: at 1:30 left, 20 seconds of rapid true/false for +100 each</div>
     <div><b>Right answer</b>: +100 × combo, +1 second, and up to +75 for speed</div>
     <div><b>Combo</b>: goes up every 3 in a row (max ×5)</div>
     <div><b>Last 10 seconds</b>: double points</div>
     <div><b>Wrong answer</b>: −3 seconds, combo resets, and the clock stops so you can read why</div>
     <div><b>Power-ups</b>: every 5 in a row earns one (hold 2). Freeze stops the clock for 5s, Shield saves your combo once, Double makes the next 3 answers ×2</div>
     <div><b>Rematch</b>: a type you miss comes back a few questions later. Get it right for +150</div>
+    <div><b>Mastery</b>: a skill is Mastered when you get 9 of your last 10 right. Master every skill in a day to unlock the next day. Mastery run practices only the skills you haven't mastered</div>
     <div><b>Practice this</b>: a run with only one skill. It counts for skills and your streak, not your best score</div>
     <div><b>Day streak</b>: play once a day. Every 7 days earns a freeze that covers a missed day</div>
+    <div><b>Calculator</b>: tap Calculator during a run or lesson. The clock keeps running</div>
     <div class="mute kbhint" style="margin-top:6px;font-size:13px">On a keyboard, keys 1–5 answer and Enter continues.</div>
     </div>
   </details>
@@ -253,6 +272,13 @@ body.fok{background:var(--goodbg)}body.fbad{background:var(--badbg)}
   <button id="toHome" style="width:100%;margin-top:10px;font-weight:700">Home</button>
 </section>
 
+<button id="calcBtn" class="calc-fab hidden">Calculator</button>
+<div id="calc" class="calc hidden">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b style="font-size:15px">Calculator</b><button class="small" id="cClose">Close</button></div>
+  <div class="cdisp"><div class="mono" id="cExpr"> </div><div class="mono" id="cRes"> </div></div>
+  <div class="ckeys" id="cKeys"></div>
+  <div class="mute" style="font-size:12px;margin-top:8px">For 8<sup>2/3</sup> type 8 ^ ( 2 ÷ 3 ). Without the ( ) it works like a real calculator and gives the wrong answer.</div>
+</div>
 <div class="pop" id="pop"></div>
 <div class="cd hidden" id="cd"></div>
 </div>
@@ -477,7 +503,7 @@ let selDay=LS.get("selDay","5.2");
 function bestOf(d){return (bestBy[d]||{}).best||0}
 function durOf(d){return (bestBy[d]||{}).dur||60}
 let day=LS.get("day",{streak:0,last:null,freezes:0});
-const TOTAL=90,LT_AT=50;
+const TOTAL=180,LT_AT=90;
 const PU={freeze:{name:"Freeze",icon:"❄"},shield:{name:"Shield",icon:"◆"},double:{name:"Double",icon:"×2"}};
 
 let ac=null,sound=LS.get("sound",true);
@@ -487,7 +513,7 @@ function flash(c){document.body.classList.add(c);setTimeout(()=>document.body.cl
 function sndLabel(){$("snd").textContent="Sound: "+(sound?"on":"off")}
 $("snd").onclick=()=>{sound=!sound;LS.set("sound",sound);sndLabel()};sndLabel();
 
-function rank(s){return s>=9000?"Radical legend":s>=6000?"Exponent ace":s>=3000?"Root apprentice":"Square one"}
+function rank(s){return s>=18000?"Radical legend":s>=12000?"Exponent ace":s>=6000?"Root apprentice":"Square one"}
 function dayKey(d){return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate()}
 function daysBetween(a,b){const p=s=>{const[y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};return Math.round((p(b)-p(a))/864e5)}
 function liveStreak(){if(!day.last)return 0;const gap=daysBetween(day.last,dayKey(new Date()));return gap-1<=day.freezes?day.streak:0}
@@ -509,7 +535,13 @@ const SKILLS=[
 {k:"line",n:"Estimate the root",rule:"List whole numbers to that power and see which two the number lands between.",ex:`3³ = 27 &lt; 50 &lt; 64 = 4³<br>so ∛50 is between 3 and 4`}];
 const ROAD=[["5.1","nth roots and rational exponents","Day 1"],["5.2","Properties of rational exponents and radicals","Day 2"],["5.3","Graphing radical functions","Next"],["5.4","Solving radical equations and inequalities","Later"],["Test","Review and unit test","Later"]];
 let sk=LS.get("skills",{}),hist=LS.get("hist",[]),openSkill=null;
-function lvl(k){const s=sk[k]||{r:0,t:0};if(!s.t)return 0;const a=s.r/s.t;if(s.t>=8&&a>=.9)return 3;if(s.t>=4&&a>=.75)return 2;return 1}
+function recOf(k){const s=sk[k]||{};return s.rec||[]}
+function lvl(k){const s=sk[k]||{r:0,t:0};if(!s.t)return 0;const R=s.rec;if(!R){const a=s.r/s.t;return s.t>=8&&a>=.9?3:s.t>=4&&a>=.75?2:1}
+  const n=R.length,a=n?R.reduce((x,y)=>x+y,0)/n:0;if(n>=8&&a>=.9)return 3;if(n>=4&&a>=.75)return 2;return 1}
+const DAY_ORDER=["5.1","5.2"];
+function masteredCount(d){return LESSONS[d].filter(k=>lvl(k)===3).length}
+function dayMastered(d){return masteredCount(d)===LESSONS[d].length}
+function dayUnlocked(d){const i=DAY_ORDER.indexOf(d);return i<=0||dayMastered(DAY_ORDER[i-1])}
 const LVN=["New","Learning","Solid","Mastered"],LVC=["var(--line)","#BA7517","#378ADD","var(--good)"];
 function renderSkills(){
   const box=$("skills");box.innerHTML="";let m=0,lastL=null;
@@ -520,7 +552,7 @@ function renderSkills(){
     const row=document.createElement("div");row.className="sk";
     row.innerHTML=`<button class="sk-h"><span class="sk-n">${S.n}</span><span class="sk-bar"><i style="width:${pct}%;background:${LVC[L]}"></i></span><span class="pill lv${L}">${LVN[L]}</span></button>`;
     if(openSkill===S.k){const b=document.createElement("div");b.className="sk-b";
-      b.innerHTML=`<div class="sk-rule">${S.rule}</div><div class="sk-ex mono">${S.ex}</div><div class="sk-stat mute">${s.t?`${s.r} of ${s.t} right (${Math.round(s.r/s.t*100)}%)`:"Not tried yet"}${L<3?" · Mastered = 8+ tries at 90%+":""}</div>`;
+      b.innerHTML=`<div class="sk-rule">${S.rule}</div><div class="sk-ex mono">${S.ex}</div><div class="sk-stat mute">${!s.t?"Not tried yet":s.rec?`Last ${s.rec.length}: ${s.rec.reduce((x,y)=>x+y,0)} right`:`${s.r} of ${s.t} right`}${L<3?" · Mastered = 9 of your last 10 right":" · Mastered ✓"}</div>`;
       const pb=document.createElement("button");pb.className="practice";pb.textContent="Practice this";pb.onclick=()=>start(S.k);b.appendChild(pb);row.appendChild(b)}
     row.querySelector(".sk-h").onclick=()=>{openSkill=openSkill===S.k?null:S.k;renderSkills()};
     box.appendChild(row)});
@@ -534,16 +566,20 @@ function renderSpark(){
     b.innerHTML=`<span>${h.score>=1000?(h.score/1000).toFixed(1)+"k":h.score}</span>`;box.appendChild(b)});
   $("sparkNote").innerHTML=`<span style="color:var(--hot)">Rush</span> · <span style="color:var(--root)">Practice</span>`;
 }
-function renderRoad(){$("road").innerHTML=ROAD.map(r=>`<div class="rd ${r[0]===selDay?"on":DAYS[r[0]]?"done click":"off"}" data-d="${r[0]}"><span class="rd-n">${r[0]}</span><span class="rd-t">${r[1]}</span><span class="rd-s">${r[0]===selDay?"Viewing":r[2]}</span></div>`).join("")+`<div class="mute" style="font-size:12px;padding:8px 0 4px">5.5 and 5.6 are skipped in St. Vrain's pacing. Tap a day to switch to it.</div>`;
+function renderRoad(){$("road").innerHTML=ROAD.map(r=>`<div class="rd ${r[0]===selDay?"on":DAYS[r[0]]&&dayUnlocked(r[0])?"done click":"off"}" data-d="${r[0]}"><span class="rd-n">${r[0]}</span><span class="rd-t">${r[1]}</span><span class="rd-s">${r[0]===selDay?"Viewing":DAYS[r[0]]?(dayMastered(r[0])?"Mastered":dayUnlocked(r[0])?r[2]:"Locked"):r[2]}</span></div>`).join("")+`<div class="mute" style="font-size:12px;padding:8px 0 4px">5.5 and 5.6 are skipped in St. Vrain's pacing. Tap a day to switch to it.</div>`;
   $("road").querySelectorAll(".rd.click").forEach(el=>el.onclick=()=>setDay(el.dataset.d))}
 const DAYS={"5.1":{n:1,t:"5.1 nth roots and rational exponents",mix:"Rush uses only 5.1 questions",rules:`<div class="formula mono">a<sup><span class="pw">m</span>/<span class="rt">n</span></sup> = (<span class="rt">ⁿ√</span>a)<sup class="pw">m</sup></div><div class="legend"><span class="pw">top = power</span><span class="rt">bottom = root</span></div>`},
 "5.2":{n:2,t:"5.2 Properties of rational exponents and radicals",mix:"Rush mixes 60% 5.2 with 40% 5.1 review",rules:`<div class="rules52 mono"><div>a<sup>m</sup> · a<sup>n</sup> = a<sup>m+n</sup></div><div>a<sup>m</sup> / a<sup>n</sup> = a<sup>m−n</sup></div><div>(a<sup>m</sup>)<sup>n</sup> = a<sup>mn</sup></div><div>ⁿ√a · ⁿ√b = ⁿ√(ab)</div></div>`}};
 const LATEST="5.2";
-function setDay(d){if(!DAYS[d])return;selDay=d;LS.set("selDay",d);openSkill=null;beep(700,.05);home()}
+function setDay(d){if(!DAYS[d])return;if(!dayUnlocked(d)){const pv=DAY_ORDER[DAY_ORDER.indexOf(d)-1];$("dnote").textContent=`Day ${DAYS[d].n} unlocks when all ${LESSONS[pv].length} Day ${DAYS[pv].n} skills are Mastered (${masteredCount(pv)} of ${LESSONS[pv].length} so far).`;beep(200,.12,"square",.05);return}selDay=d;LS.set("selDay",d);openSkill=null;beep(700,.05);home()}
 function home(){
-  const D=DAYS[selDay],b=bestOf(selDay);
-  $("dsw").innerHTML="";Object.keys(DAYS).forEach(d=>$("dsw").appendChild(mkBtn(d===selDay?"on":"",`Day ${DAYS[d].n} · ${d}`,()=>setDay(d))));
-  $("heroEye").textContent=`Unit 5 · Day ${D.n}`+(selDay===LATEST?" · Today":" · Review");$("heroTitle").textContent=D.t;$("heroRules").innerHTML=D.rules;$("rushMix").textContent=D.mix;
+  if(!dayUnlocked(selDay)){selDay=[...DAY_ORDER].reverse().find(dayUnlocked)||"5.1";LS.set("selDay",selDay)}
+  const D=DAYS[selDay],b=bestOf(selDay);$("dnote").textContent="";
+  $("dsw").innerHTML="";DAY_ORDER.forEach(d=>{const u=dayUnlocked(d),m=dayMastered(d);$("dsw").appendChild(mkBtn(d===selDay?"on":u?"":"lock",`Day ${DAYS[d].n} · ${d}`+(m?" ✓":u?"":" · locked"),()=>setDay(d)))});
+  const mc=masteredCount(selDay),mt=LESSONS[selDay].length;$("mTxt").textContent=`Mastery: ${mc} of ${mt} skills`;$("mBar").style.width=(mc/mt*100)+"%";
+  $("mSlot").innerHTML="";if(mc===mt)$("mSlot").innerHTML=`<span class="mbadge">Day ${D.n} mastered ✓${DAY_ORDER[DAY_ORDER.indexOf(selDay)+1]?" · next day unlocked":""}</span>`;
+  else $("mSlot").appendChild(mkBtn("mbtn",`Mastery run · ${mt-mc} skill${mt-mc>1?"s":""} left`,()=>start({mastery:true})));
+  $("heroEye").textContent=`Unit 5 · Day ${D.n}`+(selDay===[...DAY_ORDER].reverse().find(dayUnlocked)?" · Current day":" · Review");$("heroTitle").textContent=D.t;$("heroRules").innerHTML=D.rules;$("rushMix").textContent=D.mix;
   $("hBest").textContent=b.toLocaleString();$("hRank").textContent=rank(b);$("hRuns").textContent=runs;
   $("hDay").textContent=liveStreak();$("hFrz").textContent=day.freezes+" / 2";
   const done=day.last===dayKey(new Date());$("goal").classList.toggle("done",done);$("goalBox").textContent=done?"✓":"";
@@ -644,7 +680,7 @@ function mergeSave(c){
   runs=Math.max(runs,+c.runs||0);
   for(const d in (c.bestBy||{})){const x=c.bestBy[d];if(x&&(+x.best||0)>bestOf(d))bestBy[d]={best:+x.best,dur:+x.dur||60}}
   if(c.day&&c.day.last){if(!day.last||daysBetween(day.last,c.day.last)>0||(c.day.last===day.last&&(c.day.streak||0)>day.streak))day={streak:c.day.streak||0,last:c.day.last,freezes:c.day.freezes||0}}
-  for(const k in (c.skills||{})){const x=c.skills[k];if(x&&(!sk[k]||(x.t||0)>sk[k].t))sk[k]={r:x.r||0,t:x.t||0}}
+  for(const k in (c.skills||{})){const x=c.skills[k];if(x&&(!sk[k]||(x.t||0)>sk[k].t)){sk[k]={r:x.r||0,t:x.t||0};if(Array.isArray(x.rec))sk[k].rec=x.rec.slice(-10)}}
   const key=h=>h.id?String(h.id):h.d+"|"+h.score;const seen=new Set(hist.map(key));
   (c.hist||[]).forEach(h=>{if(h&&!seen.has(key(h))){hist.push({...h});seen.add(key(h))}});
   hist.sort((a,b)=>(a.id||0)-(b.id||0));hist=hist.slice(-30);
@@ -672,14 +708,16 @@ async function initCloud(){
     if(!$("home").classList.contains("hidden"))home();
   }catch(e){clearTimeout(timer);setSync("retry")}
 }
-function show(id){["home","learn","game","end"].forEach(s=>$(s).classList.toggle("hidden",s!==id))}
+function show(id){["home","learn","game","end"].forEach(s=>$(s).classList.toggle("hidden",s!==id));const cv=id==="game"||id==="learn";$("calcBtn").classList.toggle("hidden",!cv);if(!cv&&calcOpen)toggleCalc(false)}
 
 function start(f){
-  const focus=typeof f==="string"?f:null;st.lastFocus=focus;
+  let focus=null,pool=null,label=null;
+  if(typeof f==="string"){focus=f;pool=[f];label="Practice · "+TAGS[f]}
+  else if(f&&f.mastery){const um=LESSONS[selDay].filter(k=>lvl(k)<3);pool=um.length?um:LESSONS[selDay].slice();focus="mastery";label="Mastery run · Day "+DAYS[selDay].n}
   try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();ac.resume()}catch(e){}
   st={score:0,streak:0,maxStreak:0,time:TOTAL,elapsed:0,right:0,total:0,miss:{},paused:true,done:false,counting:true,
-      pu:[],freeze:0,shield:false,dbl:0,queue:[],qn:0,lastSec:TOTAL+1,mode:"main",ltDone:!!focus,focus,lastFocus:focus,day:selDay,gBest:bestOf(selDay),gDur:durOf(selDay)};
-  $("gMode").textContent=focus?"Practice · "+TAGS[focus]:"Unit "+selDay+" · Rush";
+      pu:[],freeze:0,shield:false,dbl:0,queue:[],qn:0,lastSec:TOTAL+1,mode:"main",ltDone:!!focus,focus,pool,label,lastFocus:f||null,wasM:dayMastered(selDay),day:selDay,gBest:bestOf(selDay),gDur:durOf(selDay)};
+  $("gMode").textContent=label||"Unit "+selDay+" · Rush";
   $("sc").textContent="0";$("bn").textContent="";hudCombo();renderPU();
   $("vs").textContent=st.gBest?"":"no ghost yet: set one this run";
   show("game");next();cancelAnimationFrame(raf);let last=performance.now();
@@ -736,8 +774,8 @@ function next(){
   st.qn++;let k,rematch=false;
   const due=st.queue.findIndex(q=>q.at<=st.qn);
   if(due>=0){k=st.queue.splice(due,1)[0].key;rematch=true}
-  else if(st.focus)k=st.focus;
-  else{const pool=st.day==="5.1"?LESSONS["5.1"]:(Math.random()<.6?LESSONS["5.2"]:LESSONS["5.1"]);do{k=pick(pool)}while(k===lastKey)}
+  else if(st.pool){if(st.pool.length===1)k=st.pool[0];else{do{k=pick(st.pool)}while(k===lastKey)}}
+  else{let pool=st.day==="5.1"?LESSONS["5.1"]:(Math.random()<.6?LESSONS["5.2"]:LESSONS["5.1"]);const um=pool.filter(x=>lvl(x)<3);if(um.length>1&&Math.random()<.7)pool=um;do{k=pick(pool)}while(k===lastKey&&pool.length>1)}
   lastKey=k;
   const p=GEN[k]();st.cur={...p,key:k,rematch};
   $("tg").textContent=rematch?"Rematch: "+TAGS[k]:TAGS[k];$("tg").classList.toggle("rm",rematch);
@@ -789,7 +827,7 @@ function tapTile(t,el){
 function popup(t,c){const p=$("pop");p.innerHTML=t;p.style.color=c;p.classList.remove("on");void p.offsetWidth;p.classList.add("on");setTimeout(()=>p.classList.remove("on"),550)}
 function resolve(ok){
   st.locked=true;st.total++;
-  {const k=st.cur.key,o=sk[k]||{r:0,t:0};o.t++;if(ok)o.r++;sk[k]=o;LS.set("skills",sk)}
+  {const k=st.cur.key,o=sk[k]||{r:0,t:0};o.t++;if(ok)o.r++;o.rec=(o.rec||[]).concat(ok?1:0).slice(-10);sk[k]=o;LS.set("skills",sk)}
   if(ok){
     const before=mult();
     st.streak++;st.maxStreak=Math.max(st.maxStreak,st.streak);st.right++;
@@ -824,7 +862,7 @@ function resolve(ok){
 $("go").onclick=()=>{st.paused=false;if(st.time<=0)return finish();window.scrollTo({top:0,behavior:"smooth"});next()};
 
 function startLightning(){
-  st.mode="lt";st.ltTime=10;st.ltScore=0;st.ltLock=false;
+  st.mode="lt";st.ltTime=20;st.ltScore=0;st.ltLock=false;
   beep(660,.1,"square",.08);beep(880,.1,"square",.08,.1);beep(1320,.2,"square",.08,.2);buzz([30,30,30]);
   popup("Lightning round!","var(--root)");
   $("qc").classList.add("ltcard");ltNext();
@@ -868,7 +906,8 @@ function finish(){
   hist.push({id:Date.now(),score:st.score,focus:st.focus||null,d:dayKey(new Date()),day:st.day});hist=hist.slice(-30);LS.set("hist",hist);
   const nb=!st.focus&&st.score>st.gBest;if(nb){bestBy[st.day]={best:st.score,dur:Math.max(30,st.elapsed)}}
   const dm=updateDay();
-  $("eHead").textContent=st.focus?"Practice · "+TAGS[st.focus]:nb?"New personal best":"Run over";
+  const newM=!st.wasM&&dayMastered(st.day),nx=DAY_ORDER[DAY_ORDER.indexOf(st.day)+1];
+  $("eHead").textContent=newM?`Day ${DAYS[st.day].n} mastered!`+(nx?` Day ${DAYS[nx].n} unlocked`:""):st.label?st.label:nb?"New personal best":"Run over";
   $("eScore").textContent=st.score.toLocaleString();$("eRank").textContent=rank(st.score);
   $("eBest").textContent=bestOf(st.day).toLocaleString();
   $("eAcc").textContent=st.total?Math.round(st.right/st.total*100)+"% ("+st.right+"/"+st.total+")":"—";
@@ -879,18 +918,57 @@ function finish(){
   const tips={entry:"Fraction exponents always go in parentheses, and keep the order: top over bottom.",bottom:"Bottom is the root, top is the power. Take the root first.",neg:"Odd root of a negative gives a negative. Even root of a negative isn't real.",sols:"Even power → ± (or no solution if it equals a negative). Odd power → one answer that keeps its sign.",iso:"Get the power alone before you take any root: undo +/−, then ×/÷, then the power.",shift:"Undo in reverse order: the power first, then the + or −.",order:"Peel from the outside in: whatever was done to x last gets undone first.",spot:"Check each line against the rules: bottom = root, odd roots keep the negative, even powers get ±, isolate before rooting.",line:"To estimate a root, list whole numbers to that power and see which two the number lands between.",rules:"Same base: multiply → add exponents, divide → subtract, power of a power → multiply. Negative exponent → flip.",radmul:"Only combine radicals with the same index, then simplify the one radical.",simp:"Pull out the biggest perfect square or cube factor.",vars:"Divide each variable's exponent by the index.",like:"Like radicals need the same index and radicand. Add the front numbers and keep the radical.",spot2:"Check for added radicands, added exponents in a power of a power, and perfect squares pulled out without rooting."};
   $("eTip").textContent=w?tips[w[0]]:"Flawless. Next run, push the combo harder and save Double for when you're at ×5.";
   persist();
-  beep(523,.12);beep(659,.12,"sine",.14,.12);beep(nb?1047:784,.25,"sine",.14,.24);
+  beep(523,.12);beep(659,.12,"sine",.14,.12);beep(nb||newM?1047:784,.25,"sine",.14,.24);if(newM){beep(1319,.2,"triangle",.12,.4);beep(1568,.3,"triangle",.12,.55)}
+  {const m=masteredCount(st.day),t=LESSONS[st.day].length;$("eTip").textContent=$("eTip").textContent+(m<t?` Mastery: ${m} of ${t} skills for Day ${DAYS[st.day].n}.`:"")}
   show("end");
 }
 $("start").onclick=()=>start(null);$("learnBtn").onclick=()=>openLearn(LD().length>=LRN().length?0:null);$("lHome").onclick=home;$("again").onclick=()=>start(st.lastFocus||null);$("toHome").onclick=home;
 $("quit").onclick=()=>{if(st.done)return;st.done=true;runSeq++;cancelAnimationFrame(raf);$("cd").classList.add("hidden");home()};
 document.addEventListener("keydown",e=>{
+  if(calcOpen){const m={"*":"×","/":"÷","-":"−","Enter":"=","=":"=","Backspace":"⌫","Escape":"C"};const k=m[e.key]||e.key;
+    if(/^[0-9.+()^]$/.test(k)||["×","÷","−","=","⌫","C"].includes(k)){e.preventDefault();if(e.key==="Escape")toggleCalc(false);else cKey(k);return}}
   if(!$("game").classList.contains("hidden")){
     if(st.mode==="lt"){if(e.key==="1"||e.key==="ArrowLeft"||e.key==="t")ltAnswer(true);else if(e.key==="2"||e.key==="ArrowRight"||e.key==="f")ltAnswer(false);return}
     if(e.key>="1"&&e.key<="5"){const i=+e.key-1;if(st.cur&&st.cur.type==="order"){const t=[...document.querySelectorAll(".tile")][i];if(t)t.click()}else pickIdx(i)}
     else if(e.key==="Enter"&&!$("go").classList.contains("hidden"))$("go").click();
   }else if(e.key==="Enter"){(!$("home").classList.contains("hidden")?$("start"):$("again")).click()}
 });
+let calcExpr="",calcAns=0,calcOpen=false,calcDone=false;
+function cPow(a,b){if(a>=0||Number.isInteger(b))return Math.pow(a,b);
+  for(let q=1;q<=15;q++){const p=b*q;if(Math.abs(p-Math.round(p))<1e-9){if(q%2===0)return NaN;const r=Math.pow(-a,b);return Math.round(p)%2?-r:r}}return NaN}
+function cEval(src){
+  const t=[];let i=0;const s=src.replace(/ans/g,"A");
+  while(i<s.length){const ch=s[i];
+    if(/[0-9.]/.test(ch)){let j=i;while(j<s.length&&/[0-9.]/.test(s[j]))j++;const n=parseFloat(s.slice(i,j));if(isNaN(n))throw 0;t.push({n});i=j;continue}
+    if("+−×÷^()√∛A".includes(ch)){t.push({o:ch});i++;continue}
+    if(ch===" "){i++;continue}throw 0}
+  let p=0;const peek=()=>t[p],eat=o=>{if(t[p]&&t[p].o===o){p++;return true}return false};
+  const startsPrimary=x=>x&&(x.n!==undefined||["(","√","∛","A"].includes(x.o));
+  function expr(){let v=term();for(;;){if(eat("+"))v+=term();else if(eat("−"))v-=term();else return v}}
+  function term(){let v=unary();for(;;){if(eat("×"))v*=unary();else if(eat("÷"))v/=unary();else if(startsPrimary(peek()))v*=power();else return v}}
+  function unary(){if(eat("−"))return -unary();if(eat("+"))return unary();return power()}
+  function power(){const b=primary();if(eat("^"))return cPow(b,unary());return b}
+  function primary(){const x=peek();if(!x)throw 0;
+    if(x.n!==undefined){p++;return x.n}
+    if(eat("A"))return calcAns;
+    if(eat("(")){const v=expr();eat(")");return v}
+    if(eat("√")){const v=power();return v<0?NaN:Math.sqrt(v)}
+    if(eat("∛"))return Math.cbrt(power());
+    throw 0}
+  const v=expr();if(p<t.length)throw 0;return v}
+function cFmt(v){if(Number.isNaN(v))return "Not a real number";if(!isFinite(v))return "Error";const r=Math.round(v*1e6)/1e6;return (Math.abs(r)>=1e12?v.toExponential(4):String(r)).replace("-","−")}
+function cRender(){$("cExpr").textContent=calcExpr||" ";let r="";if(calcExpr){try{r="= "+cFmt(cEval(calcExpr))}catch(e){r=""}}$("cRes").textContent=r||" "}
+function cKey(k){
+  if(calcDone){calcDone=false;if(/^[0-9.(√∛]$/.test(k)||k==="ans")calcExpr="";else if(k!=="C"&&k!=="⌫"&&k!=="=")calcExpr=String(Math.round(calcAns*1e6)/1e6).replace("-","−")}
+  if(k==="C")calcExpr="";else if(k==="⌫")calcExpr=calcExpr.endsWith("ans")?calcExpr.slice(0,-3):calcExpr.slice(0,-1);
+  else if(k==="="){if(!calcExpr)return;try{const v=cEval(calcExpr);$("cRes").textContent="= "+cFmt(v);if(isFinite(v))calcAns=v;calcDone=true;beep(900,.04,"sine",.06);return}catch(e){$("cRes").textContent="Check the expression";return}}
+  else if(k==="ans")calcExpr+="ans";else calcExpr+=k;
+  cRender()}
+function toggleCalc(on){calcOpen=on===undefined?!calcOpen:on;$("calc").classList.toggle("hidden",!calcOpen);document.body.classList.toggle("calc-open",calcOpen);$("calcBtn").textContent=calcOpen?"Close calc":"Calculator";if(calcOpen)cRender()}
+(function(){const keys=["C","⌫","(",")","÷","7","8","9","×","^","4","5","6","−","√","1","2","3","+","∛","0",".","ans","="];
+  const box=$("cKeys");keys.forEach(k=>{const b=mkBtn(k==="="?"eq":"+−×÷^√∛()".includes(k)?"op":k==="C"||k==="⌫"||k==="ans"?"fn":"",k,()=>cKey(k));if(k==="0")b.style.gridColumn="span 2";box.appendChild(b)});
+  $("calcBtn").onclick=()=>toggleCalc();$("cClose").onclick=()=>toggleCalc(false)})();
+
 home();
 initCloud();
 </script>
