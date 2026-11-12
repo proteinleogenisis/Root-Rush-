@@ -178,6 +178,10 @@ body.calc-open .calc-fab{display:none}
 .why .l-step .mono{font-size:17px}
 .quizbtn{background:var(--good);border-color:var(--good);margin-bottom:6px}
 #game.quizmode #pu,#game.quizmode .race,#game.quizmode #mt{display:none}
+.revcard{border-color:var(--root);border-width:2px;margin-top:18px}
+.rv-t{font-size:17px;font-weight:700;margin-bottom:4px}.rv-s{font-size:13px;margin-bottom:6px}
+.rvbtn{background:var(--root);border-color:var(--root);margin-top:6px}
+.rv-next{font-size:13px;margin:16px 2px 0}
 </style>
 </head>
 <body>
@@ -205,6 +209,7 @@ body.calc-open .calc-fab{display:none}
     <div class="mini mute">Rank <b id="hRank">Square one</b> · Runs <b id="hRuns">0</b> · Freezes <b id="hFrz">0 / 2</b></div>
   </div>
 
+  <div id="revCard"></div>
   <div class="sec"><h3>Skills</h3><span class="mute" id="skSum"></span></div>
   <div class="card skills" id="skills"></div>
 
@@ -227,6 +232,7 @@ body.calc-open .calc-fab{display:none}
     <div><b>Power-ups</b>: every 4 in a row earns one (hold 2). Freeze stops the clock for 5s. Shield saves your combo and mastery on one miss. Double makes the next 3 answers worth ×2 points. Boost makes the next 3 answers worth ×2 mastery</div>
     <div><b>Rematch</b>: a type you miss comes back a few questions later. Get it right for +150</div>
     <div><b>Mastery</b>: each skill fills to 100. A right answer is +20 (+25 at combo ×3 or higher), a miss is −10. Once a skill hits 100 it stays Mastered and stops showing up in runs. When every skill in a day is mastered, take the <b>final quiz</b> (2 questions per skill, no timer, 80% to pass) to unlock the next day. Skills you miss on the quiz drop back to 60. Mastery run practices only the skills you haven't mastered</div>
+    <div><b>Quick review</b>: after you pass a day, its skills come back every so often (2 days, then 4, 8, 16…). A right answer pushes the next review further out. A miss brings it back tomorrow</div>
     <div><b>Practice this</b>: a run with only one skill. It counts for skills and your streak, not your best score</div>
     <div><b>Day streak</b>: play once a day. Every 7 days earns a freeze that covers a missed day</div>
     <div><b>Calculator</b>: tap Calculator during a run or lesson. The clock keeps running</div>
@@ -560,6 +566,12 @@ function masteredCount(d){return LESSONS[d].filter(k=>lvl(k)===3).length}
 function dayMastered(d){return masteredCount(d)===LESSONS[d].length}
 let passed=LS.get("passed",{});
 function dayPassed(d){return !!passed[d]}
+const DAYMS=864e5;
+function dayOfSkill(k){return Object.keys(LESSONS).find(d=>LESSONS[d].includes(k))}
+function ensureDue(){Object.values(LESSONS).flat().forEach(k=>{const o=sk[k];if(o&&o.m&&!o.due){o.due=Date.now()+2*DAYMS;o.iv=2}})}
+function dueReviews(){const now=Date.now();return Object.values(LESSONS).flat().filter(k=>{const o=sk[k];return o&&o.m&&o.due&&o.due<=now&&dayPassed(dayOfSkill(k))})}
+function inDays(t){const d=Math.ceil((t-Date.now())/DAYMS);return d<=0?"now":d===1?"tomorrow":`in ${d} days`}
+function nextReview(){let best=null;Object.values(LESSONS).flat().forEach(k=>{const o=sk[k];if(o&&o.m&&o.due&&dayPassed(dayOfSkill(k))&&(!best||o.due<best.due))best={k,due:o.due}});return best}
 function dayUnlocked(d){const i=DAY_ORDER.indexOf(d);return i<=0||dayPassed(DAY_ORDER[i-1])}
 const LVN=["New","Learning","Solid","Mastered"],LVC=["var(--line)","#BA7517","#378ADD","var(--good)"];
 function renderSkills(){
@@ -571,7 +583,7 @@ function renderSkills(){
     const row=document.createElement("div");row.className="sk";
     row.innerHTML=`<button class="sk-h"><span class="sk-n">${S.n}</span><span class="sk-bar"><i style="width:${pct}%;background:${LVC[L]}"></i></span><span class="pill lv${L}">${LVN[L]}</span></button>`;
     if(openSkill===S.k){const b=document.createElement("div");b.className="sk-b";
-      b.innerHTML=`<div class="sk-rule">${S.rule}</div><div class="sk-ex mono">${S.ex}</div><div class="sk-stat mute">${!s.t?"Not tried yet · ":""}Mastery ${xpOf(S.k)} / ${MX}${L<3?` · +${MX_GAIN} per right answer, −${MX_LOSS} per miss`:" · Mastered ✓"}</div>`;
+      b.innerHTML=`<div class="sk-rule">${S.rule}</div><div class="sk-ex mono">${S.ex}</div><div class="sk-stat mute">${!s.t?"Not tried yet · ":""}Mastery ${xpOf(S.k)} / ${MX}${L===3&&s.due&&dayPassed(dayOfSkill(S.k))?` · next review ${inDays(s.due)}`:""}${L<3?` · +${MX_GAIN} per right answer, −${MX_LOSS} per miss`:" · Mastered ✓"}</div>`;
       if(L<3){const pb=document.createElement("button");pb.className="practice";pb.textContent="Practice this";pb.onclick=()=>start(S.k);b.appendChild(pb)}else{const n=document.createElement("div");n.className="mute";n.style.fontSize="13px";n.textContent="Mastered skills are skipped in runs until the final quiz.";b.appendChild(n)}row.appendChild(b)}
     row.querySelector(".sk-h").onclick=()=>{openSkill=openSkill===S.k?null:S.k;renderSkills()};
     box.appendChild(row)});
@@ -591,6 +603,11 @@ const DAYS={"5.1":{n:1,t:"5.1 nth roots and rational exponents",mix:"Rush uses o
 "5.2":{n:2,t:"5.2 Properties of rational exponents and radicals",mix:"Rush mixes 60% 5.2 with 40% 5.1 review",rules:`<div class="rules52 mono"><div>a<sup>m</sup> · a<sup>n</sup> = a<sup>m+n</sup></div><div>a<sup>m</sup> / a<sup>n</sup> = a<sup>m−n</sup></div><div>(a<sup>m</sup>)<sup>n</sup> = a<sup>mn</sup></div><div>ⁿ√a · ⁿ√b = ⁿ√(ab)</div></div>`}};
 const LATEST="5.2";
 function setDay(d){if(!DAYS[d])return;if(!dayUnlocked(d)){const pv=DAY_ORDER[DAY_ORDER.indexOf(d)-1];$("dnote").textContent=`Day ${DAYS[d].n} unlocks after you pass the Day ${DAYS[pv].n} final quiz. First master all ${LESSONS[pv].length} Day ${DAYS[pv].n} skills (${masteredCount(pv)} of ${LESSONS[pv].length} so far).`;beep(200,.12,"square",.05);return}selDay=d;LS.set("selDay",d);openSkill=null;beep(700,.05);home()}
+function renderReview(){
+  const box=$("revCard");box.innerHTML="";const d=dueReviews();
+  if(d.length){box.className="card revcard";box.innerHTML=`<div class="rv-t">${d.length} old skill${d.length>1?"s":""} ready for a quick review</div><div class="mute rv-s">${d.map(k=>TAGS[k]).join(" · ")}</div><div class="mute rv-s">Spaced review keeps them fresh for the unit test. Each right answer pushes the next review further out.</div>`;box.appendChild(mkBtn("big rvbtn",`Quick review · ${d.length} question${d.length>1?"s":""}`,()=>start({reviewDue:true})))}
+  else{const nr=nextReview();box.className="";if(nr)box.innerHTML=`<div class="mute rv-next">Next quick review: ${TAGS[nr.k]} ${inDays(nr.due)}</div>`}
+}
 function home(){
   if(!dayUnlocked(selDay)){selDay=[...DAY_ORDER].reverse().find(dayUnlocked)||"5.1";LS.set("selDay",selDay)}
   const D=DAYS[selDay],b=bestOf(selDay);$("dnote").textContent="";
@@ -605,7 +622,7 @@ function home(){
   $("hDay").textContent=liveStreak();$("hFrz").textContent=day.freezes+" / 2";
   const done=day.last===dayKey(new Date());$("goal").classList.toggle("done",done);$("goalBox").textContent=done?"✓":"";
   $("goalTxt").textContent=done?"Daily goal done. Your streak is safe today":"Daily goal: finish 1 run";
-  renderSkills();renderSpark();renderRoad();
+  ensureDue();renderReview();renderSkills();renderSpark();renderRoad();
   const L=LRN(),ld=LD();
   $("learnTxt").textContent=`${ld.length} of ${L.length} lessons done`;$("learnBar").style.width=(ld.length/L.length*100)+"%";
   $("learnBtn").textContent=ld.length===0?`Learn ${selDay} · about ${L.length} min`:ld.length<L.length?`Continue learning · lesson ${Math.max(0,L.findIndex((_,j)=>!ld.includes(j)))+1}`:`Review ${selDay} lessons`;
@@ -701,7 +718,7 @@ function mergeSave(c){
   runs=Math.max(runs,+c.runs||0);
   for(const d in (c.bestBy||{})){const x=c.bestBy[d];if(x&&(+x.best||0)>bestOf(d))bestBy[d]={best:+x.best,dur:+x.dur||60}}
   if(c.day&&c.day.last){if(!day.last||daysBetween(day.last,c.day.last)>0||(c.day.last===day.last&&(c.day.streak||0)>day.streak))day={streak:c.day.streak||0,last:c.day.last,freezes:c.day.freezes||0}}
-  for(const k in (c.skills||{})){const x=c.skills[k];if(x){const lx=xpOf(k),lm=!!(sk[k]&&sk[k].m);if(!sk[k]||(x.t||0)>sk[k].t){sk[k]={r:x.r||0,t:x.t||0};if(Array.isArray(x.rec))sk[k].rec=x.rec.slice(-10)}sk[k].xp=Math.max(lx,typeof x.xp==="number"?x.xp:0);if(lm||x.m||sk[k].xp>=MX)sk[k].m=true}}
+  for(const k in (c.skills||{})){const x=c.skills[k];if(x){const lx=xpOf(k),lm=!!(sk[k]&&sk[k].m);if(!sk[k]||(x.t||0)>sk[k].t){sk[k]={r:x.r||0,t:x.t||0};if(Array.isArray(x.rec))sk[k].rec=x.rec.slice(-10)}sk[k].xp=Math.max(lx,typeof x.xp==="number"?x.xp:0);if(lm||x.m||sk[k].xp>=MX)sk[k].m=true;if(x.due&&(!sk[k].due||x.due>sk[k].due)){sk[k].due=x.due;sk[k].iv=x.iv||2}}}
   const key=h=>h.id?String(h.id):h.d+"|"+h.score;const seen=new Set(hist.map(key));
   (c.hist||[]).forEach(h=>{if(h&&!seen.has(key(h))){hist.push({...h});seen.add(key(h))}});
   hist.sort((a,b)=>(a.id||0)-(b.id||0));hist=hist.slice(-30);
@@ -734,13 +751,15 @@ function show(id){["home","learn","game","end"].forEach(s=>$(s).classList.toggle
 
 function start(f){
   let focus=null,pool=null,label=null;
+  let reviewOnly=false;
   if(typeof f==="string"){focus=f;pool=[f];label="Practice · "+TAGS[f]}
+  else if(f&&f.reviewDue){reviewOnly=true;focus="review";label="Quick review"}
   let quiz=false,qlist=null;
   if(f&&f.quiz){quiz=true;focus="quiz";label="Final quiz · Day "+DAYS[selDay].n;qlist=shuffle([...LESSONS[selDay],...LESSONS[selDay]]);for(let i=1;i<qlist.length;i++)if(qlist[i]===qlist[i-1]){const j=(i+2)%qlist.length;[qlist[i],qlist[j]]=[qlist[j],qlist[i]]}}
   else if(f&&f.mastery){const um=LESSONS[selDay].filter(k=>lvl(k)<3);pool=um.length?um:LESSONS[selDay].slice();focus="mastery";label="Mastery run · Day "+DAYS[selDay].n}
   try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();ac.resume()}catch(e){}
   st={score:0,streak:0,maxStreak:0,time:TOTAL,elapsed:0,right:0,total:0,miss:{},paused:true,done:false,counting:true,
-      pu:[],freeze:0,shield:false,dbl:0,boost:0,queue:[],qn:0,lastSec:TOTAL+1,mode:"main",ltDone:!!focus,focus,pool,label,quiz,qlist,qi:0,qres:[],review:!f&&dayPassed(selDay),lastFocus:f||null,wasM:dayMastered(selDay),day:selDay,gBest:bestOf(selDay),gDur:durOf(selDay)};
+      pu:[],freeze:0,shield:false,dbl:0,boost:0,queue:[],qn:0,lastSec:TOTAL+1,mode:"main",ltDone:!!focus,focus,pool,label,quiz,qlist,qi:0,qres:[],reviewOnly,revCount:0,revRight:0,review:!f&&dayPassed(selDay),lastFocus:f||null,wasM:dayMastered(selDay),day:selDay,gBest:bestOf(selDay),gDur:durOf(selDay)};
   $("gMode").textContent=label||"Unit "+selDay+(st.review?" · Review Rush":" · Rush");
   {const L=document.querySelectorAll("#game .stat small");L[0].textContent=quiz?"correct":"score";L[1].textContent=quiz?"to pass":"combo";L[2].textContent=quiz?"question":"time"}
   $("game").classList.toggle("quizmode",quiz);
@@ -805,7 +824,10 @@ function playPool(){
 function next(){
   if(st.done||st.mode!=="main")return;
   st.qn++;let k,rematch=false;
+  let rv=false;
   if(st.quiz){if(st.qi>=st.qlist.length)return finishQuiz();k=st.qlist[st.qi]}
+  else if(st.reviewOnly){const d=dueReviews();if(!d.length){st.allDone=true;return finish()}k=pick(d);rv=true}
+  else if(!st.focus&&st.revCount<3&&dueReviews().length&&Math.random()<.3){k=pick(dueReviews());rv=true}
   else{
   if(!st.review)st.queue=st.queue.filter(q=>lvl(q.key)<3);
   const due=st.queue.findIndex(q=>q.at<=st.qn);
@@ -813,8 +835,8 @@ function next(){
   else{const pool=playPool();if(!pool.length){st.allDone=true;return finish()}do{k=pick(pool)}while(k===lastKey&&pool.length>1)}
   }
   lastKey=k;
-  const p=GEN[k]();st.cur={...p,key:k,rematch};
-  $("tg").textContent=rematch?"Rematch: "+TAGS[k]:TAGS[k];$("tg").classList.toggle("rm",rematch);
+  const p=GEN[k]();st.cur={...p,key:k,rematch,rv};if(rv)st.revCount++;
+  $("tg").textContent=rv?"Quick review: "+TAGS[k]:rematch?"Rematch: "+TAGS[k]:TAGS[k];$("tg").classList.toggle("rm",rematch||rv);
   $("qt").innerHTML=p.q;$("ex").innerHTML=p.ex;setQM(k,false);if(st.quiz){$("qm").classList.add("hidden");$("tg").textContent=`Question ${st.qi+1}`}
   $("why").classList.add("hidden");$("go").classList.add("hidden");
   const box=$("opts");box.innerHTML="";
@@ -896,6 +918,9 @@ function resolve(ok){
   if(st.boost>0)st.boost--;
   mo.t++;if(ok)mo.r++;mo.rec=(mo.rec||[]).concat(ok?1:0).slice(-10);mo.xp=Math.max(0,Math.min(MX,xb+mg));if(mo.xp>=MX)mo.m=true;sk[mk]=mo;LS.set("skills",sk);
   const nowSM=!wasSM&&mo.m;setQM(mk,true);
+  if(nowSM){mo.due=Date.now()+2*DAYMS;mo.iv=2}
+  let revMsg="";
+  if(st.cur.rv){if(ok){mo.iv=Math.min(30,(mo.iv||2)*2);mo.due=Date.now()+mo.iv*DAYMS;st.revRight++;revMsg=`review ✓ · next one ${inDays(mo.due)}`}else{mo.iv=1;mo.due=Date.now()+DAYMS;revMsg="you'll see this again tomorrow"}LS.set("skills",sk)}
   if(ok){
     const before=mult();
     st.streak++;st.maxStreak=Math.max(st.maxStreak,st.streak);st.right++;
@@ -910,6 +935,7 @@ function resolve(ok){
     else if(speed>=45)extra+='<div style="font-size:16px">fast</div>';
     if(up)extra+=`<div style="font-size:20px">combo ×${mult()}</div>`;
     if(mg>0)extra+=`<div style="font-size:15px;color:var(--good)">+${mg} mastery${st.boost>=0&&mg>25?" (boosted)":""}</div>`;
+    if(revMsg)extra+=`<div style="font-size:15px;color:var(--good)">${revMsg}</div>`;
     if(nowSM){extra+=`<div style="font-size:20px;color:var(--good)">${TAGS[mk]} mastered!</div>`;beep(1047,.15,"triangle",.12,.15);beep(1568,.25,"triangle",.12,.3)}
     if(st.streak%4===0&&st.pu.length<2){const k=pick(Object.keys(PU));st.pu.push(k);renderPU();extra+=`<div style="font-size:18px;color:var(--root)">power-up: ${PU[k].name}</div>`}
     popup(`+${pts}${extra}`,"var(--hot)");
@@ -923,6 +949,7 @@ function resolve(ok){
     st.queue.push({key:st.cur.key,at:st.qn+ri(2,4)});
     let note="−3s";
     if(st.shield){st.shield=false;note="−3s · shield saved your combo and mastery"}else{st.streak=0;if(mg<0)note+=` · −${MX_LOSS} mastery`}
+    if(revMsg)note+=" · "+revMsg;
     hudCombo();popup(note,"var(--bad)");beep(140,.28,"square",.08);buzz([60,40,60]);flash("fbad");
     st.paused=true;showWalk();
     $("why").classList.remove("hidden");$("go").classList.remove("hidden");
@@ -997,6 +1024,7 @@ function finish(){
   $("eBest").closest(".card").classList.remove("hidden");$("again").textContent="Run it back";$("again").onclick=()=>start(st.lastFocus||null);
   $("eHead").textContent=newM?`Every Day ${DAYS[st.day].n} skill mastered! Final quiz unlocked`:st.label?st.label:nb?"New personal best":"Run over";
   if(newM){$("again").textContent="Take the final quiz";$("again").onclick=()=>start({quiz:true})}
+  if(st.reviewOnly){$("eHead").textContent=st.allDone?`Review done: ${st.revRight} of ${st.revCount} right`:"Quick review";$("again").textContent="Home";$("again").onclick=home}
   $("eScore").textContent=st.score.toLocaleString();$("eRank").textContent=rank(st.score);
   $("eBest").textContent=bestOf(st.day).toLocaleString();
   $("eAcc").textContent=st.total?Math.round(st.right/st.total*100)+"% ("+st.right+"/"+st.total+")":"—";
@@ -1008,7 +1036,9 @@ function finish(){
   $("eTip").textContent=w?tips[w[0]]:"Flawless. Next run, push the combo harder and save Double for when you're at ×5.";
   persist();
   beep(523,.12);beep(659,.12,"sine",.14,.12);beep(nb||newM?1047:784,.25,"sine",.14,.24);if(newM){beep(1319,.2,"triangle",.12,.4);beep(1568,.3,"triangle",.12,.55)}
+  if(st.revCount){const nr=nextReview();$("eTip").textContent=`Reviewed ${st.revCount} old skill${st.revCount>1?"s":""} (${st.revRight} right).`+(nr?` Next review: ${TAGS[nr.k]} ${inDays(nr.due)}.`:"")+" "+$("eTip").textContent}
   {const m=masteredCount(st.day),t=LESSONS[st.day].length;$("eTip").textContent=$("eTip").textContent+(m<t?` Mastery: ${m} of ${t} skills for Day ${DAYS[st.day].n}.`:dayPassed(st.day)?"":" Every skill is mastered. Take the final quiz to unlock the next day.")}
+  if(st.reviewOnly){const nr=nextReview();$("eTip").textContent=(st.revRight===st.revCount?"All remembered. ":"Missed ones come back tomorrow. ")+(nr?`Next quick review: ${TAGS[nr.k]} ${inDays(nr.due)}.`:"")}
   show("end");
 }
 $("start").onclick=()=>start(null);$("learnBtn").onclick=()=>openLearn(LD().length>=LRN().length?0:null);$("lHome").onclick=home;$("again").onclick=()=>start(st.lastFocus||null);$("toHome").onclick=home;
