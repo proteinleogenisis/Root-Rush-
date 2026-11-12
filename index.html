@@ -182,6 +182,8 @@ body.calc-open .calc-fab{display:none}
 .rv-t{font-size:17px;font-weight:700;margin-bottom:4px}.rv-s{font-size:13px;margin-bottom:6px}
 .rvbtn{background:var(--root);border-color:var(--root);margin-top:6px}
 .rv-next{font-size:13px;margin:16px 2px 0}
+.mchip{font:inherit;font-size:13px;cursor:pointer;color:var(--root);border-color:var(--root);font-weight:700}.mchip.off{color:var(--mute);border-color:var(--line);font-weight:400}
+.chips{flex-wrap:wrap;justify-content:flex-end}
 </style>
 </head>
 <body>
@@ -190,7 +192,7 @@ body.calc-open .calc-fab{display:none}
 <section id="home">
   <header class="topbar">
     <div class="brand">Root<span>Rush</span></div>
-    <div class="chips"><span class="chip"><b id="hDay">0</b> day streak</span><span class="chip">Best <b id="hBest">0</b></span></div>
+    <div class="chips"><button class="chip mchip" id="musBtn">♪ Music</button><span class="chip"><b id="hDay">0</b> day streak</span><span class="chip">Best <b id="hBest">0</b></span></div>
   </header>
   <div class="sync" id="sync"></div>
   <div class="dsw" id="dsw"></div>
@@ -239,7 +241,7 @@ body.calc-open .calc-fab{display:none}
     <div class="mute kbhint" style="margin-top:6px;font-size:13px">On a keyboard, keys 1–5 answer and Enter continues.</div>
     </div>
   </details>
-  <div style="text-align:center;margin:14px 0 8px"><button class="small" id="snd">Sound: on</button></div>
+  <div style="text-align:center;margin:14px 0 8px"><button class="small" id="snd">Sound: on</button> <button class="small" id="musBtn2">Music: on</button></div>
 </section>
 
 <section id="learn" class="hidden">
@@ -323,6 +325,10 @@ function co(n){return n<0?"−"+(-n):String(n)}
 function uniq(c,cands){const out=[];cands.forEach(x=>{if(x!==c&&!out.includes(x)&&out.length<3)out.push(x)});return out}
 const GEN={
 entry(){
+  if(Math.random()<.4){const b=pick([20,35,50,85,120,187,240,300]),n=pick([3,4,5,6]),m=pick([1,2,3]);const v=b**(m/n),c=v.toFixed(2);
+    return{walk:[[`${b}<sup>${m}/${n}</sup>`,"Use the calculator"],[`${b} ^ (${m} ÷ ${n})`,"Type it with the fraction in parentheses"],[`≈ ${c}`,"Round to two decimals"]],
+    q:`Use the calculator: ${b}<sup>${m}/${n}</sup> ≈ ?`,ex:`${b}${sup(m,n)}`,c,w:uniq(c,[(b**m/n).toFixed(2),(b**(n/m)).toFixed(2),(b*m/n).toFixed(2),(b**(1/n)).toFixed(2),(v+1).toFixed(2)]),
+    why:`Type ${b} ^ (${m} ÷ ${n}). Without the parentheses the calculator gives ${(b**m/n).toFixed(2)}.`};}
   const b=pick([8,16,27,32,64,81,125,243]),n=ri(2,5);let m=ri(1,4);if(m===n)m=n+1;
   return{walk:[[`${b}<sup>${m}/${n}</sup>`,"The exponent is the whole fraction, so it has to stay together"],[`${b} ^ (${m}/${n})`,"Put the fraction in parentheses"],[`${b} ^ ${m} / ${n} = ${+(b**m/n).toFixed(2)}`,"Without them the calculator does the power first, then divides. Wrong"],[`${b} ^ (${m}/${n}) ≈ ${+(b**(m/n)).toFixed(2)}`,"With them you get the right value"]],q:`Which keypresses give ${b}<sup>${m}/${n}</sup>?`,ex:`${b}${sup(m,n)}`,
   c:`${b} ^ (${m}/${n})`,w:[`${b} ^ ${m} / ${n}`,`${b} ^ (${n}/${m})`,`${b} × ${m} / ${n}`],
@@ -432,6 +438,12 @@ rules(){
   why:`Inside first: same base, multiplying → add: 1/2 + (−3/2) = −1. Then power of a power → multiply:<span class="mono">−1 × (−1/${k}) = 1/${k}</span>`};
 },
 radmul(){
+  if(Math.random()<.25){const c=pick([2,3]),r=ri(2,4),T=c*r**3;let divs=[];for(let d=2;d<T;d++)if(T%d===0&&d<=T/d)divs.push(d);const a=pick(divs),b=T/a,ans=String(r);
+    const top=`∛${a} · ∛${b}`,bot=`${sp(6)}√${c} · ${sp(6)}√${c}`;
+    return{walk:[[`(${top}) / (${bot})`,"Simplify the top and bottom separately first"],[`∛${T}`,`Top: same index, so ∛(${a} · ${b}) = ∛${T}`],[`${sp(6)}√${c*c} = ∛${c}`,`Bottom: ${sp(6)}√(${c}·${c}) = ${sp(6)}√${c*c}, and ${c*c} = ${c}², so ${sp(6)}√${c}² = ∛${c}`],[`∛(${T} ÷ ${c}) = ∛${r**3}`,"Now both are cube roots, so divide under one root"],[ans,`∛${r**3} = ${r}`]],
+    q:`Simplify (${top}) / (${bot})`,ex:`<span style="display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;font-size:.85em"><span>${top}</span><span style="border-top:2px solid currentColor;padding-top:2px">${bot}</span></span>`,c:ans,
+    w:uniq(ans,[String(r**3),`∛${T}`,String(r*c),`∛${r}`,String(r+1)]),
+    why:`Turn ${sp(6)}√${c} · ${sp(6)}√${c} into ${sp(6)}√${c*c} = ∛${c}, so top and bottom are both cube roots. Then ∛${T} ÷ ∛${c} = ∛${r**3} = ${r}.`};}
   const n=pick([2,2,3,4]);
   if(Math.random()<.65){const r=n===2?ri(4,15):n===3?ri(2,6):ri(2,4),T=r**n;
     let divs=[];for(let d=2;d<T;d++)if(T%d===0&&Math.round(d**(1/n))**n!==d)divs.push(d);
@@ -449,6 +461,12 @@ simp(){
   why:`Find the biggest perfect ${n===2?"square":"cube"} that goes into ${x}:<span class="mono">${x} = ${p**n} · ${s}</span><span class="mono">${rad(n,p**n)} = ${p}, so ${rad(n,x)} = ${p}${rad(n,s)}</span>`};
 },
 vars(){
+  if(Math.random()<.3){const n=pick([2,4]),k=ri(2,3),C=k**n,pr=pick([["k","z"],["m","n"],["x","y"]]),a1=2*ri(1,3),a2=n===4?1:2,v=(L,e)=>e===1?L:`${L}<sup>${e}</sup>`;
+    const inside=`${v(pr[0],n*a1)} / ${C}${v(pr[1],n*a2)}`,c=`${v(pr[0],a1)} / ${k}${a2===1?`|${pr[1]}|`:v(pr[1],a2)}`;
+    return{walk:[[rad(n,"("+inside+")"),"Take the root of the top and the bottom separately"],[`top: ${v(pr[0],n*a1)} → ${v(pr[0],a1)}`,`${n*a1} ÷ ${n} = ${a1}`],[`bottom: ${rad(n,C)} = ${k},  ${v(pr[1],n*a2)} → ${a2===1?`|${pr[1]}|`:v(pr[1],a2)}`,a2===1?`${n}÷${n} = 1, and an even root of an even power needs | | so it stays positive`:`${n*a2} ÷ ${n} = ${a2}`],[c,"Put it back together"]],
+    q:`Simplify ${rad(n,"("+inside+")")}`,ex:rad(n,"("+inside+")"),c,
+    w:uniq(c,[`${v(pr[0],a1)} / ${C}${v(pr[1],a2)}`,`${v(pr[0],n*a1)} / ${k}${v(pr[1],a2)}`,`${k}${v(pr[0],a1)} / ${v(pr[1],a2)}`,`${v(pr[0],a1+1)} / ${k}${v(pr[1],a2)}`]),
+    why:`Root of the top and bottom separately. Divide each exponent by ${n}, and ${rad(n,C)} = ${k}.${a2===1?` When an even root leaves an odd power, use | | (like |${pr[1]}|). Check what your teacher wants.`:""}`};}
   const n=pick([2,3,4,5]),pr=pick([["x","y"],["r","t"],["m","n"],["a","b"],["k","z"]]),k=n<=3?ri(2,5):ri(2,3),C=k**n;
   let a1=ri(1,4),a2=ri(1,3);if(n%2===0){a1=2*ri(1,2);a2=2*ri(1,2)}
   const fr=Math.random()<.4,v=(L,e)=>e===1?L:`${L}<sup>${e}</sup>`;
@@ -533,6 +551,34 @@ function buzz(ms){try{navigator.vibrate&&navigator.vibrate(ms)}catch(e){}}
 function flash(c){document.body.classList.add(c);setTimeout(()=>document.body.classList.remove(c),170)}
 function sndLabel(){$("snd").textContent="Sound: "+(sound?"on":"off")}
 $("snd").onclick=()=>{sound=!sound;LS.set("sound",sound);sndLabel()};sndLabel();
+let musicOn=LS.get("music",true),mus=null;
+function musLabel(){$("musBtn").textContent=musicOn?"♪ Music on":"♪ Music off";$("musBtn").classList.toggle("off",!musicOn);$("musBtn2").textContent="Music: "+(musicOn?"on":"off")}
+function musStart(){
+  if(!musicOn||mus||document.hidden)return;
+  try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();ac.resume()}catch(e){return}
+  const out=ac.createGain();out.gain.setValueAtTime(0,ac.currentTime);out.gain.linearRampToValueAtTime(.085,ac.currentTime+2.5);
+  const lp=ac.createBiquadFilter();lp.type="lowpass";lp.frequency.value=2400;lp.connect(out);out.connect(ac.destination);
+  const bpm=84,s16=60/bpm/4,prog=[[57,60,64,67],[53,57,60,64],[48,52,55,59],[55,59,62,65]],F=m=>440*Math.pow(2,(m-69)/12);
+  const note=(fr,t,d,ty,v)=>{const o=ac.createOscillator(),g=ac.createGain();o.type=ty;o.frequency.value=fr;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.03);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(lp);o.start(t);o.stop(t+d+.05)};
+  const nz=(t,d,v,hp)=>{const n=Math.floor(ac.sampleRate*d),b=ac.createBuffer(1,n,ac.sampleRate),x=b.getChannelData(0);for(let i=0;i<n;i++)x[i]=(Math.random()*2-1)*(1-i/n);const src=ac.createBufferSource();src.buffer=b;const fl=ac.createBiquadFilter();fl.type="highpass";fl.frequency.value=hp;const g=ac.createGain();g.gain.value=v;src.connect(fl);fl.connect(g);g.connect(lp);src.start(t)};
+  const kick=t=>{const o=ac.createOscillator(),g=ac.createGain();o.frequency.setValueAtTime(110,t);o.frequency.exponentialRampToValueAtTime(42,t+.16);g.gain.setValueAtTime(.45,t);g.gain.exponentialRampToValueAtTime(.001,t+.28);o.connect(g);g.connect(lp);o.start(t);o.stop(t+.3)};
+  const arp=[0,2,1,3,2,1,3,2];
+  mus={out,next:ac.currentTime+.1,step:0,timer:null};
+  const sched=()=>{while(mus&&mus.next<ac.currentTime+.3){const t=mus.next,st_=mus.step,bar=Math.floor(st_/16)%4,b=st_%16,ch=prog[bar];
+      if(b===0){ch.forEach(m=>note(F(m),t,s16*15,"triangle",.035));note(F(ch[0]-24),t,s16*7,"sine",.16)}
+      if(b===8)note(F(ch[0]-24),t,s16*7,"sine",.13);
+      if(b%2===0)note(F(ch[arp[(b/2)%8]]+12),t,s16*1.8,"sine",.03);
+      if(b===0||b===7||b===10)kick(t);
+      if(b===4||b===12)nz(t,.14,.07,1800);
+      if(b%2===1)nz(t,.03,.025,8000);
+      mus.next+=s16;mus.step++}};
+  mus.timer=setInterval(sched,50);sched();
+}
+function musStop(){if(!mus)return;const m=mus;mus=null;clearInterval(m.timer);try{const t=ac.currentTime;m.out.gain.cancelScheduledValues(t);m.out.gain.setValueAtTime(m.out.gain.value,t);m.out.gain.linearRampToValueAtTime(0,t+.6);setTimeout(()=>{try{m.out.disconnect()}catch(e){}},900)}catch(e){}}
+function musToggle(){musicOn=!musicOn;LS.set("music",musicOn);musLabel();if(musicOn)musStart();else musStop()}
+$("musBtn").onclick=musToggle;$("musBtn2").onclick=musToggle;musLabel();
+document.addEventListener("pointerdown",e=>{if(!(e.target.closest&&e.target.closest("#musBtn,#musBtn2")))musStart()},{passive:true});document.addEventListener("keydown",()=>musStart());
+document.addEventListener("visibilitychange",()=>{if(document.hidden)musStop();else if(musicOn)musStart()});
 
 function rank(s){return s>=18000?"Radical legend":s>=12000?"Exponent ace":s>=6000?"Root apprentice":"Square one"}
 function dayKey(d){return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate()}
