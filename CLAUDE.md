@@ -41,3 +41,42 @@ Headless Chrome with Playwright works well: load `file://.../index.html` at a 39
 
 ## Deploying
 Push to `main`. GitHub Pages serves from `main` at the repo root and updates in about a minute.
+
+## Project history and handoff (from the original chat, Nov 11–12, 2026)
+This project started in a Claude chat and moved here. Read this before changing anything.
+
+### Where the student is
+- Unit 5, Day 2 (5.2) as of Nov 12. Homework 5.1 and 5.2 are both covered by generators and Learn lessons.
+- Next class topic: 5.3 Graphing Radical Functions, then 5.4 Solving Radical Equations and Inequalities, then review and the unit test. St. Vrain's pacing skips 5.5 and 5.6.
+- The student plays on an iPhone (dark mode) and an iPad from the home-screen icon on the GitHub Pages site. Progress is per device.
+
+### Homework coverage map
+- 5.1 #1–4 evaluate by hand → `bottom`, `neg`. #7–10 calculator values → `entry` (numeric variant). #11–14 solve xⁿ = k, isolate, shifted → `sols`, `iso`, `shift`, `order`. Estimating roots → `line`. (#5–6 were error-correction; skipped by request.)
+- 5.2 #1–4 exponent rules incl. power of a quotient and negative exponents → `rules` (6 variants). #5–8 multiply/divide radicals incl. mixed indexes like ⁶√2·⁶√2 → `radmul`. #9–12 roots of variables incl. fractions and |z| → `vars`. Simplest form → `simp`. #13–14 like radicals incl. exponent form → `like`. (The error problem is covered conceptually by `like`.)
+
+### What was built, in order, and why
+1. Concept quizzes in chat → turned into Root Rush (named by the student's request for a competitive game against himself).
+2. Ghost race (smooth, steady pace toward best score), combo, speed bonus, power-ups (Freeze, Shield, Double, Boost), rematches (missed type returns 2–4 questions later), day streak with freezes. Researched Kahoot, Gimkit, Duolingo, and spaced/interleaved practice.
+3. Questions changed from "what do you type" to "what do you do" (the student works out the numbers himself).
+4. Homepage with day switcher, skills with mastery bars, recent runs chart, roadmap, Learn lessons (step reveals plus "Your turn" check that repeats until right).
+5. Built-in calculator (behaves like a real one: 8 ^ 2 / 3 gives 21.33, so parentheses habits matter).
+6. Mastery made achievable (xp meter instead of 9-of-10), mastered skills skipped, final quiz gates the next day, spaced quick review after a day is passed.
+7. Step-by-step walkthrough on every wrong answer, highlighting the step where the student went wrong.
+8. Music: 7 procedural tracks with Auto mode, volume, toggle in the top bar, settings sheet.
+
+### Corrections the student made (do not repeat these mistakes)
+- Wording must be unambiguous. "In 64^(2/5), the 2 tells you which root" confused him; now "you take the square root". Spot-the-mistake asked for "the mistake" when later lines were also wrong; it was then removed entirely.
+- Evaluating a root gives the positive value (16^(1/4) = 2); ± only when solving an equation (x⁴ = 16). Lightning has items that drill this.
+- Music was too quiet at first; track levels are balanced around 0.15 RMS before the compressor. Phones block audio until the first tap; music starts on the first tap anywhere (no splash screen; he asked to remove it).
+- An emailed .html attachment does not run on iPad (previews don't run JavaScript). That is why the app lives on GitHub Pages.
+
+### How to work with the student
+- He is on his phone most of the time. Keep replies short, lead with what changed, and give the live link.
+- Test every change in headless Chrome before pushing, including generator stress tests.
+- He asks to "make a better prompt and then execute": write a short improved spec, show it, then build it.
+
+### Ideas not built yet (he picked spaced review first; ask before building the others)
+- Type-your-own-answer questions (closer to real tests than multiple choice).
+- Unit 5 mock test mode with a timer and a review list at the end.
+- Day 3 for 5.3 with interactive graphs (sliders for shifts and stretches of y = √x).
+- A homework check-in each time a new worksheet photo arrives.
