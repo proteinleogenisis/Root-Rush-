@@ -159,6 +159,7 @@ body.fok{background:var(--goodbg)}body.fbad{background:var(--badbg)}
 .ckeys{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
 .ckeys button{padding:9px 0;font-size:19px;font-weight:500;border-radius:10px}
 .ckeys .op{color:var(--root);font-weight:700}.ckeys .fn{color:var(--mute)}.ckeys .eq{background:var(--hot);border-color:var(--hot);color:#fff;font-weight:700}
+.wrap{padding-bottom:84px}
 body.calc-open .wrap{padding-bottom:420px}
 body.calc-open .calc-fab{display:none}
 .dnote{font-size:13px;color:var(--mute);margin:-4px 2px 10px}
@@ -166,6 +167,9 @@ body.calc-open .calc-fab{display:none}
 .mrow{display:flex;align-items:center;gap:10px;margin:14px 0 8px;font-size:13px}
 .mbtn{width:100%;font-weight:700;border-color:var(--good);color:var(--good);padding:12px;margin-bottom:4px}
 .mbadge{display:block;text-align:center;font-weight:700;color:var(--good);background:var(--goodbg);border-radius:10px;padding:10px;margin-bottom:4px}
+.qm{display:flex;align-items:center;gap:8px;margin:-2px 0 10px;font-size:12px;color:var(--mute)}
+.qm-b{flex:1;height:6px;background:var(--line);border-radius:3px;overflow:hidden}.qm-b i{display:block;height:100%;width:0;transition:width .4s ease}
+.qm.pulse{animation:qmp .5s ease}@keyframes qmp{50%{transform:scale(1.03)}}
 </style>
 </head>
 <body>
@@ -212,9 +216,9 @@ body.calc-open .calc-fab{display:none}
     <div><b>Combo</b>: goes up every 3 in a row (max ×5)</div>
     <div><b>Last 10 seconds</b>: double points</div>
     <div><b>Wrong answer</b>: −3 seconds, combo resets, and the clock stops so you can read why</div>
-    <div><b>Power-ups</b>: every 5 in a row earns one (hold 2). Freeze stops the clock for 5s, Shield saves your combo once, Double makes the next 3 answers ×2</div>
+    <div><b>Power-ups</b>: every 4 in a row earns one (hold 2). Freeze stops the clock for 5s. Shield saves your combo and mastery on one miss. Double makes the next 3 answers worth ×2 points. Boost makes the next 3 answers worth ×2 mastery</div>
     <div><b>Rematch</b>: a type you miss comes back a few questions later. Get it right for +150</div>
-    <div><b>Mastery</b>: a skill is Mastered when you get 9 of your last 10 right. Master every skill in a day to unlock the next day. Mastery run practices only the skills you haven't mastered</div>
+    <div><b>Mastery</b>: each skill fills to 100. A right answer is +20 (+25 at combo ×3 or higher), a miss is −10. Once a skill hits 100 it stays Mastered. Master every skill in a day to unlock the next day. Mastery run practices only the skills you haven't mastered</div>
     <div><b>Practice this</b>: a run with only one skill. It counts for skills and your streak, not your best score</div>
     <div><b>Day streak</b>: play once a day. Every 7 days earns a freeze that covers a missed day</div>
     <div><b>Calculator</b>: tap Calculator during a run or lesson. The clock keeps running</div>
@@ -246,6 +250,7 @@ body.calc-open .calc-fab{display:none}
   <div id="pu" style="display:flex;gap:8px;margin-bottom:10px"></div>
   <div class="card" id="qc">
     <span class="tag" id="tg"></span>
+    <div class="qm" id="qm"><span class="qm-b"><i id="qmBar"></i></span><span id="qmTxt"></span></div>
     <div class="q" id="qt"></div>
     <div class="ex mono" id="ex"></div>
     <div id="opts"></div>
@@ -476,7 +481,9 @@ const LT=[
 ()=>{const r=ri(2,4),b=r**3;return{s:`(−${b})<sup>1/3</sup> = −${r}`,t:true,why:"Odd roots keep the negative."}},
 ()=>{const r=ri(2,9),n=pick([2,4]);return{s:`x<sup>${n}</sup> = ${r**n} has two real solutions`,t:true,why:"Even power → ±."}},
 ()=>{const r=ri(2,4),n=pick([3,5]);return{s:`x<sup>${n}</sup> = ${r**n} has two real solutions`,t:false,why:"Odd power → just one answer."}},
-()=>{const m=ri(2,5);let n=ri(2,5);if(n===m)n=m===5?2:m+1;const t=Math.random()<.5;return{s:`In 64<sup>${m}/${n}</sup>, the ${t?n:m} tells you which root`,t,why:"Bottom number = root."}},
+()=>{const m=ri(2,5);let n=ri(2,5);if(n===m)n=m===5?2:m+1;const t=Math.random()<.5;const RW={2:"square",3:"cube",4:"4th",5:"5th"};return{s:`To find 64<sup>${m}/${n}</sup>, you take the ${RW[t?n:m]} root`,t,why:`Bottom number (${n}) = root, so it's the ${RW[n]} root.`}},
+()=>{const r=ri(2,3),n=pick([2,4]);return{s:`${r**n}<sup>1/${n}</sup> = ±${r}`,t:false,why:`A root of a number is just the positive one: ${r}. ± is only for solving x<sup>${n}</sup> = ${r**n}.`}},
+()=>{const r=ri(2,3),n=pick([2,4]);return{s:`x<sup>${n}</sup> = ${r**n} → x = ±${r}`,t:true,why:"Solving an even power: both signs work."}},
 ()=>{const n=pick([2,4,6]),k=ri(4,80);return{s:`x<sup>${n}</sup> = −${k} has no real solution`,t:true,why:"Even powers are never negative."}},
 ()=>{const b=pick([8,27,64]),m=ri(2,4);return{s:`Typing ${b} ^ ${m} / 3 gives ${b}<sup>${m}/3</sup>`,t:false,why:"You need parentheses: ^ (m/3)."}},
 ()=>{const r=ri(2,9);return{s:`${r*r}<sup>1/2</sup> = ${r}`,t:true,why:"A 1/2 power is a square root."}},
@@ -504,7 +511,7 @@ function bestOf(d){return (bestBy[d]||{}).best||0}
 function durOf(d){return (bestBy[d]||{}).dur||60}
 let day=LS.get("day",{streak:0,last:null,freezes:0});
 const TOTAL=180,LT_AT=90;
-const PU={freeze:{name:"Freeze",icon:"❄"},shield:{name:"Shield",icon:"◆"},double:{name:"Double",icon:"×2"}};
+const PU={freeze:{name:"Freeze",icon:"❄"},shield:{name:"Shield",icon:"◆"},double:{name:"Double",icon:"×2"},boost:{name:"Boost",icon:"▲"}};
 
 let ac=null,sound=LS.get("sound",true);
 function beep(f,d=.09,type="sine",v=.14,delay=0){if(!sound||!ac)return;try{const t=ac.currentTime+delay,o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g).connect(ac.destination);o.start(t);o.stop(t+d)}catch(e){}}
@@ -536,8 +543,10 @@ const SKILLS=[
 const ROAD=[["5.1","nth roots and rational exponents","Day 1"],["5.2","Properties of rational exponents and radicals","Day 2"],["5.3","Graphing radical functions","Next"],["5.4","Solving radical equations and inequalities","Later"],["Test","Review and unit test","Later"]];
 let sk=LS.get("skills",{}),hist=LS.get("hist",[]),openSkill=null;
 function recOf(k){const s=sk[k]||{};return s.rec||[]}
-function lvl(k){const s=sk[k]||{r:0,t:0};if(!s.t)return 0;const R=s.rec;if(!R){const a=s.r/s.t;return s.t>=8&&a>=.9?3:s.t>=4&&a>=.75?2:1}
-  const n=R.length,a=n?R.reduce((x,y)=>x+y,0)/n:0;if(n>=8&&a>=.9)return 3;if(n>=4&&a>=.75)return 2;return 1}
+const MX=100,MX_GAIN=20,MX_LOSS=10;
+function xpOf(k){const s=sk[k];if(!s||!s.t)return 0;if(s.m)return MX;if(typeof s.xp==="number")return s.xp;
+  const R=s.rec||[],hits=R.length?R.reduce((x,y)=>x+y,0):s.r,miss=(R.length||s.t)-hits;return Math.max(0,Math.min(MX,hits*MX_GAIN-miss*MX_LOSS))}
+function lvl(k){const s=sk[k];if(!s||!s.t)return 0;const x=xpOf(k);return x>=MX?3:x>=50?2:1}
 const DAY_ORDER=["5.1","5.2"];
 function masteredCount(d){return LESSONS[d].filter(k=>lvl(k)===3).length}
 function dayMastered(d){return masteredCount(d)===LESSONS[d].length}
@@ -548,11 +557,11 @@ function renderSkills(){
   const ord=[...SKILLS].sort((x,y)=>((x.L||"5.1")===selDay?0:1)-((y.L||"5.1")===selDay?0:1));
   ord.forEach(S=>{const LL=S.L||"5.1";if(LL!==lastL){lastL=LL;const hd=document.createElement("div");hd.className="sk-grp";hd.textContent=`${LL} · Day ${DAYS[LL].n}`+(LL===selDay?"":LL<selDay?" · review":" · next");box.appendChild(hd)}
     const s=sk[S.k]||{r:0,t:0},L=lvl(S.k);if(L===3)m++;
-    const pct=s.t?Math.min(1,s.t/8)*(s.r/s.t)*100:0;
+    const pct=xpOf(S.k)/MX*100;
     const row=document.createElement("div");row.className="sk";
     row.innerHTML=`<button class="sk-h"><span class="sk-n">${S.n}</span><span class="sk-bar"><i style="width:${pct}%;background:${LVC[L]}"></i></span><span class="pill lv${L}">${LVN[L]}</span></button>`;
     if(openSkill===S.k){const b=document.createElement("div");b.className="sk-b";
-      b.innerHTML=`<div class="sk-rule">${S.rule}</div><div class="sk-ex mono">${S.ex}</div><div class="sk-stat mute">${!s.t?"Not tried yet":s.rec?`Last ${s.rec.length}: ${s.rec.reduce((x,y)=>x+y,0)} right`:`${s.r} of ${s.t} right`}${L<3?" · Mastered = 9 of your last 10 right":" · Mastered ✓"}</div>`;
+      b.innerHTML=`<div class="sk-rule">${S.rule}</div><div class="sk-ex mono">${S.ex}</div><div class="sk-stat mute">${!s.t?"Not tried yet · ":""}Mastery ${xpOf(S.k)} / ${MX}${L<3?` · +${MX_GAIN} per right answer, −${MX_LOSS} per miss`:" · Mastered ✓"}</div>`;
       const pb=document.createElement("button");pb.className="practice";pb.textContent="Practice this";pb.onclick=()=>start(S.k);b.appendChild(pb);row.appendChild(b)}
     row.querySelector(".sk-h").onclick=()=>{openSkill=openSkill===S.k?null:S.k;renderSkills()};
     box.appendChild(row)});
@@ -680,7 +689,7 @@ function mergeSave(c){
   runs=Math.max(runs,+c.runs||0);
   for(const d in (c.bestBy||{})){const x=c.bestBy[d];if(x&&(+x.best||0)>bestOf(d))bestBy[d]={best:+x.best,dur:+x.dur||60}}
   if(c.day&&c.day.last){if(!day.last||daysBetween(day.last,c.day.last)>0||(c.day.last===day.last&&(c.day.streak||0)>day.streak))day={streak:c.day.streak||0,last:c.day.last,freezes:c.day.freezes||0}}
-  for(const k in (c.skills||{})){const x=c.skills[k];if(x&&(!sk[k]||(x.t||0)>sk[k].t)){sk[k]={r:x.r||0,t:x.t||0};if(Array.isArray(x.rec))sk[k].rec=x.rec.slice(-10)}}
+  for(const k in (c.skills||{})){const x=c.skills[k];if(x){const lx=xpOf(k),lm=!!(sk[k]&&sk[k].m);if(!sk[k]||(x.t||0)>sk[k].t){sk[k]={r:x.r||0,t:x.t||0};if(Array.isArray(x.rec))sk[k].rec=x.rec.slice(-10)}sk[k].xp=Math.max(lx,typeof x.xp==="number"?x.xp:0);if(lm||x.m||sk[k].xp>=MX)sk[k].m=true}}
   const key=h=>h.id?String(h.id):h.d+"|"+h.score;const seen=new Set(hist.map(key));
   (c.hist||[]).forEach(h=>{if(h&&!seen.has(key(h))){hist.push({...h});seen.add(key(h))}});
   hist.sort((a,b)=>(a.id||0)-(b.id||0));hist=hist.slice(-30);
@@ -716,7 +725,7 @@ function start(f){
   else if(f&&f.mastery){const um=LESSONS[selDay].filter(k=>lvl(k)<3);pool=um.length?um:LESSONS[selDay].slice();focus="mastery";label="Mastery run · Day "+DAYS[selDay].n}
   try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();ac.resume()}catch(e){}
   st={score:0,streak:0,maxStreak:0,time:TOTAL,elapsed:0,right:0,total:0,miss:{},paused:true,done:false,counting:true,
-      pu:[],freeze:0,shield:false,dbl:0,queue:[],qn:0,lastSec:TOTAL+1,mode:"main",ltDone:!!focus,focus,pool,label,lastFocus:f||null,wasM:dayMastered(selDay),day:selDay,gBest:bestOf(selDay),gDur:durOf(selDay)};
+      pu:[],freeze:0,shield:false,dbl:0,boost:0,queue:[],qn:0,lastSec:TOTAL+1,mode:"main",ltDone:!!focus,focus,pool,label,lastFocus:f||null,wasM:dayMastered(selDay),day:selDay,gBest:bestOf(selDay),gDur:durOf(selDay)};
   $("gMode").textContent=label||"Unit "+selDay+" · Rush";
   $("sc").textContent="0";$("bn").textContent="";hudCombo();renderPU();
   $("vs").textContent=st.gBest?"":"no ghost yet: set one this run";
@@ -747,7 +756,7 @@ function frame(dt){
   $("tm").textContent=Math.ceil(st.time);$("tf").style.width=Math.min(100,st.time/TOTAL*100)+"%";
   $("tf").style.background=st.freeze>0?"var(--root)":st.time<=10?"var(--hot)":"var(--pow)";
   let b="";
-  if(!st.counting){if(st.freeze>0)b=`Clock frozen: ${Math.ceil(st.freeze)}s`;else if(st.time<=10)b="Double points: last 10 seconds";else if(st.dbl>0)b=`Double: ${st.dbl} left`;else if(mult()===5)b="On fire: ×5";else if(!st.ltDone&&st.time<=LT_AT+5)b="Lightning round incoming";}
+  if(!st.counting){if(st.freeze>0)b=`Clock frozen: ${Math.ceil(st.freeze)}s`;else if(st.time<=10)b="Double points: last 10 seconds";else if(st.boost>0)b=`Mastery boost: next ${st.boost} answer${st.boost>1?"s":""} ×2`;else if(st.dbl>0)b=`Double: ${st.dbl} left`;else if(mult()===5)b="On fire: ×5";else if(!st.ltDone&&st.time<=LT_AT+5)b="Lightning round incoming";}
   if(st.shield&&!b)b="Shield up: your combo is protected";
   $("bn").textContent=b;
   const ghostScore=st.gBest*Math.min(1,st.elapsed/st.gDur);
@@ -765,7 +774,7 @@ function renderPU(){
 }
 function usePU(s){
   if(st.paused||st.done||st.mode!=="main")return;const k=st.pu.splice(s,1)[0];if(!k)return;
-  if(k==="freeze")st.freeze+=5;if(k==="shield")st.shield=true;if(k==="double")st.dbl+=3;
+  if(k==="freeze")st.freeze+=5;if(k==="shield")st.shield=true;if(k==="double")st.dbl+=3;if(k==="boost")st.boost+=3;
   beep(990,.12,"triangle",.12);beep(1480,.15,"triangle",.1,.08);popup(PU[k].name+"!","var(--root)");renderPU();
 }
 function mkBtn(cls,html,fn){const b=document.createElement("button");b.className=cls;b.innerHTML=html;b.onclick=fn;return b}
@@ -779,7 +788,7 @@ function next(){
   lastKey=k;
   const p=GEN[k]();st.cur={...p,key:k,rematch};
   $("tg").textContent=rematch?"Rematch: "+TAGS[k]:TAGS[k];$("tg").classList.toggle("rm",rematch);
-  $("qt").innerHTML=p.q;$("ex").innerHTML=p.ex;
+  $("qt").innerHTML=p.q;$("ex").innerHTML=p.ex;setQM(k,false);
   $("why").classList.add("hidden");$("go").classList.add("hidden");
   const box=$("opts");box.innerHTML="";
   if(p.type==="order"){
@@ -824,10 +833,15 @@ function tapTile(t,el){
     resolve(false);
   }
 }
+function setQM(k,anim){const x=xpOf(k);$("qm").classList.remove("hidden");$("qmBar").style.width=(x/MX*100)+"%";$("qmBar").style.background=x>=MX?"var(--good)":"var(--root)";$("qmTxt").textContent=x>=MX?"Mastered ✓":`Mastery ${x}/${MX}`;if(anim){$("qm").classList.remove("pulse");void $("qm").offsetWidth;$("qm").classList.add("pulse")}}
 function popup(t,c){const p=$("pop");p.innerHTML=t;p.style.color=c;p.classList.remove("on");void p.offsetWidth;p.classList.add("on");setTimeout(()=>p.classList.remove("on"),550)}
 function resolve(ok){
   st.locked=true;st.total++;
-  {const k=st.cur.key,o=sk[k]||{r:0,t:0};o.t++;if(ok)o.r++;o.rec=(o.rec||[]).concat(ok?1:0).slice(-10);sk[k]=o;LS.set("skills",sk)}
+  const mk=st.cur.key,mo=sk[mk]||{r:0,t:0},xb=xpOf(mk),wasSM=xb>=MX;let mg=0;
+  if(!wasSM){if(ok){mg=(MX_GAIN+(mult()>=3?5:0))*(st.boost>0?2:1)}else if(!st.shield)mg=-MX_LOSS}
+  if(st.boost>0)st.boost--;
+  mo.t++;if(ok)mo.r++;mo.rec=(mo.rec||[]).concat(ok?1:0).slice(-10);mo.xp=Math.max(0,Math.min(MX,xb+mg));if(mo.xp>=MX)mo.m=true;sk[mk]=mo;LS.set("skills",sk);
+  const nowSM=!wasSM&&mo.m;setQM(mk,true);
   if(ok){
     const before=mult();
     st.streak++;st.maxStreak=Math.max(st.maxStreak,st.streak);st.right++;
@@ -841,7 +855,9 @@ function resolve(ok){
     if(red)extra+='<div style="font-size:16px">rematch won</div>';
     else if(speed>=45)extra+='<div style="font-size:16px">fast</div>';
     if(up)extra+=`<div style="font-size:20px">combo ×${mult()}</div>`;
-    if(st.streak%5===0&&st.pu.length<2){const k=pick(Object.keys(PU));st.pu.push(k);renderPU();extra+=`<div style="font-size:18px;color:var(--root)">power-up: ${PU[k].name}</div>`}
+    if(mg>0)extra+=`<div style="font-size:15px;color:var(--good)">+${mg} mastery${st.boost>=0&&mg>25?" (boosted)":""}</div>`;
+    if(nowSM){extra+=`<div style="font-size:20px;color:var(--good)">${TAGS[mk]} mastered!</div>`;beep(1047,.15,"triangle",.12,.15);beep(1568,.25,"triangle",.12,.3)}
+    if(st.streak%4===0&&st.pu.length<2){const k=pick(Object.keys(PU));st.pu.push(k);renderPU();extra+=`<div style="font-size:18px;color:var(--root)">power-up: ${PU[k].name}</div>`}
     popup(`+${pts}${extra}`,"var(--hot)");
     beep(Math.min(1200,520+st.streak*45),.1);if(up)beep(1320,.15,"triangle",.12,.08);
     flash("fok");buzz(15);
@@ -852,7 +868,7 @@ function resolve(ok){
     st.time-=3;st.miss[st.cur.key]=(st.miss[st.cur.key]||0)+1;
     st.queue.push({key:st.cur.key,at:st.qn+ri(2,4)});
     let note="−3s";
-    if(st.shield){st.shield=false;note="−3s · shield saved your combo"}else st.streak=0;
+    if(st.shield){st.shield=false;note="−3s · shield saved your combo and mastery"}else{st.streak=0;if(mg<0)note+=` · −${MX_LOSS} mastery`}
     hudCombo();popup(note,"var(--bad)");beep(140,.28,"square",.08);buzz([60,40,60]);flash("fbad");
     st.paused=true;$("why").innerHTML=st.cur.why+'<div class="mute" style="font-size:13px;margin-top:6px">This type comes back as a rematch in a few questions.</div>';
     $("why").classList.remove("hidden");$("go").classList.remove("hidden");
@@ -870,7 +886,7 @@ function startLightning(){
 function ltNext(){
   if(st.mode!=="lt")return;
   const s=(st.day==="5.2"&&Math.random()<.6?pick(LT52):pick(LT))();st.lt=s;st.ltLock=false;
-  $("tg").textContent="Lightning: true or false, +100 each";$("tg").classList.add("rm");
+  $("qm").classList.add("hidden");$("tg").textContent="Lightning: true or false, +100 each";$("tg").classList.add("rm");
   $("qt").innerHTML=s.s;$("go").classList.add("hidden");$("why").classList.add("hidden");
   const box=$("opts");box.innerHTML="";const row=document.createElement("div");row.className="tf";
   row.appendChild(mkBtn("tfb","True",()=>ltAnswer(true)));row.appendChild(mkBtn("tfb","False",()=>ltAnswer(false)));box.appendChild(row);
