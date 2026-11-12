@@ -193,6 +193,9 @@ body.calc-open .calc-fab{display:none}
 .mus-opt{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px;text-align:left}
 .mus-opt b{font-size:15px}.mus-opt small{font-size:12px;color:var(--mute)}
 .mus-opt.on{border-color:var(--root);background:color-mix(in srgb,var(--root) 14%,transparent)}.mus-opt.on b{color:var(--root)}
+.gear{font:inherit;font-size:15px;cursor:pointer;padding:4px 10px}
+.sheet{max-height:85vh;overflow:auto;z-index:15}
+.set-row{display:flex;justify-content:space-between;align-items:center;font-size:15px}
 </style>
 </head>
 <body>
@@ -201,7 +204,7 @@ body.calc-open .calc-fab{display:none}
 <section id="home">
   <header class="topbar">
     <div class="brand">Root<span>Rush</span></div>
-    <div class="chips"><button class="chip mchip" id="musBtn">♪ Music</button><span class="chip"><b id="hDay">0</b> day streak</span><span class="chip">Best <b id="hBest">0</b></span></div>
+    <div class="chips"><button class="chip mchip" id="musBtn" aria-label="Music on or off">♪ On</button><button class="chip gear" id="setBtn" aria-label="Settings">⚙</button><span class="chip"><b id="hDay">0</b> day streak</span><span class="chip">Best <b id="hBest">0</b></span></div>
   </header>
   <div class="sync" id="sync"></div>
   <div class="dsw" id="dsw"></div>
@@ -230,8 +233,6 @@ body.calc-open .calc-fab{display:none}
   <div class="sec"><h3>Unit 5 roadmap</h3></div>
   <div class="card road" id="road"></div>
 
-  <div class="sec"><h3>Music</h3></div>
-  <div class="card" id="musCard"></div>
 
   <details class="card how">
     <summary>How to play</summary>
@@ -253,7 +254,7 @@ body.calc-open .calc-fab{display:none}
     <div class="mute kbhint" style="margin-top:6px;font-size:13px">On a keyboard, keys 1–5 answer and Enter continues.</div>
     </div>
   </details>
-  <div style="text-align:center;margin:14px 0 8px"><button class="small" id="snd">Sound: on</button></div>
+  
 </section>
 
 <section id="learn" class="hidden">
@@ -305,6 +306,12 @@ body.calc-open .calc-fab{display:none}
   <button id="toHome" style="width:100%;margin-top:10px;font-weight:700">Home</button>
 </section>
 
+<div id="setSheet" class="calc sheet hidden">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><b style="font-size:17px">Settings</b><button class="small" id="setClose">Close</button></div>
+  <div class="set-row"><span>Sound effects</span><button class="small" id="snd">Sound: on</button></div>
+  <div class="l-h" style="margin-top:14px">Music</div>
+  <div id="musCard"></div>
+</div>
 <button id="calcBtn" class="calc-fab hidden">Calculator</button>
 <div id="calc" class="calc hidden">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b style="font-size:15px">Calculator</b><button class="small" id="cClose">Close</button></div>
@@ -312,7 +319,6 @@ body.calc-open .calc-fab{display:none}
   <div class="ckeys" id="cKeys"></div>
   <div class="mute" style="font-size:12px;margin-top:8px">For 8<sup>2/3</sup> type 8 ^ ( 2 ÷ 3 ). Without the ( ) it works like a real calculator and gives the wrong answer.</div>
 </div>
-<div class="splash" id="splash"><div class="brand" style="font-size:48px">Root<span>Rush</span></div><div class="splash-sq">√</div><div class="splash-tap">Tap to start</div></div>
 <div class="pop" id="pop"></div>
 <div class="cd hidden" id="cd"></div>
 </div>
@@ -634,8 +640,8 @@ function musTick(){
   if(!musActive.length){clearInterval(musTimer);musTimer=null}}
 function musStopAll(){if(!musReady)return;const now=ac.currentTime;musActive.forEach(tr=>{if(!tr.stop){tr.stop=now+.7;tr.g.gain.cancelScheduledValues(now);tr.g.gain.setValueAtTime(tr.g.gain.value,now);tr.g.gain.linearRampToValueAtTime(0,now+.6)}});musCur=null}
 function musUpdate(){if(musReady&&musicOn&&!document.hidden){const w=musWant();if(!musCur||musCur.id!==w)musPlay(w)}}
-function musLabel(){$("musBtn").textContent=musicOn?`♪ ${musCur?TRACKS[musCur.id].n:"Music on"}`:"♪ Music off";$("musBtn").classList.toggle("off",!musicOn);renderMusic()}
-function musToggle(){musicOn=!musicOn;LS.set("music",musicOn);if(musicOn){musUnlock();musUpdate()}else musStopAll();musLabel()}
+function musLabel(){$("musBtn").textContent=musicOn?"♪ On":"♪ Off";$("musBtn").classList.toggle("off",!musicOn);renderMusic()}
+function musToggle(){if(musicOn&&!musCur&&!document.hidden){musUnlock();musUpdate();musLabel();return}musicOn=!musicOn;LS.set("music",musicOn);if(musicOn){musUnlock();musUpdate()}else musStopAll();musLabel()}
 function renderMusic(){
   const box=$("musCard");if(!box)return;
   const opts=[["auto","Auto","changes with the game"],...Object.entries(TRACKS).map(([k,v])=>[k,v.n,v.tag])];
@@ -644,10 +650,10 @@ function renderMusic(){
   $("musVol").oninput=e=>{musVol=+e.target.value;LS.set("musVol",musVol);if(musBus)musBus.gain.setTargetAtTime(musVol/100*1.4,ac.currentTime,.05)};
   box.querySelectorAll(".mus-opt").forEach(b=>b.onclick=()=>{musTrack=b.dataset.k;LS.set("musTrack",musTrack);if(!musicOn){musicOn=true;LS.set("music",true)}musUnlock();const w=musTrack==="auto"?musWant():musTrack;if(musCur&&musCur.id===w){musLabel()}else musPlay(w);musLabel()})}
 $("musBtn").onclick=musToggle;
+$("setBtn").onclick=()=>{$("setSheet").classList.remove("hidden");renderMusic()};$("setClose").onclick=()=>$("setSheet").classList.add("hidden");
 document.addEventListener("pointerdown",e=>{if(!musReady&&!(e.target.closest&&e.target.closest("#musBtn,#musTog")))  {musUnlock();musUpdate()}},{passive:true});
 document.addEventListener("keydown",()=>{if(!musReady){musUnlock();musUpdate()}});
 document.addEventListener("visibilitychange",()=>{if(document.hidden)musStopAll();else musUpdate()});
-$("splash").onclick=()=>{$("splash").classList.add("gone");musUnlock();musUpdate();setTimeout(()=>$("splash").remove(),400)};
 musLabel();
 
 function rank(s){return s>=18000?"Radical legend":s>=12000?"Exponent ace":s>=6000?"Root apprentice":"Square one"}
@@ -716,7 +722,7 @@ function renderSpark(){
 function renderRoad(){$("road").innerHTML=ROAD.map(r=>`<div class="rd ${r[0]===selDay?"on":DAYS[r[0]]&&dayUnlocked(r[0])?"done click":"off"}" data-d="${r[0]}"><span class="rd-n">${r[0]}</span><span class="rd-t">${r[1]}</span><span class="rd-s">${r[0]===selDay?"Viewing":DAYS[r[0]]?(dayPassed(r[0])?"Complete":dayMastered(r[0])?"Quiz ready":dayUnlocked(r[0])?r[2]:"Locked"):r[2]}</span></div>`).join("")+`<div class="mute" style="font-size:12px;padding:8px 0 4px">5.5 and 5.6 are skipped in St. Vrain's pacing. Tap a day to switch to it.</div>`;
   $("road").querySelectorAll(".rd.click").forEach(el=>el.onclick=()=>setDay(el.dataset.d))}
 const DAYS={"5.1":{n:1,t:"5.1 nth roots and rational exponents",mix:"Rush uses only 5.1 questions",rules:`<div class="formula mono">a<sup><span class="pw">m</span>/<span class="rt">n</span></sup> = (<span class="rt">ⁿ√</span>a)<sup class="pw">m</sup></div><div class="legend"><span class="pw">top = power</span><span class="rt">bottom = root</span></div>`},
-"5.2":{n:2,t:"5.2 Properties of rational exponents and radicals",mix:"Rush mixes 60% 5.2 with 40% 5.1 review",rules:`<div class="rules52 mono"><div>a<sup>m</sup> · a<sup>n</sup> = a<sup>m+n</sup></div><div>a<sup>m</sup> / a<sup>n</sup> = a<sup>m−n</sup></div><div>(a<sup>m</sup>)<sup>n</sup> = a<sup>mn</sup></div><div>ⁿ√a · ⁿ√b = ⁿ√(ab)</div></div>`}};
+"5.2":{n:2,t:"5.2 Properties of rational exponents and radicals",mix:"Rush uses only 5.2 questions",rules:`<div class="rules52 mono"><div>a<sup>m</sup> · a<sup>n</sup> = a<sup>m+n</sup></div><div>a<sup>m</sup> / a<sup>n</sup> = a<sup>m−n</sup></div><div>(a<sup>m</sup>)<sup>n</sup> = a<sup>mn</sup></div><div>ⁿ√a · ⁿ√b = ⁿ√(ab)</div></div>`}};
 const LATEST="5.2";
 function setDay(d){if(!DAYS[d])return;if(!dayUnlocked(d)){const pv=DAY_ORDER[DAY_ORDER.indexOf(d)-1];$("dnote").textContent=`Day ${DAYS[d].n} unlocks after you pass the Day ${DAYS[pv].n} final quiz. First master all ${LESSONS[pv].length} Day ${DAYS[pv].n} skills (${masteredCount(pv)} of ${LESSONS[pv].length} so far).`;beep(200,.12,"square",.05);return}selDay=d;LS.set("selDay",d);openSkill=null;beep(700,.05);home()}
 function renderReview(){
@@ -932,18 +938,16 @@ function usePU(s){
 }
 function mkBtn(cls,html,fn){const b=document.createElement("button");b.className=cls;b.innerHTML=html;b.onclick=fn;return b}
 function playPool(){
-  if(st.review)return st.day==="5.1"?LESSONS["5.1"]:(Math.random()<.6?LESSONS["5.2"]:LESSONS["5.1"]);
   const um=a=>a.filter(k=>lvl(k)<3);
+  if(st.review)return LESSONS[st.day];
   if(st.pool)return um(st.pool);
-  if(st.day==="5.1")return um(LESSONS["5.1"]);
-  const a=um(LESSONS["5.2"]),b=um(LESSONS["5.1"]);if(!a.length)return b;if(!b.length)return a;return Math.random()<.6?a:b}
+  return um(LESSONS[st.day])}
 function next(){
   if(st.done||st.mode!=="main")return;
   st.qn++;let k,rematch=false;
   let rv=false;
   if(st.quiz){if(st.qi>=st.qlist.length)return finishQuiz();k=st.qlist[st.qi]}
   else if(st.reviewOnly){const d=dueReviews();if(!d.length){st.allDone=true;return finish()}k=pick(d);rv=true}
-  else if(!st.focus&&st.revCount<3&&dueReviews().length&&Math.random()<.3){k=pick(dueReviews());rv=true}
   else{
   if(!st.review)st.queue=st.queue.filter(q=>lvl(q.key)<3);
   const due=st.queue.findIndex(q=>q.at<=st.qn);
@@ -1082,7 +1086,7 @@ function startLightning(){
 }
 function ltNext(){
   if(st.mode!=="lt")return;
-  const s=(st.day==="5.2"&&Math.random()<.6?pick(LT52):pick(LT))();st.lt=s;st.ltLock=false;
+  const s=(st.day==="5.2"?pick(LT52):pick(LT))();st.lt=s;st.ltLock=false;
   $("qm").classList.add("hidden");$("tg").textContent="Lightning: true or false, +100 each";$("tg").classList.add("rm");
   $("qt").innerHTML=s.s;$("go").classList.add("hidden");$("why").classList.add("hidden");
   const box=$("opts");box.innerHTML="";const row=document.createElement("div");row.className="tf";
