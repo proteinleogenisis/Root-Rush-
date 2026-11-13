@@ -139,6 +139,8 @@ body.fok{background:var(--goodbg)}body.fbad{background:var(--badbg)}
 .ldots{display:flex;gap:5px;margin-bottom:12px}.ldots i{flex:1;height:5px;border-radius:3px;background:var(--line)}
 .ldots i.on{background:var(--hot)}.ldots i.done{background:var(--good)}
 .hwtag{display:inline-block;font-size:12px;font-weight:700;color:var(--root);border:1px solid var(--root);border-radius:99px;padding:2px 9px;margin-bottom:8px}
+#lRead.on{background:var(--root);border-color:var(--root);color:#fff}
+.tts-row{display:flex;align-items:center;gap:10px;margin:8px 0}.tts-row select{flex:1;min-width:0;font-size:15px;padding:8px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}.tts-row input[type=range]{flex:1}
 .hwtag.sktag{color:var(--good);border-color:var(--good);margin-left:6px}
 .l-title{font-size:21px;font-weight:700;line-height:1.25;margin-bottom:10px}
 .l-rule{background:var(--bg);border-radius:12px;padding:12px 14px;font-size:16px;line-height:1.55;margin-bottom:14px}
@@ -273,7 +275,7 @@ body.calc-open .calc-fab{display:none}
 
 <section id="learn" class="hidden">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-    <button class="small" id="lHome">Home</button><span class="mute" id="lCount" style="font-size:13px"></span>
+    <button class="small" id="lHome">Home</button><span class="mute" id="lCount" style="font-size:13px"></span><button class="small" id="lRead" aria-label="Read aloud">🔈 Read aloud</button>
   </div>
   <div class="ldots" id="lDots"></div>
   <div class="card" id="lCard"></div>
@@ -350,6 +352,8 @@ body.calc-open .calc-fab{display:none}
 <div id="setSheet" class="calc sheet hidden">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><b style="font-size:17px">Settings</b><button class="small" id="setClose">Close</button></div>
   <div class="set-row"><span>Sound effects</span><button class="small" id="snd">Sound: on</button></div>
+  <div class="l-h" style="margin-top:14px">Read aloud (lessons)</div>
+  <div id="ttsCard"></div>
   <div class="l-h" style="margin-top:14px">Music</div>
   <div id="musCard"></div>
 </div>
@@ -702,7 +706,7 @@ function renderMusic(){
   $("musVol").oninput=e=>{musVol=+e.target.value;LS.set("musVol",musVol);if(musBus)musBus.gain.setTargetAtTime(musVol/100*1.4,ac.currentTime,.05)};
   box.querySelectorAll(".mus-opt").forEach(b=>b.onclick=()=>{musTrack=b.dataset.k;LS.set("musTrack",musTrack);if(!musicOn){musicOn=true;LS.set("music",true)}musUnlock();const w=musTrack==="auto"?musWant():musTrack;if(musCur&&musCur.id===w){musLabel()}else musPlay(w);musLabel()})}
 $("musBtn").onclick=musToggle;
-$("setBtn").onclick=()=>{$("setSheet").classList.remove("hidden");renderMusic()};$("setClose").onclick=()=>$("setSheet").classList.add("hidden");
+$("setBtn").onclick=()=>{$("setSheet").classList.remove("hidden");renderMusic();renderTTS()};$("setClose").onclick=()=>$("setSheet").classList.add("hidden");
 document.addEventListener("pointerdown",e=>{if(!musReady&&!(e.target.closest&&e.target.closest("#musBtn,#musTog")))  {musUnlock();musUpdate()}},{passive:true});
 document.addEventListener("keydown",()=>{if(!musReady){musUnlock();musUpdate()}});
 document.addEventListener("visibilitychange",()=>{if(document.hidden)musStopAll();else musUpdate()});
@@ -869,7 +873,7 @@ const LEARNS={"5.1":LEARN51,"5.2":LEARN52};
 let learnedBy=LS.get("learnedBy",null);if(!learnedBy){learnedBy={"5.1":[],"5.2":LS.get("learned52",[])};LS.set("learnedBy",learnedBy)}
 function LRN(){return LEARNS[selDay]}function LD(){return learnedBy[selDay]||(learnedBy[selDay]=[])}
 let li=0,lStep=0,lState=null;
-function openLearn(i){li=i==null?Math.max(0,LRN().findIndex((_,j)=>!LD().includes(j))):i;if(li<0)li=0;lStep=0;lState=null;renderLearn();show("learn");window.scrollTo(0,0)}
+function openLearn(i){li=i==null?Math.max(0,LRN().findIndex((_,j)=>!LD().includes(j))):i;if(li<0)li=0;lStep=0;lState=null;renderLearn();ttsBtn();ttsSay(ttsLessonParts(LRN()[li],0));show("learn");window.scrollTo(0,0)}
 function renderLearn(){
   $("lCount").textContent=li>=LRN().length?"Done":`Lesson ${li+1} of ${LRN().length}`;
   $("lDots").innerHTML=LRN().map((_,j)=>`<i class="${j===li?"on":LD().includes(j)?"done":""}"></i>`).join("");
@@ -881,21 +885,86 @@ function renderLearn(){
   let h=`<span class="hwtag">${L.hw}</span>${ls.length?`<span class="hwtag sktag">Skill: ${ls.map(k=>TAGS[k]).join(" · ")}</span>`:""}<div class="l-title">${L.t}</div><div class="l-rule">${L.rule}</div><div class="l-h">Example</div><div class="l-problem mono">${L.prob}</div>`;
   L.steps.slice(0,lStep).forEach((s,j)=>{h+=`<div class="l-step"><b>${j+1}</b><div><span class="mono">${s[0]}</span><small>${s[1]}</small></div></div>`});
   box.innerHTML=h;
-  if(lStep<L.steps.length){box.appendChild(mkBtn("big l-btn",lStep===0?"Show step 1":"Next step",()=>{lStep++;beep(700+lStep*80,.06);renderLearn()}));
-    const sk=mkBtn("l-btn","Show all steps",()=>{lStep=L.steps.length;renderLearn()});box.appendChild(sk);return}
+  if(lStep<L.steps.length){box.appendChild(mkBtn("big l-btn",lStep===0?"Show step 1":"Next step",()=>{lStep++;beep(700+lStep*80,.06);renderLearn();ttsStepSay(lStep-1,lStep)}));
+    const sk=mkBtn("l-btn","Show all steps",()=>{const a=lStep;lStep=L.steps.length;renderLearn();ttsStepSay(a,lStep)});box.appendChild(sk);return}
   if(L.note){const n=document.createElement("div");n.className="l-note";n.innerHTML=L.note;box.appendChild(n)}
   const t=document.createElement("div");t.innerHTML=`<div class="l-h" style="margin-top:16px">Your turn</div><div class="q">${L.chk.q}</div>`;box.appendChild(t);
   if(!lState)lState={order:shuffle(L.chk.o.map((_,j)=>j)),tried:[],ok:false};
   lState.order.forEach(j=>{const b=mkBtn("opt mono",L.chk.o[j],()=>{
       if(lState.ok||lState.tried.includes(j))return;
-      if(j===L.chk.a){lState.ok=true;if(!LD().includes(li)){LD().push(li);persist()}beep(880,.1);beep(1320,.12,"sine",.12,.08);flash("fok")}
-      else{lState.tried.push(j);beep(150,.2,"square",.07);flash("fbad")}
+      if(j===L.chk.a){lState.ok=true;if(!LD().includes(li)){LD().push(li);persist()}beep(880,.1);beep(1320,.12,"sine",.12,.08);flash("fok");ttsSay(["Yes. "+L.chk.why])}
+      else{lState.tried.push(j);beep(150,.2,"square",.07);flash("fbad");ttsSay([lState.tried.length>1?"Not that one. "+L.chk.why:"Not that one. Try again."])}
       renderLearn()});
     if(lState.ok&&j===L.chk.a)b.classList.add("ok");if(lState.tried.includes(j))b.classList.add("no");box.appendChild(b)});
   if(lState.tried.length||lState.ok){const w=document.createElement("div");w.className="why";w.style.borderColor=lState.ok?"var(--good)":"var(--bad)";
     w.innerHTML=(lState.ok?"<b>Yes.</b> ":"<b>Not that one. Try again.</b> ")+(lState.ok||lState.tried.length>1?L.chk.why:"Look back at step "+L.steps.length+" of the example.");box.appendChild(w)}
-  if(lState.ok)box.appendChild(mkBtn("big l-btn",li===LRN().length-1?"Finish":"Next lesson",()=>{li++;lStep=0;lState=null;renderLearn();window.scrollTo(0,0)}));
+  if(lState.ok)box.appendChild(mkBtn("big l-btn",li===LRN().length-1?"Finish":"Next lesson",()=>{li++;lStep=0;lState=null;renderLearn();if(li<LRN().length)ttsSay(ttsLessonParts(LRN()[li],0));else ttsStop();window.scrollTo(0,0)}));
 }
+// ---- Read aloud (lessons): the device's built-in voice, so it's free and works offline ----
+// Voices tried in order (the first one this device has wins). Premium/Enhanced versions are preferred.
+const TTS_PREF=["Ava","Zoe","Samantha","Allison","Susan","Nicky","Karen","Moira","Tessa","Serena","Microsoft Aria","Microsoft Jenny","Microsoft Zira","Google US English","Google UK English Female"];
+const TTS_RATE_DEFAULT=0.9,TTS_RATE_MIN=0.7,TTS_RATE_MAX=1.2,TTS_MUSIC_DUCK=0.3; // duck = music volume while the voice talks
+const TTS_OK=typeof window.speechSynthesis!=="undefined"&&typeof window.SpeechSynthesisUtterance!=="undefined";
+let ttsOn=LS.get("tts",false),ttsRate=LS.get("ttsRate",TTS_RATE_DEFAULT),ttsVoiceId=LS.get("ttsVoice",null),ttsVoices=[],ttsTalking=0;
+function ttsLoadVoices(){if(!TTS_OK)return;ttsVoices=speechSynthesis.getVoices().filter(v=>/^en/i.test(v.lang))}
+function ttsRank(v){const i=TTS_PREF.findIndex(n=>v.name===n||v.name.startsWith(n+" "));const q=/premium/i.test(v.name)?0:/enhanced|natural|neural/i.test(v.name)?1:2;
+  return i>=0?i*3+q:/female|woman/i.test(v.name)?1000:2000+(v.default?0:1)}
+function ttsVoice(){if(!ttsVoices.length)ttsLoadVoices();const chosen=ttsVoices.find(v=>v.voiceURI===ttsVoiceId);if(chosen)return chosen;return ttsVoices.slice().sort((a,b)=>ttsRank(a)-ttsRank(b))[0]||null}
+if(TTS_OK){ttsLoadVoices();if(speechSynthesis.addEventListener)speechSynthesis.addEventListener("voiceschanged",()=>{ttsLoadVoices();if(!$("setSheet").classList.contains("hidden"))renderTTS()})}
+// Turn lesson HTML into words a voice can read ("16<sup>1/4</sup>" -> "16 to the 1 fourth power")
+const TTS_DEN={2:["half","halves"]};["third","fourth","fifth","sixth","seventh","eighth","ninth","tenth","eleventh","twelfth"].forEach((w,i)=>TTS_DEN[i+3]=[w,w+"s"]);
+function ttsOrd(n){n=+n;const t=n%100;return n+(t>=11&&t<=13?"th":n%10===1?"st":n%10===2?"nd":n%10===3?"rd":"th")}
+function ttsFrac(p,q){const neg=/^[−-]/.test(p);p=p.replace(/^[−-]/,"");const d=TTS_DEN[q]||[ttsOrd(q),ttsOrd(q)+"s"];return (neg?"negative ":"")+p+" "+(p==="1"?d[0]:d[1])}
+function ttsExp(e){e=e.replace(/<[^>]+>/g,"").replace(/\s+/g," ").trim();
+  if(e==="2")return " squared ";if(e==="3")return " cubed ";
+  if(/^\d+$/.test(e))return " to the "+ttsOrd(e)+" power ";
+  if(/^[−-]\d+$/.test(e))return " to the power of negative "+e.slice(1)+" ";
+  const m=e.match(/^([−-]?\d+)\/(\d+)$/);if(m)return " to the "+ttsFrac(m[1],m[2])+" power ";
+  if(/^[a-z]$/i.test(e))return " to the "+e+" power ";
+  const lf=e.match(/^(\d+|[a-z])\/(\d+|[a-z])$/i);if(lf)return " to the "+lf[1]+" over "+lf[2]+" power ";
+  return " to the power of "+ttsPlain(e)+", "}
+const SUPR={"⁰":"0","¹":"1","²":"2","³":"3","⁴":"4","⁵":"5","⁶":"6","⁷":"7","⁸":"8","⁹":"9","⁻":"−","ⁿ":"n","ᵃ":"a","ᵇ":"b","ᵐ":"m"};
+function ttsPlain(t){
+  t=t.replace(/([⁰¹²³⁴⁵⁶⁷⁸⁹ⁿ]+)√/g,(_,i)=>{const n=i.split("").map(c=>SUPR[c]).join("");return " "+(n==="n"?"nth":ttsOrd(n))+" root of "});
+  t=t.replace(/√/g," square root of ").replace(/∛/g," cube root of ").replace(/∜/g," fourth root of ");
+  t=t.replace(/([⁰¹²³⁴⁵⁶⁷⁸⁹⁻ⁿᵃᵇᵐ]+)/g,(_,x)=>ttsExp(x.split("").map(c=>SUPR[c]).join("")));
+  t=t.replace(/\|([^|\s]+)\|/g," absolute value of $1 ");
+  t=t.replace(/([\w)])−/g,"$1 minus ").replace(/−\s+/g," minus ").replace(/−/g," negative ");
+  t=t.replace(/\^\s*\(([^)]*)\)/g," to the power of, in parentheses, $1, ").replace(/(\d)\(/g,"$1 times (").replace(/\)(?=[√∛∜(\d]|\s*(square|cube|fourth|nth|\d+(st|nd|rd|th)) root)/g,") times ");
+  t=t.replace(/\s*✓/g,", yes.").replace(/\s*✗/g,", no.").replace(/\+/g," plus ");
+  t=t.replace(/[·×]/g," times ").replace(/÷/g," divided by ").replace(/±/g," plus or minus ").replace(/≈/g," about ").replace(/=/g," equals ")
+   .replace(/</g," is less than ").replace(/>/g," is greater than ").replace(/→/g,", so ").replace(/[✓✗←]/g," ").replace(/#/g," number ")
+   .replace(/(\d)\s*[–]\s*(\d)/g,"$1 to $2").replace(/–/g,", ").replace(/\^/g," to the power of ")
+   .replace(/\b([a-z]{2,})\/([a-z]{2,})\b/gi,"$1 or $2").replace(/\s*\/\s*/g," over ").replace(/[()]/g," ");
+  return t.replace(/\s+([,.?!:])/g,"$1").replace(/,(\s*,)+/g,",").replace(/\s+/g," ").trim()}
+function ttsText(html){const d=document.createElement("div");
+  d.innerHTML=String(html||"").replace(/<sup>([\s\S]*?)<\/sup>/g,(_,e)=>ttsExp(e)).replace(/<br\s*\/?>/g,". ").replace(/<span class="mono">/g,". ").replace(/<\/div>/g,". ");
+  return ttsPlain(d.textContent).replace(/,\s*\./g,".").replace(/(\.\s*){2,}/g,". ").replace(/^[.,\s]+/,"").replace(/,\s*$/,"")}
+function ttsDuck(on){try{if(musBus&&ac)musBus.gain.setTargetAtTime(musVol/100*1.4*(on?TTS_MUSIC_DUCK:1),ac.currentTime,.15)}catch(e){}}
+function ttsStop(){if(!TTS_OK)return;ttsTalking++;speechSynthesis.cancel();ttsDuck(false)}
+let ttsLog=[]; // what was last sent to the voice (used by tests)
+function ttsSay(parts,force){if(!TTS_OK||(!ttsOn&&!force))return;parts=[].concat(parts).map(ttsText).filter(Boolean);if(!parts.length)return;
+  ttsLog=parts;speechSynthesis.cancel();const v=ttsVoice(),id=++ttsTalking;
+  setTimeout(()=>{if(id!==ttsTalking)return;ttsDuck(true);parts.forEach((t,i)=>{const u=new SpeechSynthesisUtterance(t);if(v){u.voice=v;u.lang=v.lang}u.rate=ttsRate;u.pitch=1;
+    if(i===parts.length-1)u.onend=u.onerror=()=>{if(id===ttsTalking)ttsDuck(false)};speechSynthesis.speak(u)})},60)}
+function ttsLessonParts(L,upTo){return [L.t,L.rule,"Example: "+L.prob,...L.steps.slice(0,upTo).map((x,j)=>`Step ${j+1}. ${x[0]}. ${x[1]}`)]}
+function ttsStepSay(a,b){const L=LRN()[li];if(!L)return;const parts=L.steps.slice(a,b).map((x,j)=>`Step ${a+j+1}. ${x[0]}. ${x[1]}`);
+  if(b>=L.steps.length){if(L.note)parts.push(L.note);parts.push("Your turn. "+L.chk.q)}ttsSay(parts)}
+function ttsBtn(){const b=$("lRead");if(!b)return;b.classList.toggle("hidden",!TTS_OK);b.classList.toggle("on",ttsOn);b.textContent=ttsOn?"🔊 Reading":"🔈 Read aloud"}
+function renderTTS(){const box=$("ttsCard");if(!box)return;
+  if(!TTS_OK){box.innerHTML='<div class="mute" style="font-size:14px">This device can\'t read aloud.</div>';return}
+  ttsLoadVoices();const cur=ttsVoice(),list=ttsVoices.slice().sort((a,b)=>ttsRank(a)-ttsRank(b));
+  box.innerHTML=`<div class="tts-row"><button class="small" id="ttsTog">${ttsOn?"Read aloud: on":"Read aloud: off"}</button><button class="small" id="ttsTest">Test voice</button></div>
+  <div class="tts-row"><span class="mute" style="font-size:13px">Voice</span><select id="ttsSel">${list.map(v=>`<option value="${v.voiceURI.replace(/"/g,"&quot;")}"${cur&&v.voiceURI===cur.voiceURI?" selected":""}>${v.name}</option>`).join("")||"<option>Default</option>"}</select></div>
+  <div class="tts-row"><span class="mute" style="font-size:13px">Speed</span><input type="range" id="ttsRate" min="${TTS_RATE_MIN}" max="${TTS_RATE_MAX}" step="0.05" value="${ttsRate}"><b id="ttsRateV" style="font-size:13px;width:36px">${(+ttsRate).toFixed(2)}</b></div>
+  <div class="mute" style="font-size:12px;line-height:1.5">Smoother voice on iPhone or iPad: Settings → Accessibility → Spoken Content → Voices → English → download <b>Ava (Premium)</b> or <b>Zoe (Premium)</b>, then pick it here.</div>`;
+  $("ttsTog").onclick=()=>{ttsOn=!ttsOn;LS.set("tts",ttsOn);if(!ttsOn)ttsStop();renderTTS();ttsBtn()};
+  $("ttsTest").onclick=()=>ttsSay(["Hi. I'll read your lessons out loud. 16<sup>1/4</sup> = 2."],true);
+  $("ttsSel").onchange=e=>{ttsVoiceId=e.target.value;LS.set("ttsVoice",ttsVoiceId);ttsSay(["This is my voice."],true)};
+  $("ttsRate").oninput=e=>{ttsRate=+e.target.value;LS.set("ttsRate",ttsRate);$("ttsRateV").textContent=ttsRate.toFixed(2)};
+  $("ttsRate").onchange=()=>ttsSay(["This is how fast I'll read."],true)}
+$("lRead").onclick=()=>{ttsOn=!ttsOn;LS.set("tts",ttsOn);ttsBtn();if(ttsOn){const L=LRN()[li];if(L)ttsSay(ttsLessonParts(L,lStep))}else ttsStop()};
+ttsBtn();
 let cloud=null,cloudBusy=false,cloudAgain=false,cloudT=null,syncState="local";
 function saveLocal(){LS.set("passed",passed);LS.set("runs",runs);LS.set("bestBy",bestBy);LS.set("day",day);LS.set("skills",sk);LS.set("hist",hist);LS.set("learnedBy",learnedBy)}
 function packSave(){return{v:1,passed,runs,bestBy,day,skills:sk,hist,learnedBy,updated:Date.now()}}
@@ -961,7 +1030,7 @@ async function initCloud(){
     if(!$("home").classList.contains("hidden"))home();
   }catch(e){clearTimeout(timer);setSync("retry")}
 }
-function show(id){curScreen=id;["home","learn","game","end","train"].forEach(s=>$(s).classList.toggle("hidden",s!==id));setTimeout(musUpdate,0);const cv=id==="game"||id==="learn";$("calcBtn").classList.toggle("hidden",!cv);$("padBtn").classList.toggle("hidden",!cv);if(!cv&&calcOpen)toggleCalc(false);if(!cv&&padOpen)togglePad(false);if(cv)padSync()}
+function show(id){curScreen=id;if(id!=="learn"&&typeof ttsStop==="function"&&TTS_OK&&speechSynthesis.speaking)ttsStop();["home","learn","game","end","train"].forEach(s=>$(s).classList.toggle("hidden",s!==id));setTimeout(musUpdate,0);const cv=id==="game"||id==="learn";$("calcBtn").classList.toggle("hidden",!cv);$("padBtn").classList.toggle("hidden",!cv);if(!cv&&calcOpen)toggleCalc(false);if(!cv&&padOpen)togglePad(false);if(cv)padSync()}
 
 function start(f){
   let focus=null,pool=null,label=null;
