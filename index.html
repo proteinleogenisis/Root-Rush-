@@ -160,6 +160,17 @@ body.fok{background:var(--goodbg)}body.fbad{background:var(--badbg)}
 .rl-skid{height:14px;background:var(--bg);border-radius:7px;margin:6px 0;overflow:hidden}.rl-skid i{display:block;height:100%;background:repeating-linear-gradient(90deg,#444 0 6px,#666 6px 9px);transition:width .25s ease}
 .rl-sq{display:block;width:90px;height:90px;margin:4px auto}.rl-sq rect{fill:none;stroke:var(--ink);stroke-width:2}.rl-sq line{stroke:var(--root);stroke-width:2.5}
 .rl-all{background:var(--card);border:1px solid var(--good);border-radius:16px;padding:12px 16px;margin-bottom:10px;font-size:15px;line-height:1.5;animation:rlIn .65s ease both}.rl-all button{margin-top:8px}
+.htabs{position:sticky;top:0;z-index:6;display:flex;gap:4px;padding:8px 0;margin:0 0 10px;background:var(--bg)}
+.htabs button{flex:1;padding:9px 2px;font-size:14px;font-weight:600;border-radius:12px;color:var(--mute);white-space:nowrap}
+.htabs button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}.htabs i{font-style:normal;font-size:11px;opacity:.8}
+.htabs button{position:relative}.htabs .newdot::after{content:"";position:absolute;top:5px;right:7px;width:8px;height:8px;border-radius:50%;background:var(--good);animation:rlDot 1.6s ease infinite}
+@keyframes rlDot{50%{transform:scale(1.5);opacity:.6}}
+.hpane{display:none}.hpane.on{display:block;animation:paneIn .28s ease both}
+@keyframes paneIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.hpane.on{animation:none}}
+.rl-head{display:flex;justify-content:space-between;align-items:center;gap:10px;cursor:pointer;width:100%;background:none;border:0;padding:0;text-align:left;color:inherit;font:inherit}
+.rl-chev{transition:transform .25s ease;color:var(--mute);font-size:14px}.rl-card.open .rl-chev{transform:rotate(180deg)}
+.rl-body{display:grid;grid-template-rows:0fr;transition:grid-template-rows .3s ease}.rl-card.open .rl-body{grid-template-rows:1fr}.rl-body>div{overflow:hidden}
 .hwtag.sktag{color:var(--good);border-color:var(--good);margin-left:6px}
 .l-title{font-size:21px;font-weight:700;line-height:1.25;margin-bottom:10px}
 .l-rule{background:var(--bg);border-radius:12px;padding:12px 14px;font-size:16px;line-height:1.55;margin-bottom:14px}
@@ -242,6 +253,8 @@ body.calc-open .calc-fab{display:none}
   <div class="sync" id="sync"></div>
   <div class="dsw" id="dsw"></div>
   <div class="dnote" id="dnote"></div>
+  <nav class="htabs" id="htabs"><button data-t="today">Today</button><button data-t="real">Real life <i id="tbReal"></i></button><button data-t="skills">Skills <i id="tbSk"></i></button><button data-t="more">Progress</button></nav>
+  <div class="hpane" data-p="today">
   <div class="card hero">
     <div class="eyebrow" id="heroEye"></div>
     <h2 class="hero-t" id="heroTitle"></h2>
@@ -256,13 +269,17 @@ body.calc-open .calc-fab{display:none}
     <div class="mini mute">Rank <b id="hRank">Square one</b> · Runs <b id="hRuns">0</b> · Freezes <b id="hFrz">0 / 2</b></div>
   </div>
 
+  <div id="revCard"></div>
+  </div>
+  <div class="hpane" data-p="real">
   <div class="sec"><h3>Real life</h3><span class="mute" id="rlSum"></span></div>
   <div id="real"></div>
-
-  <div id="revCard"></div>
+  </div>
+  <div class="hpane" data-p="skills">
   <div class="sec"><h3>Skills</h3><span class="mute" id="skSum"></span></div>
   <div class="card skills" id="skills"></div>
-
+  </div>
+  <div class="hpane" data-p="more">
   <div class="sec"><h3>Recent runs</h3><span class="mute" id="sparkNote"></span></div>
   <div class="card"><div class="spark" id="spark"></div></div>
 
@@ -293,6 +310,7 @@ body.calc-open .calc-fab{display:none}
     </div>
   </details>
   
+</div>
 </section>
 
 <section id="learn" class="hidden">
@@ -865,6 +883,7 @@ like:{t:"Buying fence for two gardens",use:`Two square garden beds with areas 3a
  ui(el){const o=rlOut(el,"mono");let a=5,b=3;const upd=()=>{o.innerHTML=`Areas ${3*a*a} and ${3*b*b} ft<sup>2</sup> → sides ${a}√3 and ${b}√3<br>${4*a}√3 + ${4*b}√3 = <b>${4*(a+b)}√3</b> ≈ ${f2(4*(a+b)*Math.sqrt(3))} ft of fence`};
   rlSlider(el,"Bed 1 (a)",1,8,1,5,v=>{a=v;upd();return String(v)});rlSlider(el,"Bed 2 (b)",1,8,1,3,v=>{b=v;upd();return String(v)});upd()}}
 };
+const rlOpen=new Set();
 function renderReal(){const box=$("real");if(!box)return;const d=selDay,ks=LESSONS[d].filter(k=>REAL[k]);box.innerHTML="";
   const seen=LS.get("rlSeen",[]),open=k=>lvl(k)===3||dayPassed(d),n=ks.filter(open).length;
   $("rlSum").textContent=`${n} of ${ks.length} unlocked`;
@@ -873,12 +892,20 @@ function renderReal(){const box=$("real");if(!box)return;const d=selDay,ks=LESSO
   const fresh=[];
   ks.forEach(k=>{const R0=REAL[k],c=document.createElement("div");
     if(!open(k)){c.className="rl-card locked";c.innerHTML=`<span class="rl-lock">🔒</span><div><div class="rl-t">${R0.t}</div><div class="mute rl-hint">Master <b>${TAGS[k]}</b> to unlock</div></div>`;box.appendChild(c);return}
-    const isNew=!seen.includes(d+":"+k);c.className="rl-card"+(isNew?" new":"");
-    c.innerHTML=`<div class="rl-sk">${TAGS[k]}</div><div class="rl-t">${R0.t}</div><div class="rl-use">${R0.use}</div>`;const ui=document.createElement("div");ui.className="rl-ui";c.appendChild(ui);
-    try{R0.ui(ui)}catch(e){ui.textContent=""}box.appendChild(c);if(isNew)fresh.push(d+":"+k)});
+    const isNew=!seen.includes(d+":"+k),wasOpen=rlOpen.has(d+":"+k)||isNew;c.className="rl-card"+(isNew?" new":"");
+    c.innerHTML=`<button class="rl-head"><span><span class="rl-sk">${TAGS[k]}</span><span class="rl-t" style="display:block">${R0.t}</span></span><span class="rl-chev">▼</span></button><div class="rl-body"><div><div class="rl-use">${R0.use}</div></div></div>`;
+    const inner=c.querySelector(".rl-body>div"),ui=document.createElement("div");ui.className="rl-ui";inner.appendChild(ui);let built=false;
+    const openIt=on=>{c.classList.toggle("open",on);if(on){rlOpen.add(d+":"+k);if(!built){built=true;try{R0.ui(ui)}catch(e){ui.textContent=""}}}else rlOpen.delete(d+":"+k)};
+    c.querySelector(".rl-head").onclick=()=>openIt(!c.classList.contains("open"));openIt(wasOpen);
+    box.appendChild(c);if(isNew)fresh.push(d+":"+k)});
+  if(fresh.length&&hTab!=="real"){const tb=document.querySelector('#htabs [data-t="real"]');if(tb)tb.classList.add("newdot")}
   if(fresh.length){LS.set("rlSeen",seen.concat(fresh));
     box.querySelectorAll(".rl-card.new").forEach((c,i)=>{c.style.animationDelay=(i*120)+"ms";setTimeout(()=>c.classList.remove("new"),RL_ANIM_MS+i*120+1400)})}}
 
+// Home tabs: remembered per device
+let hTab=LS.get("hTab","today");
+function setTab(t){hTab=t;LS.set("hTab",t);if(t==="real"){const tb=document.querySelector('#htabs [data-t="real"]');if(tb)tb.classList.remove("newdot")}document.querySelectorAll("#htabs button").forEach(b=>b.classList.toggle("on",b.dataset.t===t));document.querySelectorAll("#home .hpane").forEach(p=>p.classList.toggle("on",p.dataset.p===t))}
+document.querySelectorAll("#htabs button").forEach(b=>b.onclick=()=>{setTab(b.dataset.t);const h=$("htabs");if(h.getBoundingClientRect().top<0||window.scrollY>h.offsetTop)window.scrollTo({top:h.offsetTop,behavior:"smooth"})});
 function home(){
   if(!dayUnlocked(selDay)){selDay=[...DAY_ORDER].reverse().find(dayUnlocked)||"5.1";LS.set("selDay",selDay)}
   const D=DAYS[selDay],b=bestOf(selDay);$("dnote").textContent="";
@@ -893,7 +920,7 @@ function home(){
   $("hDay").textContent=liveStreak();$("hFrz").textContent=day.freezes+" / 2";
   const done=day.last===dayKey(new Date());$("goal").classList.toggle("done",done);$("goalBox").textContent=done?"✓":"";
   $("goalTxt").textContent=done?"Daily goal done. Your streak is safe today":"Daily goal: finish 1 run";
-  ensureDue();renderReview();renderSkills();renderSpark();renderRoad();renderReal();
+  ensureDue();renderReview();renderSkills();renderSpark();renderRoad();renderReal();setTab(hTab);{const ks=LESSONS[selDay],rk=ks.filter(k=>REAL[k]);$("tbReal").textContent=`${rk.filter(k=>lvl(k)===3||dayPassed(selDay)).length}/${rk.length}`;$("tbSk").textContent=`${masteredCount(selDay)}/${ks.length}`}
   const L=LRN(),ld=LD();
   $("learnTxt").textContent=`${ld.length} of ${L.length} lessons done`;$("learnBar").style.width=(ld.length/L.length*100)+"%";
   $("learnBtn").textContent=ld.length===0?`Learn ${selDay} · about ${L.length} min`:ld.length<L.length?`Continue learning · lesson ${Math.max(0,L.findIndex((_,j)=>!ld.includes(j)))+1}`:`Review ${selDay} lessons`;
