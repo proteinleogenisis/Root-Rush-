@@ -26,7 +26,6 @@ Root Rush is a phone-first study game for an Algebra 2 class (St. Vrain Valley S
 - Rush: 180 seconds, starts instantly (no 3-2-1). Lightning round is due at 90 seconds left but only starts after the current question is answered (`st.ltPending`, checked in `next()`); a wrong lightning answer locks the buttons for `LT_WRONG_LOCK` (3) seconds. Double points in the last 10 seconds, ghost of the day's best score.
 - Scratch paper (`togglePad`, `padSync`): finger/pencil canvas beside the calculator; shows the current problem; strokes clear when the question or lesson changes.
 - Weak-skill training (`weakSkill`, `showTrain`, `#train` section): after a Rush or Mastery run, a skill with at least `WEAK_MIN_TRIES` of its last `WEAK_WINDOW` answers, accuracy at most `WEAK_MAX_ACC` and `WEAK_GAP` below the day's other skills (need `WEAK_MIN_OTHERS` with data) gets a training page; cooldown `WEAK_COOLDOWN_RUNS`.
-- Read aloud (`ttsSay`, `ttsText`, `TTS_PREF`): device speech voice for Learn lessons, off by default, toggle in the lesson header and Settings (voice, speed). `ttsText` turns lesson HTML into spoken words; after editing any lesson, dump every spoken line and check none has raw symbols.
 - Real life (`REAL`, `renderReal`, `#real` on Home): one practical, interactive use per skill (piano, f-stops, tsunami, skid marks...). A card unlocks when its skill is mastered (or the day is passed) and animates once (`rlSeen`). When all are open and the quiz isn't passed, a final-quiz prompt shows. New days need a `REAL` entry per skill and a `RL_TEASER` line.
 - `LESSON_SKILL`: which skill(s) each Learn lesson trains, by lesson position. Every skill has a lesson. New lessons must be appended (learnedBy stores lesson indexes).
 - Calculator: built-in bottom sheet (`cEval` parser handles odd roots of negatives and implicit multiplication).
@@ -82,7 +81,10 @@ This project started in a Claude chat and moved here. Read this before changing 
 - He asks to "make a better prompt and then execute": write a short improved spec, show it, then build it.
 
 ### Nov 13 changes
-Accounts, scratch paper, weak-skill training, lightning lockout and timing, no countdown, -15 per miss, simplest-form "divide by perfect squares biggest first" trick (walkthrough + new lesson), new Estimating lesson for 5.1, one-time Day 2 mastery reset (`reset52_v1`).
+Accounts, scratch paper, weak-skill training, lightning lockout and timing, no countdown, -15 per miss, simplest-form method (now the pair method: break into small primes, each pair escapes the root; the student rejected memorizing a list of perfect squares), new Estimating lesson for 5.1, one-time Day 2 mastery reset (`reset52_v1`).
+
+### Nov 13 later
+Read-aloud (TTS) was built and then removed at the student's request; don't add it back unasked. Home has tabs (Today, Real life, Skills, Progress).
 
 ### Ideas not built yet (he picked spaced review first; ask before building the others)
 - Type-your-own-answer questions (closer to real tests than multiple choice).
