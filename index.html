@@ -141,6 +141,25 @@ body.fok{background:var(--goodbg)}body.fbad{background:var(--badbg)}
 .hwtag{display:inline-block;font-size:12px;font-weight:700;color:var(--root);border:1px solid var(--root);border-radius:99px;padding:2px 9px;margin-bottom:8px}
 #lRead.on{background:var(--root);border-color:var(--root);color:#fff}
 .tts-row{display:flex;align-items:center;gap:10px;margin:8px 0}.tts-row select{flex:1;min-width:0;font-size:15px;padding:8px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}.tts-row input[type=range]{flex:1}
+.rl-teaser{font-size:14px;color:var(--mute);margin:0 2px 10px}
+.rl-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:10px}
+.rl-card.locked{display:flex;gap:12px;align-items:center;padding:11px 16px;opacity:.6}.rl-lock{font-size:18px}.rl-hint{font-size:13px;margin-top:2px}
+.rl-card.new{animation:rlIn .65s cubic-bezier(.2,.8,.2,1) both,rlGlow 1.8s ease .4s}
+@keyframes rlIn{from{opacity:0;transform:translateY(12px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes rlGlow{0%{box-shadow:0 0 0 0 transparent}35%{box-shadow:0 0 0 3px var(--good)}100%{box-shadow:0 0 0 0 transparent}}
+@media (prefers-reduced-motion:reduce){.rl-card.new{animation:none}}
+.rl-sk{font-size:12px;font-weight:700;color:var(--good);margin-bottom:2px}.rl-t{font-weight:700;font-size:17px}.rl-use{font-size:15px;line-height:1.55;margin:6px 0 10px}
+.rl-out{font-size:15px;line-height:1.6;background:var(--bg);border-radius:10px;padding:8px 10px;margin:8px 0;min-height:24px}
+.rl-sl{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--mute);margin:6px 0}.rl-sl span{width:104px;flex:none}.rl-sl input{flex:1;min-width:0}.rl-sl b{width:62px;text-align:right;color:var(--ink);font-size:13px}
+.rl-row{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.rl-row .on{background:var(--ink);color:var(--bg);border-color:var(--ink)}.rl-note{font-size:13px;line-height:1.5}
+.rl-keys{display:flex;gap:2px;margin:4px 0}.rl-key{flex:1;padding:22px 0 6px;font-size:11px;border-radius:0 0 6px 6px;background:#f4f1ea;color:#222;border:1px solid #bbb;min-width:0}.rl-key.blk{background:#222;color:#eee;border-color:#000}.rl-key.hit{animation:rlKey .35s ease}
+@keyframes rlKey{50%{transform:translateY(3px);filter:brightness(.85)}}
+.rl-ap{width:90px;height:90px;border-radius:50%;background:#111;margin:6px auto;display:flex;align-items:center;justify-content:center;border:3px solid var(--line)}.rl-ap i{display:block;width:80px;height:80px;border-radius:50%;background:radial-gradient(circle,#fff8d8,#f2c94c);transition:transform .35s ease}
+.rl-drop{position:relative;height:110px;border-left:2px dashed var(--line);margin:6px 0 6px 20px}.rl-drop i{position:absolute;left:-9px;top:0;width:16px;height:16px;border-radius:50%;background:var(--hot)}
+.rl-ball{border-radius:50%;margin:6px auto;background:radial-gradient(circle at 35% 35%,#f7a35c,#c75b1e);transition:width .25s ease,height .25s ease;max-width:100%}
+.rl-skid{height:14px;background:var(--bg);border-radius:7px;margin:6px 0;overflow:hidden}.rl-skid i{display:block;height:100%;background:repeating-linear-gradient(90deg,#444 0 6px,#666 6px 9px);transition:width .25s ease}
+.rl-sq{display:block;width:90px;height:90px;margin:4px auto}.rl-sq rect{fill:none;stroke:var(--ink);stroke-width:2}.rl-sq line{stroke:var(--root);stroke-width:2.5}
+.rl-all{background:var(--card);border:1px solid var(--good);border-radius:16px;padding:12px 16px;margin-bottom:10px;font-size:15px;line-height:1.5;animation:rlIn .65s ease both}.rl-all button{margin-top:8px}
 .hwtag.sktag{color:var(--good);border-color:var(--good);margin-left:6px}
 .l-title{font-size:21px;font-weight:700;line-height:1.25;margin-bottom:10px}
 .l-rule{background:var(--bg);border-radius:12px;padding:12px 14px;font-size:16px;line-height:1.55;margin-bottom:14px}
@@ -236,6 +255,9 @@ body.calc-open .calc-fab{display:none}
     <div class="mini mute" id="rushMix"></div>
     <div class="mini mute">Rank <b id="hRank">Square one</b> · Runs <b id="hRuns">0</b> · Freezes <b id="hFrz">0 / 2</b></div>
   </div>
+
+  <div class="sec"><h3>Real life</h3><span class="mute" id="rlSum"></span></div>
+  <div id="real"></div>
 
   <div id="revCard"></div>
   <div class="sec"><h3>Skills</h3><span class="mute" id="skSum"></span></div>
@@ -788,6 +810,75 @@ function renderReview(){
   if(d.length){box.className="card revcard";box.innerHTML=`<div class="rv-t">${d.length} old skill${d.length>1?"s":""} ready for a quick review</div><div class="mute rv-s">${d.map(k=>TAGS[k]).join(" · ")}</div><div class="mute rv-s">Spaced review keeps them fresh for the unit test. Each right answer pushes the next review further out.</div>`;box.appendChild(mkBtn("big rvbtn",`Quick review · ${d.length} question${d.length>1?"s":""}`,()=>start({reviewDue:true})))}
   else{const nr=nextReview();box.className="";if(nr)box.innerHTML=`<div class="mute rv-next">Next quick review: ${TAGS[nr.k]} ${inDays(nr.due)}</div>`}
 }
+// ---- Real life: one practical use per skill. A card unlocks when its skill is mastered. ----
+const RL_TEASER={"5.1":"Pianos, cameras, tsunamis and savings accounts all run on today's roots.","5.2":"Crash investigators, carpenters and biologists use today's rules."};
+const RL_ANIM_MS=650; // unlock animation length
+const f2=x=>(+(+x).toFixed(2)).toLocaleString();
+function rlTone(f,d=.6){try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();ac.resume();const t=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();o.type="triangle";o.frequency.value=f;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.2,t+.02);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g).connect(ac.destination);o.start(t);o.stop(t+d)}catch(e){}}
+function rlSlider(el,lab,min,max,step,val,on){const w=document.createElement("label");w.className="rl-sl";w.innerHTML=`<span>${lab}</span><input type="range" min="${min}" max="${max}" step="${step}" value="${val}"><b></b>`;
+  const i=w.querySelector("input"),b=w.querySelector("b");const go=()=>{b.textContent=on(+i.value)};i.oninput=()=>{go();if(w._after)w._after()};el.appendChild(w);go();return w}
+function rlOut(el,cls){const d=document.createElement("div");d.className="rl-out"+(cls?" "+cls:"");el.appendChild(d);return d}
+function rlSimp(X){let k=1;for(let a=2;a*a<=X;a++)if(X%(a*a)===0)k=a;const r=X/(k*k);return k===1?`√${X}`:r===1?`${k}`:`${k}√${r}`}
+const REAL={
+bottom:{t:"Why a piano sounds right",use:`Each key vibrates exactly 2<sup>1/${R(12)}</sup> times faster than the key below it. The bottom 12 is the root: 12 keys up, the speed doubles, because (2<sup>1/12</sup>)<sup>12</sup> = 2. Piano tuners set every string this way.`,
+ ui(el){const keys=["A","A#","B","C","C#","D","D#","E","F","F#","G","G#","A"],row=document.createElement("div");row.className="rl-keys";el.appendChild(row);const o=rlOut(el,"mono");o.textContent="Tap a key";
+  keys.forEach((k,n)=>{const b=mkBtn("rl-key"+(k.includes("#")?" blk":""),k,()=>{const f=440*2**(n/12);rlTone(f);b.classList.remove("hit");void b.offsetWidth;b.classList.add("hit");
+    o.innerHTML=`${k}: 440 × 2<sup>${P(n)}/${R(12)}</sup> = <b>${f2(f)}</b> vibrations a second`});row.appendChild(b)})}},
+entry:{t:"Camera f-stops",use:`The f-numbers on a camera (1.4, 2, 2.8, 4, 5.6, 8…) are 2<sup>n/2</sup>. Each step lets in half the light. Typing it wrong gives a setting no camera has.`,
+ ui(el){const ap=document.createElement("div");ap.className="rl-ap";ap.innerHTML="<i></i>";el.appendChild(ap);const o=rlOut(el,"mono");
+  rlSlider(el,"Step n",0,8,1,5,n=>{const f=2**(n/2);ap.firstChild.style.transform=`scale(${1/f})`;
+    o.innerHTML=`2 ^ ( ${n} ÷ 2 ) = <b>${f2(f)}</b> → f/${[1,1.4,2,2.8,4,5.6,8,11,16][n]}<br><span style="color:var(--bad)">2 ^ ${n} ÷ 2 = ${f2(2**n/2)}</span> ← no ( ), wrong`;return "n = "+n})}},
+neg:{t:"Signs that mean direction",use:`In science and on maps, a minus sign often means a direction: below sea level, to the left, backward. An ${P("odd")} root keeps that sign: if x<sup>3</sup> = −8, then x = −2. An ${P("even")} root can't: no real number squared gives −16, which is why calculators say Error.`,
+ ui(el){const o=rlOut(el,"mono");o.textContent="Tap one";const row=document.createElement("div");row.className="rl-row";el.appendChild(row);
+  [["∛(−8)","= −2 ✓ an odd root keeps the minus"],["∛(−125)","= −5 ✓ odd root"],["√(−16)","Error: an even root of a negative isn't real"],["∜(−81)","Error: even root"]].forEach(([q,a])=>row.appendChild(mkBtn("small",q,()=>{o.innerHTML=`${q} ${a.startsWith("=")?a:`<span style="color:var(--bad)">${a}</span>`}`})))}},
+sols:{t:"How long a fall takes",use:`Drop something and it falls 16t<sup>2</sup> feet in t seconds. Solving gives ± (an even power), but time can't be negative, so you keep the + answer. Divers, stunt crews and ride designers use this.`,
+ ui(el){const box=document.createElement("div");box.className="rl-drop";box.innerHTML="<i></i>";el.appendChild(box);const o=rlOut(el,"mono");let h=64;
+  rlSlider(el,"Height (ft)",16,400,16,64,v=>{h=v;const t=Math.sqrt(v/16);o.innerHTML=`16t<sup>2</sup> = ${v} → t<sup>2</sup> = ${f2(v/16)} → t = ±${f2(t)}<br>Time can't be negative, so <b>${f2(t)} seconds</b>`;return v+" ft"});
+  el.appendChild(mkBtn("small","Drop it",()=>{const t=Math.sqrt(h/16),d=box.firstChild;d.style.transition="none";d.style.transform="translateY(0)";void d.offsetWidth;d.style.transition=`transform ${t}s cubic-bezier(.55,0,1,.6)`;d.style.transform="translateY(96px)"}))}},
+iso:{t:"How big a ball is",use:`A ball's volume is V = (4/3)πr<sup>3</sup>. To get the radius, isolate r<sup>3</sup> first, then take the cube root. A basketball holds about 434 in<sup>3</sup> of air, so its radius is about 4.7 in.`,
+ ui(el){const ball=document.createElement("div");ball.className="rl-ball";el.appendChild(ball);const o=rlOut(el,"mono");
+  rlSlider(el,"Air (in³)",50,1000,2,434,V=>{const r3=3*V/(4*Math.PI),r=Math.cbrt(r3);ball.style.width=ball.style.height=(r*16)+"px";
+    o.innerHTML=`${V} = (4/3)πr<sup>3</sup> → r<sup>3</sup> = ${f2(r3)} → r = ∛${f2(r3)} = <b>${f2(r)} in</b>`;return V+" in³"})}},
+shift:{t:"Your money's yearly growth",use:`If $1,000 grows to $1,331 in 3 years, the yearly rate r comes from 1000(1 + r)<sup>3</sup> = 1331. Undo in reverse: divide, take the cube root, then subtract 1. Banks, sneaker resellers and investors do this.`,
+ ui(el){const o=rlOut(el,"mono");let end=1331,yrs=3;const upd=()=>{const g=end/1000,x=g**(1/yrs);o.innerHTML=`(1 + r)<sup>${yrs}</sup> = ${f2(g)} → 1 + r = ${f2(g)}<sup>1/${yrs}</sup> = ${f2(x)} → r = <b>${f2((x-1)*100)}% a year</b>`};
+  rlSlider(el,"$1,000 grows to",1001,5001,10,1331,v=>{end=v;upd();return "$"+v.toLocaleString()});const y=rlSlider(el,"Years",1,10,1,3,v=>{yrs=v;upd();return v+(v>1?" yrs":" yr")});upd()}},
+order:{t:"How fast a tsunami moves",use:`In open ocean a wave travels at v = √(9.8d) meters a second, where d is the depth. That's why tsunamis cross oceans as fast as jets. To go backward (speed → depth), undo from the outside in: square first, then divide by 9.8.`,
+ ui(el){const o=rlOut(el,"mono");rlSlider(el,"Ocean depth (m)",10,6000,10,4000,d=>{const v=Math.sqrt(9.8*d);o.innerHTML=`v = √(9.8 · ${d}) = ${f2(v)} m/s ≈ <b>${Math.round(v*3.6)} km/h</b>`;return d+" m"});
+  const n=document.createElement("div");n.className="mute rl-note";n.innerHTML="Backward: a wave clocked at 20 m/s → 20<sup>2</sup> = 400 → 400 ÷ 9.8 ≈ 41 m deep.";el.appendChild(n)}},
+line:{t:"How far you can see",use:`From h meters up, the horizon is about 3.57√h kilometers away. Estimating √h is enough to know: from a 50 m building, √50 is between 7 and 8, so you see 25 to 29 km.`,
+ ui(el){const o=rlOut(el,"mono");rlSlider(el,"Height (m)",2,500,1,50,h=>{const a=Math.floor(Math.sqrt(h));o.innerHTML=`${a}<sup>2</sup> = ${a*a} ≤ ${h} &lt; ${(a+1)**2} = ${a+1}<sup>2</sup> → √${h} is between ${a} and ${a+1}<br>3.57√${h} ≈ <b>${f2(3.57*Math.sqrt(h))} km</b>`;return h+" m"})}},
+rules:{t:"Why elephants eat less than you'd think",use:`An animal's resting energy is about 70 · M<sup>3/4</sup> calories a day (M in kg). Power of a power does the magic: something 10,000 times heavier needs (10<sup>4</sup>)<sup>3/4</sup> = 10<sup>3</sup> = only 1,000 times the energy.`,
+ ui(el){const o=rlOut(el,"mono");const row=document.createElement("div");row.className="rl-row";el.appendChild(row);
+  [["Mouse",.02],["Cat",4],["You",70],["Horse",500],["Elephant",5000]].forEach(([n,m])=>row.appendChild(mkBtn("small",n,()=>{o.innerHTML=`${n}: 70 · ${m}<sup>3/4</sup> ≈ <b>${Math.round(70*m**.75).toLocaleString()} calories a day</b><br>${m>4?`${f2(m/4)}× a cat's weight, only ${f2((m/4)**.75)}× its energy`:"tiny, but it burns fast for its size"}`})));o.textContent="Tap an animal"}},
+radmul:{t:"Speed from skid marks",use:`Crash investigators find a car's speed with s = √(30df): d is the skid length in feet, f is how grippy the road is. Written as √30 · √d · √f, the indexes match, so it all goes under one root.`,
+ ui(el){const sk=document.createElement("div");sk.className="rl-skid";sk.innerHTML="<i></i>";el.appendChild(sk);const o=rlOut(el,"mono");let d=120,f=.75;
+  const upd=()=>{const X=Math.round(30*d*f);sk.firstChild.style.width=(d/300*100)+"%";o.innerHTML=`√30 · √${d} · √${f} = √${X} = ${rlSimp(X)} ≈ <b>${Math.round(Math.sqrt(X))} mph</b>`};
+  rlSlider(el,"Skid (ft)",20,300,4,120,v=>{d=v;upd();return v+" ft"});const row=document.createElement("div");row.className="rl-row";el.appendChild(row);
+  [["Dry",.75],["Wet",.5],["Icy",.15]].forEach(([n,v],i)=>{const b=mkBtn("small"+(i===0?" on":""),n,()=>{f=v;row.querySelectorAll("button").forEach(x=>x.classList.remove("on"));b.classList.add("on");upd()});row.appendChild(b)});upd()}},
+simp:{t:"Checking a room is square",use:`Builders check a square room by measuring corner to corner. The diagonal of a square with side s is √(s<sup>2</sup> + s<sup>2</sup>) = √(2s<sup>2</sup>), and simplest form turns that into s√2. If the tape says something else, the walls aren't square.`,
+ ui(el){const sv=document.createElementNS("http://www.w3.org/2000/svg","svg");sv.setAttribute("viewBox","0 0 100 100");sv.setAttribute("class","rl-sq");sv.innerHTML='<rect x="10" y="10" width="80" height="80" rx="2"/><line x1="10" y1="90" x2="90" y2="10"/>';el.appendChild(sv);const o=rlOut(el,"mono");
+  rlSlider(el,"Side (ft)",2,20,1,12,s=>{o.innerHTML=`√(${s}<sup>2</sup> + ${s}<sup>2</sup>) = √${2*s*s} = <b>${s}√2</b> ≈ ${f2(s*Math.SQRT2)} ft`;return s+" ft"})}},
+vars:{t:"Distance is never negative",use:`Map apps find the distance between two spots on a line with √((b − a)<sup>2</sup>). An even root of something squared gives |b − a|: the absolute value. That's why your "how far" answer is never negative, even when you walk backward.`,
+ ui(el){const o=rlOut(el,"mono");let a=-3,b=5;const upd=()=>{o.innerHTML=`√((${b} − ${a<0?"("+co(a)+")":a})<sup>2</sup>) = √${(b-a)**2} = |${co(b-a)}| = <b>${Math.abs(b-a)} blocks</b>`};
+  rlSlider(el,"You (a)",-10,10,1,-3,v=>{a=v;upd();return String(v)});rlSlider(el,"Store (b)",-10,10,1,5,v=>{b=v;upd();return String(v)});upd()}},
+like:{t:"Buying fence for two gardens",use:`Two square garden beds with areas 3a<sup>2</sup> and 3b<sup>2</sup> have sides a√3 and b√3. They're like radicals, so the total fence is 4a√3 + 4b√3 = 4(a + b)√3. One number to take to the store.`,
+ ui(el){const o=rlOut(el,"mono");let a=5,b=3;const upd=()=>{o.innerHTML=`Areas ${3*a*a} and ${3*b*b} ft<sup>2</sup> → sides ${a}√3 and ${b}√3<br>${4*a}√3 + ${4*b}√3 = <b>${4*(a+b)}√3</b> ≈ ${f2(4*(a+b)*Math.sqrt(3))} ft of fence`};
+  rlSlider(el,"Bed 1 (a)",1,8,1,5,v=>{a=v;upd();return String(v)});rlSlider(el,"Bed 2 (b)",1,8,1,3,v=>{b=v;upd();return String(v)});upd()}}
+};
+function renderReal(){const box=$("real");if(!box)return;const d=selDay,ks=LESSONS[d].filter(k=>REAL[k]);box.innerHTML="";
+  const seen=LS.get("rlSeen",[]),open=k=>lvl(k)===3||dayPassed(d),n=ks.filter(open).length;
+  $("rlSum").textContent=`${n} of ${ks.length} unlocked`;
+  const top=document.createElement("div");top.className="rl-teaser";top.textContent=RL_TEASER[d]||"";box.appendChild(top);
+  if(n===ks.length&&!dayPassed(d)){const all=document.createElement("div");all.className="rl-all";all.innerHTML="<b>Everything's unlocked.</b> You've mastered every skill for this day. The final quiz is next.";all.appendChild(mkBtn("small","Take the final quiz",()=>start({quiz:true})));box.appendChild(all)}
+  const fresh=[];
+  ks.forEach(k=>{const R0=REAL[k],c=document.createElement("div");
+    if(!open(k)){c.className="rl-card locked";c.innerHTML=`<span class="rl-lock">🔒</span><div><div class="rl-t">${R0.t}</div><div class="mute rl-hint">Master <b>${TAGS[k]}</b> to unlock</div></div>`;box.appendChild(c);return}
+    const isNew=!seen.includes(d+":"+k);c.className="rl-card"+(isNew?" new":"");
+    c.innerHTML=`<div class="rl-sk">${TAGS[k]}</div><div class="rl-t">${R0.t}</div><div class="rl-use">${R0.use}</div>`;const ui=document.createElement("div");ui.className="rl-ui";c.appendChild(ui);
+    try{R0.ui(ui)}catch(e){ui.textContent=""}box.appendChild(c);if(isNew)fresh.push(d+":"+k)});
+  if(fresh.length){LS.set("rlSeen",seen.concat(fresh));
+    box.querySelectorAll(".rl-card.new").forEach((c,i)=>{c.style.animationDelay=(i*120)+"ms";setTimeout(()=>c.classList.remove("new"),RL_ANIM_MS+i*120+1400)})}}
+
 function home(){
   if(!dayUnlocked(selDay)){selDay=[...DAY_ORDER].reverse().find(dayUnlocked)||"5.1";LS.set("selDay",selDay)}
   const D=DAYS[selDay],b=bestOf(selDay);$("dnote").textContent="";
@@ -802,7 +893,7 @@ function home(){
   $("hDay").textContent=liveStreak();$("hFrz").textContent=day.freezes+" / 2";
   const done=day.last===dayKey(new Date());$("goal").classList.toggle("done",done);$("goalBox").textContent=done?"✓":"";
   $("goalTxt").textContent=done?"Daily goal done. Your streak is safe today":"Daily goal: finish 1 run";
-  ensureDue();renderReview();renderSkills();renderSpark();renderRoad();
+  ensureDue();renderReview();renderSkills();renderSpark();renderRoad();renderReal();
   const L=LRN(),ld=LD();
   $("learnTxt").textContent=`${ld.length} of ${L.length} lessons done`;$("learnBar").style.width=(ld.length/L.length*100)+"%";
   $("learnBtn").textContent=ld.length===0?`Learn ${selDay} · about ${L.length} min`:ld.length<L.length?`Continue learning · lesson ${Math.max(0,L.findIndex((_,j)=>!ld.includes(j)))+1}`:`Review ${selDay} lessons`;
