@@ -83,6 +83,7 @@ body.fok{background:var(--goodbg)}body.fbad{background:var(--badbg)}
 .tf{display:flex;gap:10px;margin-top:12px}
 .tfb{flex:1;font-size:22px;font-weight:700;padding:22px 0}
 .tfb.ok{background:var(--goodbg);border-color:var(--good);color:var(--good)}.tfb.no{background:var(--badbg);border-color:var(--bad);color:var(--bad)}
+.tfb.locked{opacity:.55}.lt-lock{margin-top:8px;font-weight:700;color:var(--bad)}
 .ltcard{border-color:var(--root);box-shadow:0 0 0 2px var(--root)}
 .ltcard .ex{font-size:40px;font-weight:700;color:var(--root)}
 .shake{animation:sh .3s}
@@ -138,6 +139,7 @@ body.fok{background:var(--goodbg)}body.fbad{background:var(--badbg)}
 .ldots{display:flex;gap:5px;margin-bottom:12px}.ldots i{flex:1;height:5px;border-radius:3px;background:var(--line)}
 .ldots i.on{background:var(--hot)}.ldots i.done{background:var(--good)}
 .hwtag{display:inline-block;font-size:12px;font-weight:700;color:var(--root);border:1px solid var(--root);border-radius:99px;padding:2px 9px;margin-bottom:8px}
+.hwtag.sktag{color:var(--good);border-color:var(--good);margin-left:6px}
 .l-title{font-size:21px;font-weight:700;line-height:1.25;margin-bottom:10px}
 .l-rule{background:var(--bg);border-radius:12px;padding:12px 14px;font-size:16px;line-height:1.55;margin-bottom:14px}
 .l-rule .mono{display:block;font-size:18px;text-align:center;margin-top:6px}
@@ -150,9 +152,19 @@ body.fok{background:var(--goodbg)}body.fbad{background:var(--badbg)}
 .l-btn{width:100%;margin-top:12px;font-weight:700}
 .dsw{display:flex;gap:6px;margin-bottom:10px}.dsw button{flex:1;font-weight:700;padding:11px 6px;font-size:15px}
 .dsw button.on{background:var(--hot);border-color:var(--hot);color:#fff}
+.brandrow{display:flex;justify-content:space-between;align-items:center;flex:1 1 100%}
+.acct{background:none;border:0;padding:6px 2px;font-size:13px;font-weight:600;color:var(--mute);cursor:pointer}.acct.on{color:var(--good)}
+.actabs{display:flex;gap:6px;margin-bottom:12px}.actabs .on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.aclab{display:block;font-size:13px;color:var(--mute);margin-bottom:10px}.aclab input{display:block;width:100%;margin-top:4px;font-size:17px;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+.acerr{color:var(--bad);font-size:14px;min-height:20px;margin-bottom:6px}
 .sync{font-size:12px;color:var(--mute);margin:-6px 2px 10px}.sync.cloud{color:var(--good)}
 .rd.click{cursor:pointer}
-.calc-fab{position:fixed;right:14px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:8;background:var(--ink);color:var(--bg);border-color:var(--ink);border-radius:99px;padding:12px 18px;font-weight:700;font-size:15px}
+.fabs{position:fixed;right:14px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:8;display:flex;gap:8px}
+.pad-fab.calc-fab{background:var(--card);color:var(--ink);border-color:var(--line)}
+#padCv{display:block;width:100%;height:min(46vh,380px);background:var(--bg);border-radius:12px;touch-action:none;cursor:crosshair}
+.padq{font-size:17px;padding:4px 2px 8px;max-height:64px;overflow:auto}
+body.pad-open .wrap{padding-bottom:calc(min(46vh,380px) + 140px)}body.pad-open .calc-fab{display:none}
+.calc-fab{background:var(--ink);color:var(--bg);border-color:var(--ink);border-radius:99px;padding:12px 18px;font-weight:700;font-size:15px}
 .calc{position:fixed;left:0;right:0;bottom:0;z-index:9;max-width:460px;margin:0 auto;background:var(--card);border:1px solid var(--line);border-bottom:0;border-radius:18px 18px 0 0;padding:12px 14px calc(14px + env(safe-area-inset-bottom));box-shadow:0 -8px 30px rgba(0,0,0,.2)}
 .cdisp{background:var(--bg);border-radius:12px;padding:10px 12px;margin-bottom:10px;text-align:right}
 #cExpr{font-size:20px;min-height:28px;word-break:break-all}#cRes{font-size:26px;font-weight:700;min-height:34px;color:var(--hot)}
@@ -203,7 +215,7 @@ body.calc-open .calc-fab{display:none}
 
 <section id="home">
   <header class="topbar">
-    <div class="brand">Root<span>Rush</span></div>
+    <div class="brandrow"><div class="brand">Root<span>Rush</span></div><button class="acct" id="acctBtn">Sign in</button></div>
     <div class="chips"><button class="chip mchip" id="musBtn" aria-label="Music on or off">♪ On</button><button class="chip gear" id="setBtn" aria-label="Settings">⚙</button><span class="chip"><b id="hDay">0</b> day streak</span><span class="chip">Best <b id="hBest">0</b></span></div>
   </header>
   <div class="sync" id="sync"></div>
@@ -238,19 +250,21 @@ body.calc-open .calc-fab{display:none}
     <summary>How to play</summary>
     <div style="font-size:15px;line-height:1.7;margin-top:10px">
     <div><b>Runs</b>: 3 minutes, racing a grey ghost of your best score</div>
-    <div><b>Question styles</b>: multiple choice, tap the steps in order, spot the mistake, and tap where a root lands on the number line</div>
-    <div><b>Lightning round</b>: at 1:30 left, 20 seconds of rapid true/false for +100 each</div>
+    <div><b>Question styles</b>: multiple choice, tap the steps in order, and tap where a root lands on the number line</div>
+    <div><b>Lightning round</b>: at 1:30 left (after you finish the question you're on), 20 seconds of rapid true/false for +100 each. A wrong answer locks you out for 3 seconds, so don't guess</div>
     <div><b>Right answer</b>: +100 × combo, +1 second, and up to +75 for speed</div>
     <div><b>Combo</b>: goes up every 3 in a row (max ×5)</div>
     <div><b>Last 10 seconds</b>: double points</div>
     <div><b>Wrong answer</b>: −3 seconds, combo resets, and the clock stops so you can read why</div>
     <div><b>Power-ups</b>: every 4 in a row earns one (hold 2). Freeze stops the clock for 5s. Shield saves your combo and mastery on one miss. Double makes the next 3 answers worth ×2 points. Boost makes the next 3 answers worth ×2 mastery</div>
     <div><b>Rematch</b>: a type you miss comes back a few questions later. Get it right for +150</div>
-    <div><b>Mastery</b>: each skill fills to 100. A right answer is +20 (+25 at combo ×3 or higher), a miss is −10. Once a skill hits 100 it stays Mastered and stops showing up in runs. When every skill in a day is mastered, take the <b>final quiz</b> (2 questions per skill, no timer, 80% to pass) to unlock the next day. Skills you miss on the quiz drop back to 60. Mastery run practices only the skills you haven't mastered</div>
+    <div><b>Mastery</b>: each skill fills to 100. A right answer is +20 (+25 at combo ×3 or higher), a miss is −15. Once a skill hits 100 it stays Mastered and stops showing up in runs. When every skill in a day is mastered, take the <b>final quiz</b> (2 questions per skill, no timer, 80% to pass) to unlock the next day. Skills you miss on the quiz drop back to 60. Mastery run practices only the skills you haven't mastered</div>
     <div><b>Quick review</b>: after you pass a day, its skills come back every so often (2 days, then 4, 8, 16…). A right answer pushes the next review further out. A miss brings it back tomorrow</div>
     <div><b>Practice this</b>: a run with only one skill. It counts for skills and your streak, not your best score</div>
     <div><b>Day streak</b>: play once a day. Every 7 days earns a freeze that covers a missed day</div>
-    <div><b>Calculator</b>: tap Calculator during a run or lesson. The clock keeps running</div>
+    <div><b>Calculator and Paper</b>: tap them during a run or lesson. Paper is scratch space for multi-step problems; your work stays until the next question. The clock keeps running</div>
+    <div><b>Training</b>: if one skill is going much worse than your others (after enough tries), you'll get a page to train it after the Rush</div>
+    <div><b>Account</b>: tap Sign in (top right) to save your progress and use it on your other devices</div>
     <div class="mute kbhint" style="margin-top:6px;font-size:13px">On a keyboard, keys 1–5 answer and Enter continues.</div>
     </div>
   </details>
@@ -306,13 +320,46 @@ body.calc-open .calc-fab{display:none}
   <button id="toHome" style="width:100%;margin-top:10px;font-weight:700">Home</button>
 </section>
 
+<section id="train" class="hidden">
+  <div style="padding:18px 0 10px"><p class="mute">After that run</p><h2 id="trT" style="font-size:28px;margin-top:4px"></h2></div>
+  <div class="card" style="margin-bottom:14px"><div id="trStat" style="font-size:15px;line-height:1.6"></div></div>
+  <div class="card" style="margin-bottom:14px"><div class="l-h">The rule</div><div id="trRule" class="l-rule"></div><div class="l-h" style="margin-top:10px">Example</div><div id="trEx" class="l-problem mono"></div></div>
+  <button class="big" id="trGo">Train this skill</button>
+  <button id="trLearn" style="width:100%;margin-top:10px;font-weight:700">Redo the lesson</button>
+  <button id="trSkip" style="width:100%;margin-top:10px">Skip to my results</button>
+</section>
+
+<div id="acctSheet" class="calc sheet hidden">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><b style="font-size:17px" id="acTitle">Your account</b><button class="small" id="acClose">Close</button></div>
+  <div id="acOut">
+    <div class="actabs"><button class="small on" id="acTabIn">Sign in</button><button class="small" id="acTabNew">Make account</button></div>
+    <form id="acForm" autocomplete="on">
+      <label class="aclab">Username<input id="acUser" name="username" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" maxlength="20"></label>
+      <label class="aclab">Password<input id="acPass" name="password" type="password" autocomplete="current-password" maxlength="100"></label>
+      <div id="acErr" class="acerr"></div>
+      <button class="big" id="acGo" type="submit">Sign in</button>
+    </form>
+    <div class="mute" id="acHint" style="font-size:13px;line-height:1.5;margin-top:10px"></div>
+  </div>
+  <div id="acIn" class="hidden">
+    <div style="font-size:16px;margin-bottom:6px">Signed in as <b id="acName"></b></div>
+    <div class="mute" style="font-size:13px;line-height:1.5;margin-bottom:12px">Your progress saves to this account. Sign in with it on any other phone or iPad and everything comes with you.</div>
+    <button id="acOutBtn" style="width:100%;font-weight:700">Sign out</button>
+  </div>
+</div>
 <div id="setSheet" class="calc sheet hidden">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><b style="font-size:17px">Settings</b><button class="small" id="setClose">Close</button></div>
   <div class="set-row"><span>Sound effects</span><button class="small" id="snd">Sound: on</button></div>
   <div class="l-h" style="margin-top:14px">Music</div>
   <div id="musCard"></div>
 </div>
-<button id="calcBtn" class="calc-fab hidden">Calculator</button>
+<div class="fabs"><button id="padBtn" class="calc-fab pad-fab hidden" aria-label="Scratch paper">✎ Paper</button><button id="calcBtn" class="calc-fab hidden">Calculator</button></div>
+<div id="pad" class="calc hidden">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:6px"><b style="font-size:15px">Scratch paper</b><span style="display:flex;gap:6px"><button class="small" id="padUndo">Undo</button><button class="small" id="padClear">Clear</button><button class="small" id="padClose">Close</button></span></div>
+  <div class="padq mono" id="padQ"></div>
+  <canvas id="padCv"></canvas>
+  <div class="mute" style="font-size:12px;margin-top:6px">Write with your finger or pencil. Your work stays here until the next question. The clock keeps running.</div>
+</div>
 <div id="calc" class="calc hidden">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b style="font-size:15px">Calculator</b><button class="small" id="cClose">Close</button></div>
   <div class="cdisp"><div class="mono" id="cExpr"> </div><div class="mono" id="cRes"> </div></div>
@@ -342,6 +389,11 @@ function xp(b,num,den){if(num===0)return "1";const g=gcd(num,den);num/=g;den/=g;
   const s=num<0?"−"+(-num):String(num);return den===1?(num===1?`${b}`:`${b}<sup>${s}</sup>`):`${b}<sup>${s}/${den}</sup>`}
 function co(n){return n<0?"−"+(-n):String(n)}
 function uniq(c,cands){const out=[];cands.forEach(x=>{if(x!==c&&!out.includes(x)&&out.length<3)out.push(x)});return out}
+const PSQ=[4,9,16,25,36,49,64,81,100],PCU=[8,27,64,125];
+// "x ÷ 49 = 11 ✓" lines: try perfect squares/cubes biggest first until one divides evenly
+function ppTry(x,n){const L=(n===2?PSQ:PCU).filter(v=>v<x).reverse(),out=[];
+  for(const v of L){const q=x/v,ok=Number.isInteger(q);out.push(`${x} ÷ ${v} = ${ok?q:+q.toFixed(2)} ${ok?'<span style="color:var(--good)">✓ whole</span>':'<span style="color:var(--bad)">✗</span>'}`);if(ok)break}
+  return out.join("<br>")}
 const GEN={
 entry(){
   if(Math.random()<.4){const b=pick([20,35,50,85,120,187,240,300]),n=pick([3,4,5,6]),m=pick([1,2,3]);const v=b**(m/n),c=v.toFixed(2);
@@ -476,8 +528,8 @@ radmul(){
 },
 simp(){
   const n=pick([2,2,3]),p=n===2?ri(2,7):ri(2,4),s=pick(n===2?[2,3,5,6,7,10,11]:[2,3,4,5,6,7,9]),x=p**n*s,c=`${p}${rad(n,s)}`;
-  return{walk:[[rad(n,x),`Look for the biggest perfect ${n===2?"square":"cube"} that divides ${x}`],[rad(n,`(${p**n} · ${s})`),`${x} = ${p**n} · ${s}`],[`${rad(n,p**n)} · ${rad(n,s)}`,"Split it into two roots"],[c,`${rad(n,p**n)} = ${p}`]],q:`Write ${rad(n,x)} in simplest form`,ex:rad(n,x),c,w:uniq(c,[`${s}${rad(n,p)}`,`${p**n}${rad(n,s)}`,`${p}${rad(n,p*s)}`,`${p*s}`,`${p+1}${rad(n,s)}`]),
-  why:`Find the biggest perfect ${n===2?"square":"cube"} that goes into ${x}:<span class="mono">${x} = ${p**n} · ${s}</span><span class="mono">${rad(n,p**n)} = ${p}, so ${rad(n,x)} = ${p}${rad(n,s)}</span>`};
+  return{walk:[[rad(n,x),`Look for the biggest perfect ${n===2?"square":"cube"} that divides ${x}`],[ppTry(x,n),`The trick: divide ${x} by perfect ${n===2?"squares":"cubes"}, biggest first. The first one that gives a whole number is it`],[rad(n,`(${p**n} · ${s})`),`${x} = ${p**n} · ${s}`],[`${rad(n,p**n)} · ${rad(n,s)}`,"Split it into two roots"],[c,`${rad(n,p**n)} = ${p}`]],q:`Write ${rad(n,x)} in simplest form`,ex:rad(n,x),c,w:uniq(c,[`${s}${rad(n,p)}`,`${p**n}${rad(n,s)}`,`${p}${rad(n,p*s)}`,`${p*s}`,`${p+1}${rad(n,s)}`]),
+  why:`<b>How to find the number:</b> divide ${x} by the perfect ${n===2?"squares":"cubes"} (${(n===2?PSQ:PCU).join(", ")}), biggest first. The first one that comes out whole is your number:<span class="mono">${ppTry(x,n)}</span><span class="mono">${rad(n,p**n)} = ${p}, so ${rad(n,x)} = ${p}${rad(n,s)}</span>`};
 },
 vars(){
   if(Math.random()<.3){const n=pick([2,4]),k=ri(2,3),C=k**n,pr=pick([["k","z"],["m","n"],["x","y"]]),a1=2*ri(1,3),a2=n===4?1:2,v=(L,e)=>e===1?L:`${L}<sup>${e}</sup>`;
@@ -561,7 +613,7 @@ let selDay=LS.get("selDay","5.2");
 function bestOf(d){return (bestBy[d]||{}).best||0}
 function durOf(d){return (bestBy[d]||{}).dur||60}
 let day=LS.get("day",{streak:0,last:null,freezes:0});
-const TOTAL=180,LT_AT=90;
+const TOTAL=180,LT_AT=90,LT_WRONG_LOCK=3; // LT_WRONG_LOCK: seconds you can't answer after a wrong lightning answer
 const PU={freeze:{name:"Freeze",icon:"❄"},shield:{name:"Shield",icon:"◆"},double:{name:"Double",icon:"×2"},boost:{name:"Boost",icon:"▲"}};
 
 let ac=null,sound=LS.get("sound",true);
@@ -663,7 +715,7 @@ function liveStreak(){if(!day.last)return 0;const gap=daysBetween(day.last,dayKe
 const SKILLS=[
 {k:"rules",L:"5.2",n:"Exponent rules",rule:`Same base: multiply → ${P("add")}, divide → ${P("subtract")}, power of a power → ${P("multiply")}. Negative exponent → flip.`,ex:`5<sup>1/3</sup> · 5<sup>1/3</sup> = 5<sup>2/3</sup><br>(8<sup>2</sup>)<sup>1/3</sup> = 8<sup>2/3</sup><br>2<sup>−1</sup> = 1/2`},
 {k:"radmul",L:"5.2",n:"Multiply and divide radicals",rule:`Same index → combine under one radical, then simplify.`,ex:`√3 · √27 = √81 = 9<br>√3 / √75 = √(1/25) = 1/5`},
-{k:"simp",L:"5.2",n:"Simplest form",rule:"Pull the biggest perfect square (or cube) out of the radical.",ex:`√50 = √(25 · 2) = 5√2<br>∛54 = ∛(27 · 2) = 3∛2`},
+{k:"simp",L:"5.2",n:"Simplest form",rule:"Pull the biggest perfect square (or cube) out of the radical. To find it: divide by 100, 81, 64, 49, 36, 25, 16, 9, 4 (biggest first). The first whole answer wins.",ex:`√50 = √(25 · 2) = 5√2<br>∛54 = ∛(27 · 2) = 3∛2`},
 {k:"vars",L:"5.2",n:"Roots of variables",rule:`Root of the number, and ${R("divide each exponent by the index")}.`,ex:`∜(16x<sup>8</sup>y<sup>4</sup>) = 2x<sup>2</sup>y`},
 {k:"like",L:"5.2",n:"Like radicals",rule:"Same index AND same radicand → add the numbers in front. The radical stays the same.",ex:`4∛7 + 9∛7 = 13∛7<br>4∛7 + 9∛7 ≠ 13∛14`},
 {k:"spot2",L:"5.2",n:"Spot the mistake (5.2)",rule:"Watch for added radicands, added exponents in a power of a power, and perfect squares pulled out without rooting.",ex:`(2<sup>3</sup>)<sup>1/2</sup> = 2<sup>3/2</sup> ✓<br>(2<sup>3</sup>)<sup>1/2</sup> = 2<sup>3 + 1/2</sup> ✗`},
@@ -679,7 +731,7 @@ const SKILLS=[
 const ROAD=[["5.1","nth roots and rational exponents","Day 1"],["5.2","Properties of rational exponents and radicals","Day 2"],["5.3","Graphing radical functions","Next"],["5.4","Solving radical equations and inequalities","Later"],["Test","Review and unit test","Later"]];
 let sk=LS.get("skills",{}),hist=LS.get("hist",[]),openSkill=null;
 function recOf(k){const s=sk[k]||{};return s.rec||[]}
-const MX=100,MX_GAIN=20,MX_LOSS=10;
+const MX=100,MX_GAIN=20,MX_LOSS=15;
 function xpOf(k){const s=sk[k];if(!s||!s.t)return 0;if(s.m)return MX;if(typeof s.xp==="number")return s.xp;
   const R=s.rec||[],hits=R.length?R.reduce((x,y)=>x+y,0):s.r,miss=(R.length||s.t)-hits;return Math.max(0,Math.min(MX,hits*MX_GAIN-miss*MX_LOSS))}
 function lvl(k){const s=sk[k];if(!s||!s.t)return 0;const x=xpOf(k);return x>=MX?3:x>=50?2:1}
@@ -688,6 +740,8 @@ function masteredCount(d){return LESSONS[d].filter(k=>lvl(k)===3).length}
 function dayMastered(d){return masteredCount(d)===LESSONS[d].length}
 let passed=LS.get("passed",{});
 function dayPassed(d){return !!passed[d]}
+// One-time reset of Day 2 (5.2) mastery, Nov 13 2026 (the student asked for it). Runs once per device.
+if(!LS.get("reset52_v1",false)){LESSONS["5.2"].forEach(k=>{delete sk[k]});delete passed["5.2"];LS.set("skills",sk);LS.set("passed",passed);LS.set("reset52_v1",true)}
 const DAYMS=864e5;
 function dayOfSkill(k){return Object.keys(LESSONS).find(d=>LESSONS[d].includes(k))}
 function ensureDue(){Object.values(LESSONS).flat().forEach(k=>{const o=sk[k];if(o&&o.m&&!o.due){o.due=Date.now()+2*DAYMS;o.iv=2}})}
@@ -780,7 +834,11 @@ const LEARN52=[
 {hw:"Homework #13, #14, and the error",t:"Adding like radicals",rule:`Like radicals have the ${R("same index AND same radicand")}. Add the numbers in front and keep the radical exactly the same.<span class="mono">a·ⁿ√x + b·ⁿ√x = (a+b)·ⁿ√x</span>`,
  prob:`4∛7 + 9∛7`,steps:[[`= (4 + 9)∛7`,"Same index (3) and same radicand (7)"],[`= 13∛7`,"The ∛7 stays. Never add to get ∛14"]],
  chk:{q:`Simplify 5∜3 − 8∜3`,o:["−3∜3","−3∜6","13∜3","−3√3"],a:0,why:"5 − 8 = −3, and the ∜3 stays the same."},
- note:"Exponent form works the same way: 2(6<sup>1/3</sup>) + 5(6<sup>1/3</sup>) = 7(6<sup>1/3</sup>)."}];
+ note:"Exponent form works the same way: 2(6<sup>1/3</sup>) + 5(6<sup>1/3</sup>) = 7(6<sup>1/3</sup>)."},
+{hw:"Homework #5–8 (simplest form)",t:"Simplest form: finding the number",rule:`Pull the ${R("biggest perfect square")} out of the root. To find it, divide by the perfect squares ${P("biggest first")}: 100, 81, 64, 49, 36, 25, 16, 9, 4. The first one that comes out whole is your number. (Cube roots: 125, 64, 27, 8.)`,
+ prob:`√72`,steps:[[`72 ÷ 64 = 1.13 ✗<br>72 ÷ 49 = 1.47 ✗<br>72 ÷ 36 = 2 ✓`,"Calculator: divide by each perfect square, biggest first. 36 is the first whole answer"],[`= √(36 · 2)`,"Write 72 as 36 · 2"],[`= √36 · √2`,"Split into two roots"],[`= 6√2`,"√36 = 6. The 2 stays inside"]],
+ chk:{q:`Write √75 in simplest form`,o:["5√3","3√5","25√3","15√5"],a:0,why:"75 ÷ 25 = 3 is the first whole answer (75 ÷ 49 and 75 ÷ 36 aren't whole), so √75 = √(25 · 3) = 5√3."},
+ note:"Cube root example: ∛54 → 54 ÷ 27 = 2 ✓, so ∛54 = 3∛2."}];
 const LEARN51=[
 {hw:"5.1 · Homework #1",t:"What a 1/n exponent means",rule:`An exponent of 1/n means the ${R("nth root")}.<span class="mono">a<sup>1/n</sup> = ⁿ√a</span>`,
  prob:`81<sup>1/4</sup>`,steps:[[`= ∜81`,"1/4 means 4th root"],[`= 3`,"Because 3 · 3 · 3 · 3 = 81"]],
@@ -801,7 +859,12 @@ const LEARN51=[
 {hw:"5.1 · Homework #11–14",t:"Solving x<sup>n</sup> = k",rule:`Get the power alone, then take the root. ${P("Even")} power → ± (two answers). ${P("Odd")} power → one answer.`,
  prob:`2x<sup>4</sup> + 10 = 172`,steps:[[`2x<sup>4</sup> = 162`,"Subtract 10"],[`x<sup>4</sup> = 81`,"Divide by 2"],[`x = ±∜81 = ±3`,"Even power, so ±"]],
  chk:{q:`Solve 4x<sup>3</sup> = 500`,o:["x = 5","x = ±5","x ≈ 7.94","x = 125"],a:0,why:"x³ = 125, so x = 5. The power is odd, so there's no ±."},
- note:"For (x + h)<sup>n</sup> = k, take the root first, then subtract h."}];
+ note:"For (x + h)<sup>n</sup> = k, take the root first, then subtract h."},
+{hw:"5.1 · Estimating roots",t:"Estimating a root",rule:`To see where a root lands, list whole numbers ${P("to that power")} until you pass the number. The root is between the last two.`,
+ prob:`√40`,steps:[[`6<sup>2</sup> = 36`,"Still less than 40"],[`7<sup>2</sup> = 49`,"Now past 40"],[`6 &lt; √40 &lt; 7`,"So √40 is between 6 and 7 (about 6.32)"]],
+ chk:{q:`∛20 is between which two whole numbers?`,o:["2 and 3","3 and 4","4 and 5","6 and 7"],a:0,why:"2³ = 8 and 3³ = 27. 20 is between them, so ∛20 is between 2 and 3."}}];
+// Which skill each lesson trains (by lesson position). Every skill has at least one lesson.
+const LESSON_SKILL={"5.1":[["bottom"],["bottom"],["neg"],["bottom"],["entry"],["sols","iso","shift","order"],["line"]],"5.2":[["rules"],["rules"],["rules"],["rules"],["radmul"],["radmul"],["vars"],["vars"],["like"],["simp"]]};
 const LEARNS={"5.1":LEARN51,"5.2":LEARN52};
 let learnedBy=LS.get("learnedBy",null);if(!learnedBy){learnedBy={"5.1":[],"5.2":LS.get("learned52",[])};LS.set("learnedBy",learnedBy)}
 function LRN(){return LEARNS[selDay]}function LD(){return learnedBy[selDay]||(learnedBy[selDay]=[])}
@@ -810,11 +873,12 @@ function openLearn(i){li=i==null?Math.max(0,LRN().findIndex((_,j)=>!LD().include
 function renderLearn(){
   $("lCount").textContent=li>=LRN().length?"Done":`Lesson ${li+1} of ${LRN().length}`;
   $("lDots").innerHTML=LRN().map((_,j)=>`<i class="${j===li?"on":LD().includes(j)?"done":""}"></i>`).join("");
-  const box=$("lCard");
+  const box=$("lCard");padSync();
   if(li>=LRN().length){box.innerHTML=`<div class="l-title">You've got ${selDay}</div><div class="l-rule">${LD().length} of ${LRN().length} lessons done. Each one matches a part of your homework, so you can go back to any of them while you work. Next, lock it in with a Rush.</div>`;
     box.appendChild(mkBtn("big l-btn","Play Rush",()=>start(null)));box.appendChild(mkBtn("l-btn","Home",home));return}
   const L=LRN()[li];
-  let h=`<span class="hwtag">${L.hw}</span><div class="l-title">${L.t}</div><div class="l-rule">${L.rule}</div><div class="l-h">Example</div><div class="l-problem mono">${L.prob}</div>`;
+  const ls=(LESSON_SKILL[selDay]||[])[li]||[];
+  let h=`<span class="hwtag">${L.hw}</span>${ls.length?`<span class="hwtag sktag">Skill: ${ls.map(k=>TAGS[k]).join(" · ")}</span>`:""}<div class="l-title">${L.t}</div><div class="l-rule">${L.rule}</div><div class="l-h">Example</div><div class="l-problem mono">${L.prob}</div>`;
   L.steps.slice(0,lStep).forEach((s,j)=>{h+=`<div class="l-step"><b>${j+1}</b><div><span class="mono">${s[0]}</span><small>${s[1]}</small></div></div>`});
   box.innerHTML=h;
   if(lStep<L.steps.length){box.appendChild(mkBtn("big l-btn",lStep===0?"Show step 1":"Next step",()=>{lStep++;beep(700+lStep*80,.06);renderLearn()}));
@@ -840,7 +904,7 @@ function mergeSave(c){
   runs=Math.max(runs,+c.runs||0);
   for(const d in (c.bestBy||{})){const x=c.bestBy[d];if(x&&(+x.best||0)>bestOf(d))bestBy[d]={best:+x.best,dur:+x.dur||60}}
   if(c.day&&c.day.last){if(!day.last||daysBetween(day.last,c.day.last)>0||(c.day.last===day.last&&(c.day.streak||0)>day.streak))day={streak:c.day.streak||0,last:c.day.last,freezes:c.day.freezes||0}}
-  for(const k in (c.skills||{})){const x=c.skills[k];if(x){const lx=xpOf(k),lm=!!(sk[k]&&sk[k].m);if(!sk[k]||(x.t||0)>sk[k].t){sk[k]={r:x.r||0,t:x.t||0};if(Array.isArray(x.rec))sk[k].rec=x.rec.slice(-10)}sk[k].xp=Math.max(lx,typeof x.xp==="number"?x.xp:0);if(lm||x.m||sk[k].xp>=MX)sk[k].m=true;if(x.due&&(!sk[k].due||x.due>sk[k].due)){sk[k].due=x.due;sk[k].iv=x.iv||2}}}
+  for(const k in (c.skills||{})){const x=c.skills[k];if(x&&(!sk[k]||(x.t||0)>(sk[k].t||0))){sk[k]={...x};if(Array.isArray(x.rec))sk[k].rec=x.rec.slice(-10)}}
   const key=h=>h.id?String(h.id):h.d+"|"+h.score;const seen=new Set(hist.map(key));
   (c.hist||[]).forEach(h=>{if(h&&!seen.has(key(h))){hist.push({...h});seen.add(key(h))}});
   hist.sort((a,b)=>(a.id||0)-(b.id||0));hist=hist.slice(-30);
@@ -855,9 +919,37 @@ async function pushCloud(){
   cloudBusy=false;if(cloudAgain){cloudAgain=false;pushCloud()}
 }
 function setSync(x){syncState=x;const el=$("sync");if(!el)return;
-  el.textContent=x==="cloud"?"✓ Saved to your Claude account · syncs between your devices":x==="loading"?"Loading your saved progress…":x==="retry"?"Saved on this device · couldn't reach your account just now":"Saved on this device";
+  renderAcct();
+  el.textContent=x==="cloud"&&acct?`✓ Saved to account ${acct.user} · syncs to your other devices`:x==="revoked"?"Signed out of your account · saved on this device":x==="cloud"?"✓ Saved to your Claude account · syncs between your devices":x==="loading"?"Loading your saved progress…":x==="retry"?"Saved on this device · couldn't reach your account just now":"Saved on this device";
   el.className="sync "+x}
+// ---- Accounts (username + password) on the Root Rush account server ----
+const ACCT_URL="https://root-rush-accounts.netlify.app/api/account";
+let acct=LS.get("acct",null),acMode="in",acBusy=false;
+async function acApi(body){const r=await fetch(ACCT_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});let j={};try{j=await r.json()}catch(e){}return{status:r.status,...j}}
+function acAdapter(){return{set:async save=>{const r=await acApi({action:"put",token:acct.token,save});if(r.status===401){acSignedOut();const e=new Error("revoked");e.code="revoked";throw e}if(!r.ok)throw new Error(r.error||"fail")}}}
+function acSignedOut(){acct=null;LS.set("acct",null);cloud=null;setSync("revoked")}
+function renderAcct(){const b=$("acctBtn");if(!b)return;b.textContent=acct?"✓ "+acct.user:"Sign in";b.classList.toggle("on",!!acct);
+  $("acOut").classList.toggle("hidden",!!acct);$("acIn").classList.toggle("hidden",!acct);if(acct)$("acName").textContent=acct.user;
+  $("acTabIn").classList.toggle("on",acMode==="in");$("acTabNew").classList.toggle("on",acMode==="new");$("acGo").textContent=acMode==="in"?"Sign in":"Make account";
+  $("acPass").autocomplete=acMode==="in"?"current-password":"new-password";
+  $("acHint").innerHTML=acMode==="new"?"Your progress on this device goes into the new account. Make it on the device with your best progress, then sign in on the others.":"Signing in adds your account's progress to this device and keeps them in sync."}
+function acOpen(on){$("acctSheet").classList.toggle("hidden",!on);if(on){$("acErr").textContent="";renderAcct()}}
+async function acPull(){if(!acct)return;try{const r=await acApi({action:"get",token:acct.token});if(r.status===401)return acSignedOut();if(r.ok){if(r.save)mergeSave(r.save);cloud=acAdapter();await pushCloud();if(curScreen==="home")home()}else setSync("retry")}catch(e){setSync("retry")}}
+async function acSubmit(e){e&&e.preventDefault();if(acBusy)return;
+  const user=$("acUser").value.trim(),pass=$("acPass").value;if(!user||!pass){$("acErr").textContent="Type a username and a password";return}
+  acBusy=true;$("acGo").disabled=true;$("acErr").textContent="";
+  try{const r=await acApi(acMode==="new"?{action:"signup",user,pass,save:packSave()}:{action:"login",user,pass});
+    if(!r.ok){$("acErr").textContent=r.error||"Couldn't reach the server. Try again";return}
+    acct={user:r.user,token:r.token};LS.set("acct",acct);$("acPass").value="";
+    if(acMode==="in"&&r.save)mergeSave(r.save);cloud=acAdapter();await pushCloud();acOpen(false);home();popup(acMode==="new"?"Account made":"Signed in","var(--good)")}
+  catch(err){$("acErr").textContent="Couldn't reach the server. Check your internet and try again"}
+  finally{acBusy=false;$("acGo").disabled=false}}
+(function(){$("acctBtn").onclick=()=>acOpen(true);$("acClose").onclick=()=>acOpen(false);$("acForm").onsubmit=acSubmit;
+  $("acTabIn").onclick=()=>{acMode="in";renderAcct()};$("acTabNew").onclick=()=>{acMode="new";renderAcct()};
+  $("acOutBtn").onclick=async()=>{const t=acct&&acct.token;acSignedOut();setSync("local");acOpen(false);try{await acApi({action:"logout",token:t})}catch(e){}};
+  document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&acct&&(curScreen==="home"||curScreen==="end"))acPull()})})();
 async function initCloud(){
+  if(acct){setSync("loading");return acPull()}
   if(!window.claude||typeof window.claude.use!=="function"){setSync("local");return}
   setSync("loading");const timer=setTimeout(()=>{if(syncState==="loading")setSync("retry")},10000);
   try{
@@ -869,7 +961,7 @@ async function initCloud(){
     if(!$("home").classList.contains("hidden"))home();
   }catch(e){clearTimeout(timer);setSync("retry")}
 }
-function show(id){curScreen=id;["home","learn","game","end"].forEach(s=>$(s).classList.toggle("hidden",s!==id));setTimeout(musUpdate,0);const cv=id==="game"||id==="learn";$("calcBtn").classList.toggle("hidden",!cv);if(!cv&&calcOpen)toggleCalc(false)}
+function show(id){curScreen=id;["home","learn","game","end","train"].forEach(s=>$(s).classList.toggle("hidden",s!==id));setTimeout(musUpdate,0);const cv=id==="game"||id==="learn";$("calcBtn").classList.toggle("hidden",!cv);$("padBtn").classList.toggle("hidden",!cv);if(!cv&&calcOpen)toggleCalc(false);if(!cv&&padOpen)togglePad(false);if(cv)padSync()}
 
 function start(f){
   let focus=null,pool=null,label=null;
@@ -889,10 +981,7 @@ function start(f){
   $("vs").textContent=st.gBest?"":"no ghost yet: set one this run";
   show("game");next();cancelAnimationFrame(raf);let last=performance.now();
   const loop=now=>{const dt=Math.min(.1,(now-last)/1000);last=now;frame(dt);if(!st.done)raf=requestAnimationFrame(loop)};raf=requestAnimationFrame(loop);
-  const el=$("cd"),rid=++runSeq;let n=3;el.classList.remove("hidden");
-  const step=()=>{if(rid!==runSeq||st.done)return;if(n>0){el.textContent=n;beep(440,.12);n--;setTimeout(step,600)}
-    else{el.textContent="Go";beep(880,.2);setTimeout(()=>{if(rid!==runSeq)return;el.classList.add("hidden");st.paused=false;st.counting=false;st.qStart=performance.now()},350)}};
-  step();
+  runSeq++;$("cd").classList.add("hidden");st.paused=false;st.counting=false;st.qStart=performance.now();beep(880,.15);
 }
 function mult(){return Math.min(5,1+Math.floor(st.streak/3))}
 function hudCombo(){const m=mult();$("cb").textContent="×"+m;$("mt").style.width=(m===5?100:(st.streak%3)/3*100)+"%";$("qc").classList.toggle("fire",m===5)}
@@ -909,7 +998,7 @@ function frame(dt){
     st.elapsed+=dt;
     if(st.freeze>0)st.freeze=Math.max(0,st.freeze-dt);else st.time-=dt;
     const sec=Math.ceil(st.time);if(sec<st.lastSec){st.lastSec=sec;if(sec<=5&&sec>0)beep(660,.05,"square",.05)}
-    if(!st.ltDone&&st.time<=LT_AT&&!st.locked){st.ltDone=true;return startLightning()}
+    if(!st.ltDone&&st.time<=LT_AT)st.ltPending=true;
   }
   if(st.time<=0){st.time=0;return finish()}
   $("tm").textContent=Math.ceil(st.time);$("tf").style.width=Math.min(100,st.time/TOTAL*100)+"%";
@@ -944,6 +1033,7 @@ function playPool(){
   return um(LESSONS[st.day])}
 function next(){
   if(st.done||st.mode!=="main")return;
+  if(st.ltPending&&!st.ltDone&&!st.quiz){st.ltDone=true;st.ltPending=false;return startLightning()}
   st.qn++;let k,rematch=false;
   let rv=false;
   if(st.quiz){if(st.qi>=st.qlist.length)return finishQuiz();k=st.qlist[st.qi]}
@@ -979,7 +1069,7 @@ function next(){
     const opts=shuffle([p.c,...p.w.slice(0,3)]);st.cur.opts=opts;
     opts.forEach((o,i)=>box.appendChild(mkBtn("opt "+(p.words?"words":"mono"),`<kbd>${i+1}</kbd><span>${o}</span>`,()=>pickIdx(i))));
   }
-  st.locked=false;st.qStart=performance.now();
+  st.locked=false;st.qStart=performance.now();padSync();
 }
 function pickIdx(i){
   if(st.locked||st.done||st.paused||st.mode!=="main")return;
@@ -1088,7 +1178,7 @@ function ltNext(){
   if(st.mode!=="lt")return;
   const s=(st.day==="5.2"?pick(LT52):pick(LT))();st.lt=s;st.ltLock=false;
   $("qm").classList.add("hidden");$("tg").textContent="Lightning: true or false, +100 each";$("tg").classList.add("rm");
-  $("qt").innerHTML=s.s;$("go").classList.add("hidden");$("why").classList.add("hidden");
+  $("qt").innerHTML=s.s;$("go").classList.add("hidden");$("why").classList.add("hidden");padSync();
   const box=$("opts");box.innerHTML="";const row=document.createElement("div");row.className="tf";
   row.appendChild(mkBtn("tfb","True",()=>ltAnswer(true)));row.appendChild(mkBtn("tfb","False",()=>ltAnswer(false)));box.appendChild(row);
 }
@@ -1098,7 +1188,10 @@ function ltAnswer(v){
   bs[st.lt.t?0:1].classList.add("ok");
   if(ok){st.score+=100;st.ltScore+=100;$("sc").textContent=st.score.toLocaleString();beep(900+st.ltScore/5,.06);flash("fok");setTimeout(ltNext,160)}
   else{bs[v?0:1].classList.add("no");beep(160,.15,"square",.07);flash("fbad");buzz(40);
-    $("why").innerHTML=st.lt.why;$("why").classList.remove("hidden");setTimeout(ltNext,1100)}
+    const lockEnd=performance.now()+LT_WRONG_LOCK*1000;bs.forEach(b=>b.classList.add("locked"));
+    const tick=()=>{if(st.mode!=="lt"||st.lt!==cur)return;const left=Math.ceil((lockEnd-performance.now())/1000);
+      if(left<=0)return ltNext();$("why").innerHTML=`${st.lt.why}<div class="lt-lock">Wrong, so you're locked for ${left}s</div>`;setTimeout(tick,200)};
+    const cur=st.lt;$("why").classList.remove("hidden");tick()}
 }
 function endLightning(){
   st.mode="main";$("qc").classList.remove("ltcard");$("tg").classList.remove("rm");
@@ -1134,6 +1227,27 @@ function finishQuiz(){
   if(pass){[523,659,784,1047,1319].forEach((f,i)=>beep(f,.18,"triangle",.12,i*.12))}else beep(300,.3,"sine",.1);
   show("end");
 }
+// Weak-skill check after a Rush. A skill is "weak" when, over its last WEAK_WINDOW answers,
+// it has at least WEAK_MIN_TRIES answers and its accuracy is WEAK_GAP below the day's other skills.
+const WEAK_WINDOW=10,WEAK_MIN_TRIES=6,WEAK_MIN_OTHERS=2,WEAK_GAP=0.25,WEAK_MAX_ACC=0.6,WEAK_COOLDOWN_RUNS=2;
+function weakSkill(d){
+  const data=LESSONS[d].map(k=>{const r=((sk[k]&&sk[k].rec)||[]).slice(-WEAK_WINDOW);return{k,n:r.length,acc:r.length?r.reduce((a,b)=>a+b,0)/r.length:0,m:!!(sk[k]&&sk[k].m)}}).filter(x=>x.n>=WEAK_MIN_TRIES);
+  const shown=LS.get("weakShown",{});let best=null;
+  for(const x of data){if(x.m)continue;const o=data.filter(y=>y.k!==x.k);if(o.length<WEAK_MIN_OTHERS)continue;
+    const oAcc=o.reduce((a,y)=>a+y.acc,0)/o.length;
+    if(x.acc<=WEAK_MAX_ACC&&oAcc-x.acc>=WEAK_GAP&&!(shown[x.k]!=null&&runs-shown[x.k]<WEAK_COOLDOWN_RUNS)&&(!best||x.acc<best.acc))best={...x,oAcc}}
+  return best}
+function showTrain(w){
+  const S=SKILLS.find(x=>x.k===w.k)||{rule:"",ex:""};const shown=LS.get("weakShown",{});shown[w.k]=runs;LS.set("weakShown",shown);
+  $("trT").textContent="Let's fix "+TAGS[w.k];
+  const r=sk[w.k].rec.slice(-WEAK_WINDOW),hit=r.reduce((a,b)=>a+b,0);
+  $("trStat").innerHTML=`Your last ${r.length} on <b>${TAGS[w.k]}</b>: <b style="color:var(--bad)">${hit} right (${Math.round(w.acc*100)}%)</b>.<br>Your other skills today: <b style="color:var(--good)">${Math.round(w.oAcc*100)}%</b>.<br>A short practice run on just this skill will close the gap.`;
+  $("trRule").innerHTML=S.rule;$("trEx").innerHTML=S.ex;
+  const li0=(LESSON_SKILL[w.d]||[]).findIndex(a=>a.includes(w.k));
+  $("trLearn").classList.toggle("hidden",li0<0);$("trLearn").onclick=()=>{selDay=w.d;openLearn(li0)};
+  $("trGo").onclick=()=>start(w.k);$("trSkip").onclick=()=>show("end");
+  show("train");window.scrollTo(0,0);
+}
 function finish(){
   if(st.done)return;st.done=true;cancelAnimationFrame(raf);
   runs++;LS.set("runs",runs);
@@ -1159,7 +1273,8 @@ function finish(){
   if(st.revCount){const nr=nextReview();$("eTip").textContent=`Reviewed ${st.revCount} old skill${st.revCount>1?"s":""} (${st.revRight} right).`+(nr?` Next review: ${TAGS[nr.k]} ${inDays(nr.due)}.`:"")+" "+$("eTip").textContent}
   {const m=masteredCount(st.day),t=LESSONS[st.day].length;$("eTip").textContent=$("eTip").textContent+(m<t?` Mastery: ${m} of ${t} skills for Day ${DAYS[st.day].n}.`:dayPassed(st.day)?"":" Every skill is mastered. Take the final quiz to unlock the next day.")}
   if(st.reviewOnly){const nr=nextReview();$("eTip").textContent=(st.revRight===st.revCount?"All remembered. ":"Missed ones come back tomorrow. ")+(nr?`Next quick review: ${TAGS[nr.k]} ${inDays(nr.due)}.`:"")}
-  show("end");
+  const wk=(!st.focus||st.focus==="mastery")&&!newM?weakSkill(st.day):null;
+  if(wk){wk.d=st.day;showTrain(wk)}else show("end");
 }
 $("start").onclick=()=>start(null);$("learnBtn").onclick=()=>openLearn(LD().length>=LRN().length?0:null);$("lHome").onclick=home;$("again").onclick=()=>start(st.lastFocus||null);$("toHome").onclick=home;
 $("quit").onclick=()=>{if(st.done)return;st.done=true;runSeq++;cancelAnimationFrame(raf);$("cd").classList.add("hidden");home()};
@@ -1203,7 +1318,23 @@ function cKey(k){
   else if(k==="="){if(!calcExpr)return;try{const v=cEval(calcExpr);$("cRes").textContent="= "+cFmt(v);if(isFinite(v))calcAns=v;calcDone=true;beep(900,.04,"sine",.06);return}catch(e){$("cRes").textContent="Check the expression";return}}
   else if(k==="ans")calcExpr+="ans";else calcExpr+=k;
   cRender()}
-function toggleCalc(on){calcOpen=on===undefined?!calcOpen:on;$("calc").classList.toggle("hidden",!calcOpen);document.body.classList.toggle("calc-open",calcOpen);$("calcBtn").textContent=calcOpen?"Close calc":"Calculator";if(calcOpen)cRender()}
+// Scratch paper: strokes are kept per question/lesson and cleared when the next one starts
+let padOpen=false,padStrokes=[],padKey=null,padCur=null;
+function padKeyNow(){return curScreen==="game"?"g"+st.qn+"|"+(st.mode||""):"l"+selDay+"|"+li}
+function padProblem(){if(curScreen==="game"&&st.cur)return st.mode==="lt"&&st.lt?st.lt.s:(st.cur.ex||st.cur.q);if(curScreen==="learn"){const L=LRN()[li];return L?L.prob:""}return ""}
+function padSync(){const k=padKeyNow();if(k!==padKey){padKey=k;padStrokes=[];padCur=null;padDraw()}if(padOpen)$("padQ").innerHTML=padProblem()}
+function padSize(){const c=$("padCv"),r=c.getBoundingClientRect(),d=window.devicePixelRatio||1;c.width=Math.round(r.width*d);c.height=Math.round(r.height*d);padDraw()}
+function padDraw(){const c=$("padCv");if(!c.width)return;const x=c.getContext("2d"),d=window.devicePixelRatio||1;x.setTransform(d,0,0,d,0,0);x.clearRect(0,0,c.width,c.height);
+  x.strokeStyle=getComputedStyle(document.body).getPropertyValue("--ink").trim()||"#222";x.lineCap="round";x.lineJoin="round";
+  for(const s of padStrokes){x.lineWidth=s.w;x.beginPath();s.p.forEach((p,i)=>i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1]));if(s.p.length===1)x.lineTo(s.p[0][0]+.1,s.p[0][1]);x.stroke()}}
+function togglePad(on){padOpen=on===undefined?!padOpen:on;if(padOpen&&calcOpen)toggleCalc(false);$("pad").classList.toggle("hidden",!padOpen);document.body.classList.toggle("pad-open",padOpen);if(padOpen){padSync();padSize()}}
+(function(){const c=$("padCv");const pt=e=>{const r=c.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top]};
+  c.addEventListener("pointerdown",e=>{e.preventDefault();c.setPointerCapture(e.pointerId);padCur={w:e.pointerType==="pen"?1.5+2.5*(e.pressure||.5):2.6,p:[pt(e)]};padStrokes.push(padCur);padDraw()});
+  c.addEventListener("pointermove",e=>{if(!padCur)return;e.preventDefault();padCur.p.push(pt(e));padDraw()});
+  const end=()=>{padCur=null};c.addEventListener("pointerup",end);c.addEventListener("pointercancel",end);
+  $("padBtn").onclick=()=>togglePad();$("padClose").onclick=()=>togglePad(false);$("padUndo").onclick=()=>{padStrokes.pop();padDraw()};$("padClear").onclick=()=>{padStrokes=[];padDraw()};
+  window.addEventListener("resize",()=>{if(padOpen)padSize()})})();
+function toggleCalc(on){calcOpen=on===undefined?!calcOpen:on;if(calcOpen&&padOpen)togglePad(false);$("calc").classList.toggle("hidden",!calcOpen);document.body.classList.toggle("calc-open",calcOpen);$("calcBtn").textContent=calcOpen?"Close calc":"Calculator";if(calcOpen)cRender()}
 (function(){const keys=["C","⌫","(",")","÷","7","8","9","×","^","4","5","6","−","√","1","2","3","+","∛","0",".","ans","="];
   const box=$("cKeys");keys.forEach(k=>{const b=mkBtn(k==="="?"eq":"+−×÷^√∛()".includes(k)?"op":k==="C"||k==="⌫"||k==="ans"?"fn":"",k,()=>cKey(k));if(k==="0")b.style.gridColumn="span 2";box.appendChild(b)});
   $("calcBtn").onclick=()=>toggleCalc();$("cClose").onclick=()=>toggleCalc(false)})();

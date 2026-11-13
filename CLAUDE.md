@@ -20,12 +20,16 @@ Root Rush is a phone-first study game for an Algebra 2 class (St. Vrain Valley S
 - `SKILLS`: rule card and example per skill for the home skill list.
 - `LEARN51`, `LEARN52` (via `LEARNS`): Learn lessons, each mapped to homework problems, with step reveals and a "Your turn" check.
 - `LT`, `LT52`: lightning-round true/false items for 5.1 and 5.2.
-- Mastery: each skill has `xp` 0 to 100 (+20 right, +25 at combo x3 or more, -10 miss; Boost doubles gains; Shield blocks a loss). At 100 a skill is mastered (`m: true`) and skipped in runs.
+- Mastery: each skill has `xp` 0 to 100 (+20 right, +25 at combo x3 or more, -15 miss (`MX_LOSS`); Boost doubles gains; Shield blocks a loss). At 100 a skill is mastered (`m: true`) and skipped in runs.
 - Final quiz: unlocked when every skill in a day is mastered. Two questions per skill, no timer, 80% to pass. Passing sets `passed[day]` and unlocks the next day. Missed skills drop to 60 xp.
 - Quick review: after a day is passed, its skills come back on a spaced schedule (2, 4, 8, 16 days, max 30). Right pushes the next review out, a miss brings it back tomorrow.
-- Rush: 180 seconds, lightning round at 90 seconds left for 20 seconds, double points in the last 10 seconds, ghost of the day's best score.
+- Rush: 180 seconds, starts instantly (no 3-2-1). Lightning round is due at 90 seconds left but only starts after the current question is answered (`st.ltPending`, checked in `next()`); a wrong lightning answer locks the buttons for `LT_WRONG_LOCK` (3) seconds. Double points in the last 10 seconds, ghost of the day's best score.
+- Scratch paper (`togglePad`, `padSync`): finger/pencil canvas beside the calculator; shows the current problem; strokes clear when the question or lesson changes.
+- Weak-skill training (`weakSkill`, `showTrain`, `#train` section): after a Rush or Mastery run, a skill with at least `WEAK_MIN_TRIES` of its last `WEAK_WINDOW` answers, accuracy at most `WEAK_MAX_ACC` and `WEAK_GAP` below the day's other skills (need `WEAK_MIN_OTHERS` with data) gets a training page; cooldown `WEAK_COOLDOWN_RUNS`.
+- `LESSON_SKILL`: which skill(s) each Learn lesson trains, by lesson position. Every skill has a lesson. New lessons must be appended (learnedBy stores lesson indexes).
 - Calculator: built-in bottom sheet (`cEval` parser handles odd roots of negatives and implicit multiplication).
 - Music: procedural Web Audio tracks in `TRACKS` (chill, dream, drive, pulse, blast, boss, arcade). Auto mode picks by screen and game state in `musWant()`. Settings sheet holds sound, music tracks, and volume.
+- Accounts: `ACCT_URL` = https://root-rush-accounts.netlify.app/api/account (code in `server/`, Netlify site `root-rush-accounts`, Netlify Blobs store `rootrush`; scrypt-hashed passwords, bearer tokens). Make account uploads this device's save; sign in merges the account save into the device (per skill, the record with more attempts wins) and pushes back. Pulls again when the app comes back to the foreground. Redeploy server: `cd server && npm install && npx -y netlify-cli@17.38.1 deploy --prod`.
 - Storage: `localStorage` keys prefixed `rootrush_` (skills, bestBy, passed, learnedBy, day streak, hist, music settings). `initCloud()` syncs through the Claude artifact runtime only when it exists; on GitHub Pages progress stays on each device.
 
 ## Adding a new day (for example 5.3)
@@ -74,6 +78,9 @@ This project started in a Claude chat and moved here. Read this before changing 
 - He is on his phone most of the time. Keep replies short, lead with what changed, and give the live link.
 - Test every change in headless Chrome before pushing, including generator stress tests.
 - He asks to "make a better prompt and then execute": write a short improved spec, show it, then build it.
+
+### Nov 13 changes
+Accounts, scratch paper, weak-skill training, lightning lockout and timing, no countdown, -15 per miss, simplest-form "divide by perfect squares biggest first" trick (walkthrough + new lesson), new Estimating lesson for 5.1, one-time Day 2 mastery reset (`reset52_v1`).
 
 ### Ideas not built yet (he picked spaced review first; ask before building the others)
 - Type-your-own-answer questions (closer to real tests than multiple choice).
