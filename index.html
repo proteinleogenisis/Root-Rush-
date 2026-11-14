@@ -756,9 +756,13 @@ function musWant(){
   if(curScreen==="learn")return "dream";
   if(curScreen==="game"&&st&&!st.done){if(st.quiz)return "dream";if(st.mode==="lt")return "blast";if(st.time<=20)return "boss";if(st.focus)return "pulse";return "drive"}
   return "chill"}
+// iPhone audio: "playback" pauses other apps (Apple Music). Only use it while Root Rush music is on;
+// with music off, "ambient" lets our sound effects mix in without stopping your music.
+function audioMode(){try{if(navigator.audioSession)navigator.audioSession.type=musicOn?"playback":"ambient"}catch(e){}}
+audioMode();
 function musUnlock(){
   try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();ac.resume()}catch(e){return false}
-  try{if(navigator.audioSession)navigator.audioSession.type="playback"}catch(e){}
+  audioMode();
   if(!musBus){const comp=ac.createDynamicsCompressor();comp.threshold.value=-16;comp.ratio.value=4;comp.attack.value=.005;comp.release.value=.2;
     musBus=ac.createGain();musBus.gain.value=musVol/100*1.4;musBus.connect(comp);comp.connect(ac.destination)}
   musReady=true;return true}
@@ -778,7 +782,7 @@ function musTick(){
 function musStopAll(){if(!musReady)return;const now=ac.currentTime;musActive.forEach(tr=>{if(!tr.stop){tr.stop=now+.7;tr.g.gain.cancelScheduledValues(now);tr.g.gain.setValueAtTime(tr.g.gain.value,now);tr.g.gain.linearRampToValueAtTime(0,now+.6)}});musCur=null}
 function musUpdate(){if(musReady&&musicOn&&!document.hidden){const w=musWant();if(!musCur||musCur.id!==w)musPlay(w)}}
 function musLabel(){$("musBtn").textContent=musicOn?"♪ On":"♪ Off";$("musBtn").classList.toggle("off",!musicOn);renderMusic()}
-function musToggle(){if(musicOn&&!musCur&&!document.hidden){musUnlock();musUpdate();musLabel();return}musicOn=!musicOn;LS.set("music",musicOn);if(musicOn){musUnlock();musUpdate()}else musStopAll();musLabel()}
+function musToggle(){if(musicOn&&!musCur&&!document.hidden){musUnlock();musUpdate();musLabel();return}musicOn=!musicOn;LS.set("music",musicOn);audioMode();if(musicOn){musUnlock();musUpdate()}else musStopAll();musLabel()}
 function renderMusic(){
   const box=$("musCard");if(!box)return;
   const opts=[["auto","Auto","changes with the game"],...Object.entries(TRACKS).map(([k,v])=>[k,v.n,v.tag])];
@@ -788,8 +792,8 @@ function renderMusic(){
   box.querySelectorAll(".mus-opt").forEach(b=>b.onclick=()=>{musTrack=b.dataset.k;LS.set("musTrack",musTrack);if(!musicOn){musicOn=true;LS.set("music",true)}musUnlock();const w=musTrack==="auto"?musWant():musTrack;if(musCur&&musCur.id===w){musLabel()}else musPlay(w);musLabel()})}
 $("musBtn").onclick=musToggle;
 $("setBtn").onclick=()=>{$("setSheet").classList.remove("hidden");renderMusic();};$("setClose").onclick=()=>$("setSheet").classList.add("hidden");
-document.addEventListener("pointerdown",e=>{if(!musReady&&!(e.target.closest&&e.target.closest("#musBtn,#musTog")))  {musUnlock();musUpdate()}},{passive:true});
-document.addEventListener("keydown",()=>{if(!musReady){musUnlock();musUpdate()}});
+document.addEventListener("pointerdown",e=>{if(musicOn&&!musReady&&!(e.target.closest&&e.target.closest("#musBtn,#musTog")))  {musUnlock();musUpdate()}},{passive:true});
+document.addEventListener("keydown",()=>{if(musicOn&&!musReady){musUnlock();musUpdate()}});
 document.addEventListener("visibilitychange",()=>{if(document.hidden)musStopAll();else musUpdate()});
 musLabel();
 
