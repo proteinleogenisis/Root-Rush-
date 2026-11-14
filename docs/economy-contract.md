@@ -17,9 +17,6 @@ api.earn(n, why)       -> adds n (integer >= 0) and saves
 api.sound(kind)        -> kind: "win" | "lose" | "click" | "chip" | "spin" | "buy" (may be a no-op)
 api.toast(html)        -> short popup message
 api.back()             -> return to the Home screen
-// power-up shop (shown inside the casino)
-api.powerups()         -> [{key, name, icon, desc, price, owned}]  key: "freeze"|"shield"|"double"|"boost"
-api.buyPowerup(key)    -> true if bought (coins spent, owned + 1), else false
 // profile
 api.stats()            -> {mastered, total, passedDays, runs, best}
 api.owned()            -> array of cosmetic ids owned
@@ -28,12 +25,12 @@ api.buyItem(id)        -> true if bought (spends RRProfile.CATALOG price, adds t
 api.equip(slot, idOrNull)
 ```
 
-Power-up prices: freeze 150, shield 200, double 250, boost 300.
+Power-ups were removed from the game (Nov 14). Coins are spent only on casino bets and cosmetics.
 
 ## `globalThis.RRCasino`
 
 ```
-RRCasino.mount(el, api)   // render the whole casino into el (replace its content). Called each time the screen opens.
+RRCasino.mount(el, api)   // render the casino ROOM (lobby) into el; tapping a table/machine opens that game. Called each time the screen opens.
 RRCasino.logic = {
   makeDeck(rng = Math.random)        -> 52 shuffled cards {r: 1..13, s: "♠"|"♥"|"♦"|"♣"}  (r 1 = ace, 11 J, 12 Q, 13 K)
   handValue(cards)                   -> best total: aces count 11 unless that busts, then 1. J/Q/K = 10.
@@ -62,11 +59,8 @@ The bet is taken with `api.spend` when the round starts; winnings come back with
 
 ```
 RRProfile.CATALOG     -> [{id, slot, name, price, desc}]   slots: "hat","shades","outfit","chain","shoes","ride","place"
-RRProfile.SMART_NAMES -> ["Clueless","Learning","Sharp","Brainy","Genius","Professor"]
-RRProfile.smartLevel(stats) -> 0..5: score = mastered + 3 * passedDays; thresholds [0, 2, 5, 9, 14, 20]
-                               (highest threshold <= score)
 RRProfile.netWorth(ownedIds) -> sum of CATALOG prices of owned ids
-RRProfile.avatarSVG({smart, equipped, size}) -> complete <svg> string (viewBox fixed, width/height = size, default 220)
+RRProfile.avatarSVG({equipped, size, crop}) -> complete <svg> string (viewBox fixed, width/height = size, default 220)
 RRProfile.mount(el, api)
 ```
 
@@ -76,8 +70,7 @@ outfit: hoodie 500, drip jacket 1200, suit 2500 · chain: silver chain 800, gold
 shoes: sneakers 400, designer kicks 2000 · ride: bike 700, sports car 9000 ·
 place: city view 1000, penthouse 6000, yacht 12000 (default place = bedroom, free).
 
-Smart look (stacks as the level rises): 1 pencil behind the ear, 2 glasses, 3 book under the arm,
-4 thought bubble showing a<sup>m/n</sup>, 5 graduation cap (only when no hat is equipped).
+The avatar does NOT change with study progress any more: only cosmetics change him.
 
 ## Look and feel
 
