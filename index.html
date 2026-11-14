@@ -305,7 +305,7 @@ body.calc-open .calc-fab{display:none}
     <div><b>Last 10 seconds</b>: double points</div>
     <div><b>Wrong answer</b>: −3 seconds, combo resets, and the clock stops so you can read why</div>
     <div><b>Power-ups</b>: every 4 in a row earns one (hold 2). Freeze stops the clock for 5s. Shield saves your combo and mastery on one miss. Double makes the next 3 answers worth ×2 points. Boost makes the next 3 answers worth ×2 mastery</div>
-    <div><b>I don't know</b>: tap it (top right of the question) instead of guessing. It counts as a miss, but you go straight to the step-by-step</div>
+    <div><b>I don't know</b>: tap it (top right of the question) instead of guessing. It counts as a miss (−10 mastery instead of −15), and you go straight to the step-by-step</div>
     <div><b>Rematch</b>: a type you miss comes back a few questions later. Get it right for +150</div>
     <div><b>Mastery</b>: each skill fills to 100. A right answer is +20 (+25 at combo ×3 or higher), a miss is −15. Once a skill hits 100 it stays Mastered and stops showing up in runs. When every skill in a day is mastered, take the <b>final quiz</b> (2 questions per skill, no timer, 80% to pass) to unlock the next day. Skills you miss on the quiz drop back to 60. Mastery run practices only the skills you haven't mastered</div>
     <div><b>Quick review</b>: after you pass a day, its skills come back every so often (2 days, then 4, 8, 16…). A right answer pushes the next review further out. A miss brings it back tomorrow</div>
@@ -779,7 +779,7 @@ const SKILLS=[
 const ROAD=[["5.1","nth roots and rational exponents","Day 1"],["5.2","Properties of rational exponents and radicals","Day 2"],["5.3","Graphing radical functions","Next"],["5.4","Solving radical equations and inequalities","Later"],["Test","Review and unit test","Later"]];
 let sk=LS.get("skills",{}),hist=LS.get("hist",[]),openSkill=null;
 function recOf(k){const s=sk[k]||{};return s.rec||[]}
-const MX=100,MX_GAIN=20,MX_LOSS=15;
+const MX=100,MX_GAIN=20,MX_LOSS=15,IDK_LOSS=10; // IDK_LOSS: mastery lost when you tap "I don't know"
 function xpOf(k){const s=sk[k];if(!s||!s.t)return 0;if(s.m)return MX;if(typeof s.xp==="number")return s.xp;
   const R=s.rec||[],hits=R.length?R.reduce((x,y)=>x+y,0):s.r,miss=(R.length||s.t)-hits;return Math.max(0,Math.min(MX,hits*MX_GAIN-miss*MX_LOSS))}
 function lvl(k){const s=sk[k];if(!s||!s.t)return 0;const x=xpOf(k);return x>=MX?3:x>=50?2:1}
@@ -1259,7 +1259,7 @@ function resolve(ok){
     else{popup("Missed","var(--bad)");beep(150,.2,"square",.07);flash("fbad");st.paused=true;showWalk();$("go").classList.remove("hidden");$("why").classList.remove("hidden");setTimeout(()=>$("go").scrollIntoView({behavior:"smooth",block:"nearest"}),60)}
     return}
   const mk=st.cur.key,mo=sk[mk]||{r:0,t:0},xb=xpOf(mk),wasSM=xb>=MX;let mg=0;
-  if(!wasSM){if(ok){mg=(MX_GAIN+(mult()>=3?5:0))*(st.boost>0?2:1)}else if(!st.shield)mg=-MX_LOSS}
+  if(!wasSM){if(ok){mg=(MX_GAIN+(mult()>=3?5:0))*(st.boost>0?2:1)}else if(!st.shield)mg=-(st.pk&&st.pk.idk?IDK_LOSS:MX_LOSS)}
   if(st.boost>0)st.boost--;
   mo.t++;if(ok)mo.r++;mo.rec=(mo.rec||[]).concat(ok?1:0).slice(-10);mo.xp=Math.max(0,Math.min(MX,xb+mg));if(mo.xp>=MX)mo.m=true;sk[mk]=mo;LS.set("skills",sk);
   const nowSM=!wasSM&&mo.m;setQM(mk,true);
@@ -1293,7 +1293,7 @@ function resolve(ok){
     st.time-=3;st.miss[st.cur.key]=(st.miss[st.cur.key]||0)+1;
     st.queue.push({key:st.cur.key,at:st.qn+ri(2,4)});
     let note="−3s";
-    if(st.shield){st.shield=false;note="−3s · shield saved your combo and mastery"}else{st.streak=0;if(mg<0)note+=` · −${MX_LOSS} mastery`}
+    if(st.shield){st.shield=false;note="−3s · shield saved your combo and mastery"}else{st.streak=0;if(mg<0)note+=` · −${-mg} mastery`}
     if(revMsg)note+=" · "+revMsg;
     hudCombo();popup(note,"var(--bad)");beep(140,.28,"square",.08);buzz([60,40,60]);flash("fbad");
     st.paused=true;showWalk();
