@@ -191,10 +191,6 @@ body.fok{background:var(--goodbg)}body.fbad{background:var(--badbg)}
 .sync{font-size:12px;color:var(--mute);margin:-6px 2px 10px}.sync.cloud{color:var(--good)}
 .rd.click{cursor:pointer}
 .fabs{position:fixed;right:14px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:8;display:flex;gap:8px}
-.pad-fab.calc-fab{background:var(--card);color:var(--ink);border-color:var(--line)}
-#padCv{display:block;width:100%;height:min(46vh,380px);background:var(--bg);border-radius:12px;touch-action:none;cursor:crosshair}
-.padq{font-size:17px;padding:4px 2px 8px;max-height:64px;overflow:auto}
-body.pad-open .wrap{padding-bottom:calc(min(46vh,380px) + 140px)}body.pad-open .calc-fab{display:none}
 .calc-fab{background:var(--ink);color:var(--bg);border-color:var(--ink);border-radius:99px;padding:12px 18px;font-weight:700;font-size:15px}
 .calc{position:fixed;left:0;right:0;bottom:0;z-index:9;max-width:460px;margin:0 auto;background:var(--card);border:1px solid var(--line);border-bottom:0;border-radius:18px 18px 0 0;padding:12px 14px calc(14px + env(safe-area-inset-bottom));box-shadow:0 -8px 30px rgba(0,0,0,.2)}
 .cdisp{background:var(--bg);border-radius:12px;padding:10px 12px;margin-bottom:10px;text-align:right}
@@ -202,8 +198,17 @@ body.pad-open .wrap{padding-bottom:calc(min(46vh,380px) + 140px)}body.pad-open .
 .ckeys{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
 .ckeys button{padding:9px 0;font-size:19px;font-weight:500;border-radius:10px}
 .ckeys .op{color:var(--root);font-weight:700}.ckeys .fn{color:var(--mute)}.ckeys .eq{background:var(--hot);border-color:var(--hot);color:#fff;font-weight:700}
+.tape{background:var(--bg);border-radius:12px;padding:8px 10px;margin-bottom:8px;animation:paneIn .2s ease both}
+.tape-h{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;margin-bottom:4px}
+#tpList{max-height:min(18vh,150px);overflow:auto}
+.tp-row{display:flex;align-items:center;gap:6px;border-top:1px dashed var(--line);padding:2px 0}.tp-row:first-child{border-top:0}
+.tp-use{flex:1;min-width:0;display:flex;justify-content:space-between;gap:8px;background:none;border:0;padding:7px 2px;color:var(--ink);font-size:15px;text-align:left;cursor:pointer}
+.tp-use .mono{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tp-use b{color:var(--hot);white-space:nowrap}.tp-row.old .tp-use{opacity:.55}
+.tp-x{background:none;border:0;color:var(--mute);font-size:16px;padding:4px 8px;cursor:pointer}
+.tp-sep{font-size:11px;color:var(--mute);text-transform:uppercase;letter-spacing:.5px;padding:6px 0 2px}
+.tp-new{animation:tpIn .35s ease}@keyframes tpIn{from{background:color-mix(in srgb,var(--hot) 25%,transparent)}to{background:transparent}}
 .wrap{padding-bottom:84px}
-body.calc-open .wrap{padding-bottom:420px}
+body.calc-open .wrap{padding-bottom:420px}body.calc-open.tape-on .wrap{padding-bottom:600px}
 body.calc-open .calc-fab{display:none}
 .dnote{font-size:13px;color:var(--mute);margin:-4px 2px 10px}
 .dsw button.lock{opacity:.5}
@@ -394,15 +399,10 @@ body.calc-open .calc-fab{display:none}
   <div class="l-h" style="margin-top:14px">Music</div>
   <div id="musCard"></div>
 </div>
-<div class="fabs"><button id="padBtn" class="calc-fab pad-fab hidden" aria-label="Scratch paper">✎ Paper</button><button id="calcBtn" class="calc-fab hidden">Calculator</button></div>
-<div id="pad" class="calc hidden">
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:6px"><b style="font-size:15px">Scratch paper</b><span style="display:flex;gap:6px"><button class="small" id="padUndo">Undo</button><button class="small" id="padClear">Clear</button><button class="small" id="padClose">Close</button></span></div>
-  <div class="padq mono" id="padQ"></div>
-  <canvas id="padCv"></canvas>
-  <div class="mute" style="font-size:12px;margin-top:6px">Write with your finger or pencil. Your work stays here until the next question. The clock keeps running.</div>
-</div>
+<div class="fabs"><button id="calcBtn" class="calc-fab hidden">Calculator</button></div>
 <div id="calc" class="calc hidden">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b style="font-size:15px">Calculator</b><button class="small" id="cClose">Close</button></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b style="font-size:15px">Calculator</b><span style="display:flex;gap:6px"><button class="small" id="tpBtn">📄 Paper</button><button class="small" id="cClose">Close</button></span></div>
+  <div id="tape" class="tape hidden"><div class="tape-h"><span class="mute">Your answers save here. Tap one to use it again.</span><button class="small" id="tpClear">Clear</button></div><div id="tpList"></div></div>
   <div class="cdisp"><div class="mono" id="cExpr"> </div><div class="mono" id="cRes"> </div></div>
   <div class="ckeys" id="cKeys"></div>
   <div class="mute" style="font-size:12px;margin-top:8px">For 8<sup>2/3</sup> type 8 ^ ( 2 ÷ 3 ). Without the ( ) it works like a real calculator and gives the wrong answer.</div>
@@ -994,7 +994,7 @@ function openLearn(i){li=i==null?Math.max(0,LRN().findIndex((_,j)=>!LD().include
 function renderLearn(){
   $("lCount").textContent=li>=LRN().length?"Done":`Lesson ${li+1} of ${LRN().length}`;
   $("lDots").innerHTML=LRN().map((_,j)=>`<i class="${j===li?"on":LD().includes(j)?"done":""}"></i>`).join("");
-  const box=$("lCard");padSync();
+  const box=$("lCard");
   if(li>=LRN().length){box.innerHTML=`<div class="l-title">You've got ${selDay}</div><div class="l-rule">${LD().length} of ${LRN().length} lessons done. Each one matches a part of your homework, so you can go back to any of them while you work. Next, lock it in with a Rush.</div>`;
     box.appendChild(mkBtn("big l-btn","Play Rush",()=>start(null)));box.appendChild(mkBtn("l-btn","Home",home));return}
   const L=LRN()[li];
@@ -1082,7 +1082,7 @@ async function initCloud(){
     if(!$("home").classList.contains("hidden"))home();
   }catch(e){clearTimeout(timer);setSync("retry")}
 }
-function show(id){curScreen=id;["home","learn","game","end","train"].forEach(s=>$(s).classList.toggle("hidden",s!==id));setTimeout(musUpdate,0);const cv=id==="game"||id==="learn";$("calcBtn").classList.toggle("hidden",!cv);$("padBtn").classList.toggle("hidden",!cv);if(!cv&&calcOpen)toggleCalc(false);if(!cv&&padOpen)togglePad(false);if(cv)padSync()}
+function show(id){curScreen=id;["home","learn","game","end","train"].forEach(s=>$(s).classList.toggle("hidden",s!==id));setTimeout(musUpdate,0);const cv=id==="game"||id==="learn";$("calcBtn").classList.toggle("hidden",!cv);if(!cv&&calcOpen)toggleCalc(false);}
 
 function start(f){
   let focus=null,pool=null,label=null;
@@ -1190,7 +1190,7 @@ function next(){
     const opts=shuffle([p.c,...p.w.slice(0,3)]);st.cur.opts=opts;
     opts.forEach((o,i)=>box.appendChild(mkBtn("opt "+(p.words?"words":"mono"),`<kbd>${i+1}</kbd><span>${o}</span>`,()=>pickIdx(i))));
   }
-  st.locked=false;st.qStart=performance.now();padSync();
+  st.locked=false;st.qStart=performance.now();if(calcOpen)tpRender();
 }
 function pickIdx(i){
   if(st.locked||st.done||st.paused||st.mode!=="main")return;
@@ -1299,7 +1299,7 @@ function ltNext(){
   if(st.mode!=="lt")return;
   const s=(st.day==="5.2"?pick(LT52):pick(LT))();st.lt=s;st.ltLock=false;
   $("qm").classList.add("hidden");$("tg").textContent="Lightning: true or false, +100 each";$("tg").classList.add("rm");
-  $("qt").innerHTML=s.s;$("go").classList.add("hidden");$("why").classList.add("hidden");padSync();
+  $("qt").innerHTML=s.s;$("go").classList.add("hidden");$("why").classList.add("hidden");
   const box=$("opts");box.innerHTML="";const row=document.createElement("div");row.className="tf";
   row.appendChild(mkBtn("tfb","True",()=>ltAnswer(true)));row.appendChild(mkBtn("tfb","False",()=>ltAnswer(false)));box.appendChild(row);
 }
@@ -1436,26 +1436,25 @@ function cRender(){$("cExpr").textContent=calcExpr||" ";let r="";if(calcExpr){tr
 function cKey(k){
   if(calcDone){calcDone=false;if(/^[0-9.(√∛]$/.test(k)||k==="ans")calcExpr="";else if(k!=="C"&&k!=="⌫"&&k!=="=")calcExpr=String(Math.round(calcAns*1e6)/1e6).replace("-","−")}
   if(k==="C")calcExpr="";else if(k==="⌫")calcExpr=calcExpr.endsWith("ans")?calcExpr.slice(0,-3):calcExpr.slice(0,-1);
-  else if(k==="="){if(!calcExpr)return;try{const v=cEval(calcExpr);$("cRes").textContent="= "+cFmt(v);if(isFinite(v))calcAns=v;calcDone=true;beep(900,.04,"sine",.06);return}catch(e){$("cRes").textContent="Check the expression";return}}
+  else if(k==="="){if(!calcExpr)return;try{const v=cEval(calcExpr);$("cRes").textContent="= "+cFmt(v);if(isFinite(v)){calcAns=v;tpAdd(calcExpr,v)}calcDone=true;beep(900,.04,"sine",.06);return}catch(e){$("cRes").textContent="Check the expression";return}}
   else if(k==="ans")calcExpr+="ans";else calcExpr+=k;
   cRender()}
-// Scratch paper: strokes are kept per question/lesson and cleared when the next one starts
-let padOpen=false,padStrokes=[],padKey=null,padCur=null;
-function padKeyNow(){return curScreen==="game"?"g"+st.qn+"|"+(st.mode||""):"l"+selDay+"|"+li}
-function padProblem(){if(curScreen==="game"&&st.cur)return st.mode==="lt"&&st.lt?st.lt.s:(st.cur.ex||st.cur.q);if(curScreen==="learn"){const L=LRN()[li];return L?L.prob:""}return ""}
-function padSync(){const k=padKeyNow();if(k!==padKey){padKey=k;padStrokes=[];padCur=null;padDraw()}if(padOpen)$("padQ").innerHTML=padProblem()}
-function padSize(){const c=$("padCv"),r=c.getBoundingClientRect(),d=window.devicePixelRatio||1;c.width=Math.round(r.width*d);c.height=Math.round(r.height*d);padDraw()}
-function padDraw(){const c=$("padCv");if(!c.width)return;const x=c.getContext("2d"),d=window.devicePixelRatio||1;x.setTransform(d,0,0,d,0,0);x.clearRect(0,0,c.width,c.height);
-  x.strokeStyle=getComputedStyle(document.body).getPropertyValue("--ink").trim()||"#222";x.lineCap="round";x.lineJoin="round";
-  for(const s of padStrokes){x.lineWidth=s.w;x.beginPath();s.p.forEach((p,i)=>i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1]));if(s.p.length===1)x.lineTo(s.p[0][0]+.1,s.p[0][1]);x.stroke()}}
-function togglePad(on){padOpen=on===undefined?!padOpen:on;if(padOpen&&calcOpen)toggleCalc(false);$("pad").classList.toggle("hidden",!padOpen);document.body.classList.toggle("pad-open",padOpen);if(padOpen){padSync();padSize()}}
-(function(){const c=$("padCv");const pt=e=>{const r=c.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top]};
-  c.addEventListener("pointerdown",e=>{e.preventDefault();c.setPointerCapture(e.pointerId);padCur={w:e.pointerType==="pen"?1.5+2.5*(e.pressure||.5):2.6,p:[pt(e)]};padStrokes.push(padCur);padDraw()});
-  c.addEventListener("pointermove",e=>{if(!padCur)return;e.preventDefault();padCur.p.push(pt(e));padDraw()});
-  const end=()=>{padCur=null};c.addEventListener("pointerup",end);c.addEventListener("pointercancel",end);
-  $("padBtn").onclick=()=>togglePad();$("padClose").onclick=()=>togglePad(false);$("padUndo").onclick=()=>{padStrokes.pop();padDraw()};$("padClear").onclick=()=>{padStrokes=[];padDraw()};
-  window.addEventListener("resize",()=>{if(padOpen)padSize()})})();
-function toggleCalc(on){calcOpen=on===undefined?!calcOpen:on;if(calcOpen&&padOpen)togglePad(false);$("calc").classList.toggle("hidden",!calcOpen);document.body.classList.toggle("calc-open",calcOpen);$("calcBtn").textContent=calcOpen?"Close calc":"Calculator";if(calcOpen)cRender()}
+// Paper: every "=" answer is saved (newest on top) so multi-step work stays in front of you.
+// Answers from the current question are bright; earlier ones are dimmed under "Earlier". Tap one to put it back in the calculator.
+const TAPE_MAX=40;
+let tape=[],tapeOpen=LS.get("tapeOpen",true),tpFlash=null;
+function tpKey(){return curScreen==="game"?"g"+st.qn:curScreen==="learn"?"l"+selDay+"|"+li:"x"}
+function tpAdd(expr,v){const last=tape[0];if(last&&last.e===expr&&last.v===v)return;tape.unshift({e:expr,v,k:tpKey(),id:Date.now()+Math.random()});tape=tape.slice(0,TAPE_MAX);tpFlash=tape[0].id;if(!tapeOpen){tapeOpen=true;LS.set("tapeOpen",true)}tpRender()}
+function tpUse(v){const t=String(Math.round(v*1e6)/1e6).replace("-","−");if(calcDone){calcDone=false;calcExpr=""}calcExpr+=(v<0&&calcExpr&&!/[(]$/.test(calcExpr)?"("+t+")":t);cRender();beep(700,.04,"sine",.05)}
+function tpRender(){$("tape").classList.toggle("hidden",!tapeOpen||!tape.length);document.body.classList.toggle("tape-on",tapeOpen&&!!tape.length);$("tpBtn").textContent=`📄 Paper${tape.length?" ("+tape.length+")":""}`;$("tpBtn").classList.toggle("on",tapeOpen&&!!tape.length);
+  const box=$("tpList"),k=tpKey();box.innerHTML="";let sep=false;
+  tape.forEach(t=>{const old=t.k!==k;if(old&&!sep){sep=true;const d=document.createElement("div");d.className="tp-sep";d.textContent="Earlier";box.appendChild(d)}
+    const r=document.createElement("div");r.className="tp-row"+(old?" old":"")+(t.id===tpFlash?" tp-new":"");
+    const u=mkBtn("tp-use",`<span class="mono">${t.e}</span><b class="mono">= ${cFmt(t.v)}</b>`,()=>tpUse(t.v));const x=mkBtn("tp-x","×",()=>{tape=tape.filter(y=>y!==t);tpRender()});x.setAttribute("aria-label","Remove");
+    r.appendChild(u);r.appendChild(x);box.appendChild(r)});tpFlash=null}
+$("tpBtn").onclick=()=>{if(!tape.length){$("cRes").textContent="Answers you get will save here";return}tapeOpen=!tapeOpen;LS.set("tapeOpen",tapeOpen);tpRender()};
+$("tpClear").onclick=()=>{tape=[];tpRender()};
+function toggleCalc(on){calcOpen=on===undefined?!calcOpen:on;$("calc").classList.toggle("hidden",!calcOpen);document.body.classList.toggle("calc-open",calcOpen);$("calcBtn").textContent=calcOpen?"Close calc":"Calculator";if(calcOpen){cRender();tpRender()}}
 (function(){const keys=["C","⌫","(",")","÷","7","8","9","×","^","4","5","6","−","√","1","2","3","+","∛","0",".","ans","="];
   const box=$("cKeys");keys.forEach(k=>{const b=mkBtn(k==="="?"eq":"+−×÷^√∛()".includes(k)?"op":k==="C"||k==="⌫"||k==="ans"?"fn":"",k,()=>cKey(k));if(k==="0")b.style.gridColumn="span 2";box.appendChild(b)});
   $("calcBtn").onclick=()=>toggleCalc();$("cClose").onclick=()=>toggleCalc(false)})();
