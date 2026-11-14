@@ -170,6 +170,9 @@ body.fok{background:var(--goodbg)}body.fbad{background:var(--badbg)}
 .rl-chev{transition:transform .25s ease;color:var(--mute);font-size:14px}.rl-card.open .rl-chev{transform:rotate(180deg)}
 .rl-body{display:grid;grid-template-rows:0fr;transition:grid-template-rows .3s ease}.rl-card.open .rl-body{grid-template-rows:1fr}.rl-body>div{overflow:hidden}
 .grp{color:var(--good);border:1.5px solid var(--good);border-radius:8px;padding:0 4px;white-space:nowrap}
+#qc{position:relative}
+.idk{position:absolute;top:12px;right:12px;font-size:13px;font-weight:600;padding:6px 11px;border-radius:99px;color:var(--mute);background:var(--bg);border:1px dashed var(--line)}
+.idk:active{transform:scale(.96)}
 .hwtag.sktag{color:var(--good);border-color:var(--good);margin-left:6px}
 .l-title{font-size:21px;font-weight:700;line-height:1.25;margin-bottom:10px}
 .l-rule{background:var(--bg);border-radius:12px;padding:12px 14px;font-size:16px;line-height:1.55;margin-bottom:14px}
@@ -302,6 +305,7 @@ body.calc-open .calc-fab{display:none}
     <div><b>Last 10 seconds</b>: double points</div>
     <div><b>Wrong answer</b>: −3 seconds, combo resets, and the clock stops so you can read why</div>
     <div><b>Power-ups</b>: every 4 in a row earns one (hold 2). Freeze stops the clock for 5s. Shield saves your combo and mastery on one miss. Double makes the next 3 answers worth ×2 points. Boost makes the next 3 answers worth ×2 mastery</div>
+    <div><b>I don't know</b>: tap it (top right of the question) instead of guessing. It counts as a miss, but you go straight to the step-by-step</div>
     <div><b>Rematch</b>: a type you miss comes back a few questions later. Get it right for +150</div>
     <div><b>Mastery</b>: each skill fills to 100. A right answer is +20 (+25 at combo ×3 or higher), a miss is −15. Once a skill hits 100 it stays Mastered and stops showing up in runs. When every skill in a day is mastered, take the <b>final quiz</b> (2 questions per skill, no timer, 80% to pass) to unlock the next day. Skills you miss on the quiz drop back to 60. Mastery run practices only the skills you haven't mastered</div>
     <div><b>Quick review</b>: after you pass a day, its skills come back every so often (2 days, then 4, 8, 16…). A right answer pushes the next review further out. A miss brings it back tomorrow</div>
@@ -338,6 +342,7 @@ body.calc-open .calc-fab{display:none}
   <div class="banner" id="bn"></div>
   <div id="pu" style="display:flex;gap:8px;margin-bottom:10px"></div>
   <div class="card" id="qc">
+    <button class="idk hidden" id="idk" aria-label="I don't know: show me how">I don't know</button>
     <span class="tag" id="tg"></span>
     <div class="qm" id="qm"><span class="qm-b"><i id="qmBar"></i></span><span id="qmTxt"></span></div>
     <div class="q" id="qt"></div>
@@ -1191,7 +1196,7 @@ function next(){
     const opts=shuffle([p.c,...p.w.slice(0,3)]);st.cur.opts=opts;
     opts.forEach((o,i)=>box.appendChild(mkBtn("opt "+(p.words?"words":"mono"),`<kbd>${i+1}</kbd><span>${o}</span>`,()=>pickIdx(i))));
   }
-  st.locked=false;st.qStart=performance.now();if(calcOpen)tpRender();
+  st.locked=false;st.qStart=performance.now();if(calcOpen)tpRender();$("idk").classList.remove("hidden");
 }
 function pickIdx(i){
   if(st.locked||st.done||st.paused||st.mode!=="main")return;
@@ -1215,12 +1220,20 @@ function tapTile(t,el){
     resolve(false);
   }
 }
+// "I don't know": counts as a miss (same as a wrong answer) and goes straight to the step-by-step, no guessing
+function idk(){
+  if(st.locked||st.done||st.paused||st.mode!=="main"||!st.cur)return;const p=st.cur;
+  if(p.type==="order"){const slots=[...$("slots").children];p.steps.forEach((x,i)=>{if(i>=st.seq.length){slots[i].textContent=x;slots[i].classList.add("fix")}});st.pk={idk:true,pos:st.seq.length}}
+  else{const bs=[...$("opts").querySelectorAll(p.type==="line"?".seg":".opt")],ci=p.type==="line"?p.segs.indexOf(p.ans):p.type==="spot"?p.bad:p.opts.indexOf(p.c);if(bs[ci])bs[ci].classList.add("ok");st.pk={idk:true}}
+  resolve(false)}
+$("idk").onclick=idk;
 function showWalk(){
   const p=st.cur,pk=st.pk||{};let steps,here=-1;
   if(p.type==="spot"){steps=p.lines.slice(0,p.bad+1).map((l,i)=>[l,i<p.bad?"✓ This line is fine":"✗ The first mistake happens here"]).concat(p.lines.slice(p.bad+1).map(l=>[`<s>${l}</s>`,"✗ Wrong too, because it builds on the mistake above"])).concat((p.fix||[]).map((l,i,A)=>[l,i===0?"✓ Fixed: what it should be":i===A.length-1?"✓ Correct answer":"✓ Keep going"]));here=p.bad}
-  else{steps=p.walk||[];if(p.type==="order"&&pk.pos!=null)here=pk.pos+1}
+  else{steps=p.walk||[];if(p.type==="order"&&pk.pos!=null&&!pk.idk)here=pk.pos+1}
   let head;
-  if(p.type==="order")head=`You tapped <b>${pk.text}</b> as step ${pk.pos+1}. Step ${pk.pos+1} should be <b>${p.steps[pk.pos]}</b>.`;
+  if(pk.idk)head=`Good call asking. The answer is <b>${p.type==="order"?"the steps shown above":p.type==="line"?`between ${p.ans} and ${p.ans+1}`:p.type==="spot"?"line "+(p.bad+1):p.c}</b>. Here's how to get it:`;
+  else if(p.type==="order")head=`You tapped <b>${pk.text}</b> as step ${pk.pos+1}. Step ${pk.pos+1} should be <b>${p.steps[pk.pos]}</b>.`;
   else if(p.type==="spot")head=pk.i>p.bad?`Good eye: line ${pk.i+1} <b>is</b> wrong. But it's only wrong because it uses the mistake from line ${p.bad+1}. The question asks where the mistake <b>first</b> happens, which is line ${p.bad+1}.`
     :`Line ${pk.i+1} is actually fine. The first mistake is in line ${p.bad+1}.`;
   else if(p.type==="line")head=`You picked ${p.segs[pk.i]}–${p.segs[pk.i]+1}. It's between ${p.ans} and ${p.ans+1}.`;
@@ -1240,7 +1253,7 @@ function wkNext(){if(!st.wkAll||st.wkN>=st.wkAll.length)return false;st.wkN++;be
 function setQM(k,anim){const x=xpOf(k);$("qm").classList.remove("hidden");$("qmBar").style.width=(x/MX*100)+"%";$("qmBar").style.background=x>=MX?"var(--good)":"var(--root)";$("qmTxt").textContent=x>=MX?"Mastered ✓":`Mastery ${x}/${MX}`;if(anim){$("qm").classList.remove("pulse");void $("qm").offsetWidth;$("qm").classList.add("pulse")}}
 function popup(t,c){const p=$("pop");p.innerHTML=t;p.style.color=c;p.classList.remove("on");void p.offsetWidth;p.classList.add("on");setTimeout(()=>p.classList.remove("on"),550)}
 function resolve(ok){
-  st.locked=true;st.total++;
+  st.locked=true;$("idk").classList.add("hidden");st.total++;
   if(st.quiz){st.qi++;st.qres.push([st.cur.key,ok?1:0]);
     if(ok){st.right++;$("sc").textContent=st.right;popup("Correct","var(--good)");beep(880,.08);flash("fok");setTimeout(next,450)}
     else{popup("Missed","var(--bad)");beep(150,.2,"square",.07);flash("fbad");st.paused=true;showWalk();$("go").classList.remove("hidden");$("why").classList.remove("hidden");setTimeout(()=>$("go").scrollIntoView({behavior:"smooth",block:"nearest"}),60)}
@@ -1290,7 +1303,7 @@ function resolve(ok){
 }
 $("go").onclick=()=>{st.paused=false;st.wkAll=null;if(st.time<=0)return finish();window.scrollTo({top:0,behavior:"smooth"});next()};
 
-function startLightning(){
+function startLightning(){$("idk").classList.add("hidden");
   st.mode="lt";st.ltTime=20;st.ltScore=0;st.ltLock=false;
   beep(660,.1,"square",.08);beep(880,.1,"square",.08,.1);beep(1320,.2,"square",.08,.2);buzz([30,30,30]);
   popup("Lightning round!","var(--root)");
@@ -1405,6 +1418,7 @@ document.addEventListener("keydown",e=>{
     if(/^[0-9.+()^]$/.test(k)||["×","÷","−","=","⌫","C"].includes(k)){e.preventDefault();if(e.key==="Escape")toggleCalc(false);else cKey(k);return}}
   if(!$("game").classList.contains("hidden")){
     if(st.mode==="lt"){if(e.key==="1"||e.key==="ArrowLeft"||e.key==="t")ltAnswer(true);else if(e.key==="2"||e.key==="ArrowRight"||e.key==="f")ltAnswer(false);return}
+    if(e.key==="0"||e.key==="?"){idk();return}
     if(e.key>="1"&&e.key<="5"){const i=+e.key-1;if(st.cur&&st.cur.type==="order"){const t=[...document.querySelectorAll(".tile")][i];if(t)t.click()}else pickIdx(i)}
     else if(e.key==="Enter"&&!$("go").classList.contains("hidden")){if(!wkNext())$("go").click()}
   }else if(e.key==="Enter"){(!$("home").classList.contains("hidden")?$("start"):$("again")).click()}
