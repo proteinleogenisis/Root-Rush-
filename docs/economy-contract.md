@@ -40,7 +40,7 @@ RRCasino.logic = {
   isBlackjack(cards)                 -> exactly 2 cards totalling 21
   dealerShouldHit(cards)             -> handValue < 17 (dealer stands on every 17)
   settleBlackjack(player, dealer, bet) -> coins RETURNED (stake already taken when the bet was placed):
-        player bust -> 0; player blackjack and dealer not -> 2.5*bet (floor); both blackjack -> bet;
+        player bust -> 0; player blackjack and dealer not -> 2.5*bet (floor); both blackjack -> bet; dealer blackjack vs any other hand -> 0;
         dealer bust -> 2*bet; player higher -> 2*bet; tie -> bet; player lower -> 0
   SLOT_SYMBOLS                       -> array of {sym, weight, pay3}  (pay3 = multiplier for three of a kind)
   spinReels(rng = Math.random)       -> [sym, sym, sym] drawn by weight

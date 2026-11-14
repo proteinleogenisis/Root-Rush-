@@ -66,6 +66,7 @@ body.fok{background:var(--goodbg)}body.fbad{background:var(--badbg)}
 .opt.words{font-size:15px;line-height:1.35;padding:12px 14px}
 .small{padding:8px 12px;font-size:14px}
 .pu{flex:1;padding:10px 8px;font-size:14px;font-weight:700;border-color:var(--root);color:var(--root);display:flex;gap:6px;align-items:center;justify-content:center}
+.pu.none{flex:1;text-align:center;font-size:13px;color:var(--mute);padding:8px;border:1px dashed var(--line);border-radius:12px;display:block;font-weight:400}
 .pu.empty{border-style:dashed;color:var(--mute);border-color:var(--line);font-weight:400}
 .tag.rm{background:var(--hot);color:#fff}
 .slots{display:flex;flex-direction:column;gap:6px;margin-top:8px}
@@ -205,6 +206,9 @@ body.fok{background:var(--goodbg)}body.fbad{background:var(--badbg)}
 .dsw{display:flex;gap:6px;margin-bottom:10px}.dsw button{flex:1;font-weight:700;padding:11px 6px;font-size:15px}
 .dsw button.on{background:var(--hot);border-color:var(--hot);color:#fff}
 .brandrow{display:flex;justify-content:space-between;align-items:center;flex:1 1 100%}
+.brandr{display:flex;align-items:center;gap:8px}.profbtn{width:34px;height:34px;padding:0;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:16px;background:var(--card);border:1px solid var(--line);cursor:pointer}.profbtn svg{width:34px;height:34px;display:block}
+.coinchip{font:inherit;font-size:13px;cursor:pointer;color:var(--ink)}
+.casinobtn{margin-top:10px;background:var(--card);color:var(--ink);border:1px solid var(--line)}
 .acct{background:none;border:0;padding:6px 2px;font-size:13px;font-weight:600;color:var(--mute);cursor:pointer}.acct.on{color:var(--good)}
 .actabs{display:flex;gap:6px;margin-bottom:12px}.actabs .on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .aclab{display:block;font-size:13px;color:var(--mute);margin-bottom:10px}.aclab input{display:block;width:100%;margin-top:4px;font-size:17px;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
@@ -273,8 +277,8 @@ body.calc-open .calc-fab{display:none}
 
 <section id="home">
   <header class="topbar">
-    <div class="brandrow"><div class="brand">Root<span>Rush</span></div><button class="acct" id="acctBtn">Sign in</button></div>
-    <div class="chips"><button class="chip mchip" id="musBtn" aria-label="Music on or off">♪ On</button><button class="chip gear" id="setBtn" aria-label="Settings">⚙</button><span class="chip"><b id="hDay">0</b> day streak</span><span class="chip">Best <b id="hBest">0</b></span></div>
+    <div class="brandrow"><div class="brand">Root<span>Rush</span></div><div class="brandr"><button class="profbtn" id="profBtn" aria-label="Profile">👤</button><button class="acct" id="acctBtn">Sign in</button></div></div>
+    <div class="chips"><button class="chip mchip" id="musBtn" aria-label="Music on or off">♪ On</button><button class="chip gear" id="setBtn" aria-label="Settings">⚙</button><button class="chip coinchip" id="coinChip" aria-label="Casino">🪙 <b id="hCoins">0</b></button><span class="chip"><b id="hDay">0</b> day streak</span><span class="chip">Best <b id="hBest">0</b></span></div>
   </header>
   <div class="sync" id="sync"></div>
   <div class="dsw" id="dsw"></div>
@@ -291,6 +295,7 @@ body.calc-open .calc-fab{display:none}
     <button class="big learnbtn" id="learnBtn">Learn</button>
     <div class="goal" id="goal" style="margin-top:12px"><span class="check" id="goalBox"></span><span id="goalTxt">Daily goal: finish 1 run</span></div>
     <button class="big" id="start">Play Rush</button>
+    <button class="big casinobtn" id="casinoBtn">🎰 Casino</button>
     <div class="mini mute" id="rushMix"></div>
     <div class="mini mute">Rank <b id="hRank">Square one</b> · Runs <b id="hRuns">0</b> · Freezes <b id="hFrz">0 / 2</b></div>
   </div>
@@ -323,10 +328,11 @@ body.calc-open .calc-fab{display:none}
     <div><b>Combo</b>: goes up every 3 in a row (max ×5)</div>
     <div><b>Last 10 seconds</b>: double points</div>
     <div><b>Wrong answer</b>: −3 seconds, combo resets, and the clock stops so you can read why</div>
-    <div><b>Power-ups</b>: every 4 in a row earns one (hold 2). Freeze stops the clock for 5s. Shield saves your combo and mastery on one miss. Double makes the next 3 answers worth ×2 points. Boost makes the next 3 answers worth ×2 mastery</div>
+    <div><b>Coins</b>: every right answer earns coins, with bonuses for mastering a skill and passing a final quiz. Spend them in the <b>🎰 Casino</b> (tap Casino on Home): gamble if you dare, buy power-ups, and dress up your profile</div>
+    <div><b>Power-ups</b>: buy them in the Casino shop with coins. Freeze stops the clock for 5s. Shield saves your combo and mastery on one miss. Double makes the next 3 answers worth ×2 points. Boost makes the next 3 answers worth ×2 mastery</div>
     <div><b>I don't know</b>: tap it (top right of the question) instead of guessing. It counts as a miss (−10 mastery instead of −15), and you go straight to the step-by-step</div>
     <div><b>Rematch</b>: a type you miss comes back a few questions later. Get it right for +150</div>
-    <div><b>Mastery</b>: each skill fills to 100. A right answer is +20 (+25 at combo ×3 or higher), a miss is −15. Once a skill hits 100 it stays Mastered and stops showing up in runs. When every skill in a day is mastered, take the <b>final quiz</b> (2 questions per skill, no timer, 80% to pass) to unlock the next day. Skills you miss on the quiz drop back to 60. Mastery run practices only the skills you haven't mastered</div>
+    <div><b>Mastery</b>: each skill fills to 100. A right answer is +20 (+25 at combo ×3 or higher), a miss is −15. Once a skill hits 100 it stays Mastered and stops showing up in runs. When every skill in a day is mastered, take the <b>final quiz</b> (2 questions per skill, no timer, 80% to pass) to unlock the next day. Skills you miss on the quiz drop back to 60.</div>
     <div><b>Quick review</b>: after you pass a day, its skills come back every so often (2 days, then 4, 8, 16…). A right answer pushes the next review further out. A miss brings it back tomorrow</div>
     <div><b>Practice this</b>: a run with only one skill. It counts for skills and your streak, not your best score</div>
     <div><b>Day streak</b>: play once a day. Every 7 days earns a freeze that covers a missed day</div>
@@ -338,6 +344,15 @@ body.calc-open .calc-fab{display:none}
   </details>
   
 </div>
+</section>
+
+<section id="casino" class="hidden">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><button class="small" id="cHome">Home</button></div>
+  <div id="casinoMount"></div>
+</section>
+<section id="profile" class="hidden">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><button class="small" id="pHome">Home</button></div>
+  <div id="profileMount"></div>
 </section>
 
 <section id="learn" class="hidden">
@@ -378,6 +393,7 @@ body.calc-open .calc-fab{display:none}
     <h1 id="eScore" style="font-size:56px">0</h1>
     <p id="eRank" style="font-size:20px;font-weight:700;color:var(--hot);margin-top:4px"></p>
   </div>
+  <div class="card" style="margin-bottom:14px" id="eCoinCard"><div class="row"><span class="mute">Coins earned</span><b id="eCoins"></b></div></div>
   <div class="card" style="margin-bottom:14px">
     <div class="row"><span class="mute">Best</span><b id="eBest"></b></div>
     <div class="row"><span class="mute">Accuracy</span><b id="eAcc"></b></div>
@@ -435,6 +451,8 @@ body.calc-open .calc-fab{display:none}
 <div class="cd hidden" id="cd"></div>
 </div>
 
+<script src="casino.js"></script>
+<script src="profile.js"></script>
 <script>
 const R=t=>`<span class="rt">${t}</span>`,P=t=>`<span class="pw">${t}</span>`;
 const ri=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
@@ -674,6 +692,14 @@ const LT52=[
 let st={done:true},lastKey=null,raf=null,runSeq=0;
 const $=id=>document.getElementById(id);
 const LS={get(k,d){try{const v=localStorage.getItem("rootrush_"+k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem("rootrush_"+k,JSON.stringify(v))}catch(e){}}};
+// ---- Economy: coins are earned only by studying. Tune the numbers here. ----
+const COIN_PER_RIGHT=2,COIN_PER_LT=1,COIN_PER_MASTERY=1,COIN_MASTERED=50,COIN_QUIZ_PASS=200,TRAINING_MULT=1.5;
+const PU_PRICE={freeze:150,shield:200,double:250,boost:300};
+const PU_DESC={freeze:"Stops the clock for 5 seconds",shield:"Saves your combo and mastery on one miss",double:"Next 3 answers worth ×2 points",boost:"Next 3 answers worth ×2 mastery"};
+let econ=LS.get("econ",{coins:0,inv:{freeze:0,shield:0,double:0,boost:0},owned:[],equipped:{},t:0});
+function normEcon(){if(!econ||typeof econ!=="object")econ={};econ.coins=Math.max(0,Math.floor(+econ.coins||0));econ.inv=Object.assign({freeze:0,shield:0,double:0,boost:0},econ.inv||{});econ.owned=Array.isArray(econ.owned)?econ.owned:[];econ.equipped=econ.equipped&&typeof econ.equipped==="object"?econ.equipped:{};econ.t=+econ.t||0}
+normEcon();
+function saveEcon(){econ.t=Date.now();LS.set("econ",econ);persist()}
 let runs=LS.get("runs",0);
 let bestBy=LS.get("bestBy",null);if(!bestBy){bestBy={"5.1":{best:LS.get("best",0),dur:LS.get("bestDur",60)}};LS.set("bestBy",bestBy)}
 let selDay=LS.get("selDay","5.2");
@@ -1049,7 +1075,8 @@ function home(){
   $("mSlot").innerHTML="";const nxd=DAY_ORDER[DAY_ORDER.indexOf(selDay)+1],qN=mt*2,qNeed=Math.ceil(qN*.8);
   if(dayPassed(selDay)){$("mSlot").innerHTML=`<span class="mbadge">Day ${D.n} complete ✓${nxd?` · Day ${DAYS[nxd].n} unlocked`:""}</span>`;$("start").textContent="Review Rush · every skill";$("start").classList.remove("hidden")}
   else if(mc===mt){$("mSlot").appendChild(mkBtn("big quizbtn",`Take the final quiz · ${qN} questions`,()=>start({quiz:true})));const n=document.createElement("div");n.className="mini mute";n.textContent=`No timer. Get ${qNeed} of ${qN} right to unlock ${nxd?"Day "+DAYS[nxd].n:"the next level"}. Skills you miss drop back to 60 mastery.`;$("mSlot").appendChild(n);$("start").classList.add("hidden")}
-  else{$("mSlot").appendChild(mkBtn("mbtn",`Mastery run · ${mt-mc} skill${mt-mc>1?"s":""} left`,()=>start({mastery:true})));$("start").textContent="Play Rush";$("start").classList.remove("hidden")}
+  else{$("start").textContent="Play Rush";$("start").classList.remove("hidden")}
+  $("casinoBtn").textContent=`🎰 Casino · ${econ.coins.toLocaleString()} coins`;$("hCoins").textContent=econ.coins.toLocaleString();renderProfBtn();
   $("heroEye").textContent=`Unit 5 · Day ${D.n}`+(selDay===[...DAY_ORDER].reverse().find(dayUnlocked)?" · Current day":" · Review");$("heroTitle").textContent=D.t;$("heroRules").innerHTML=D.rules;$("rushMix").textContent=dayPassed(selDay)?"Review mode: every skill, just for practice":masteredCount(selDay)===LESSONS[selDay].length?"":D.mix+" · mastered skills are skipped";
   $("hBest").textContent=b.toLocaleString();$("hRank").textContent=rank(b);$("hRuns").textContent=runs;
   $("hDay").textContent=liveStreak();$("hFrz").textContent=day.freezes+" / 2";
@@ -1156,7 +1183,7 @@ function renderLearn(){
 }
 let cloud=null,cloudBusy=false,cloudAgain=false,cloudT=null,syncState="local";
 function saveLocal(){LS.set("passed",passed);LS.set("runs",runs);LS.set("bestBy",bestBy);LS.set("day",day);LS.set("skills",sk);LS.set("hist",hist);LS.set("learnedBy",learnedBy)}
-function packSave(){return{v:1,passed,runs,bestBy,day,skills:sk,hist,learnedBy,updated:Date.now()}}
+function packSave(){return{v:1,passed,runs,bestBy,day,skills:sk,hist,learnedBy,econ,updated:Date.now()}}
 function mergeSave(c){
   if(!c||typeof c!=="object")return;
   runs=Math.max(runs,+c.runs||0);
@@ -1168,6 +1195,7 @@ function mergeSave(c){
   hist.sort((a,b)=>(a.id||0)-(b.id||0));hist=hist.slice(-30);
   for(const d in (c.passed||{}))if(c.passed[d])passed[d]=true;
   for(const d in (c.learnedBy||{}))learnedBy[d]=[...new Set([...(learnedBy[d]||[]),...(c.learnedBy[d]||[])])];
+  if(c.econ&&typeof c.econ==="object"&&(+c.econ.t||0)>(econ.t||0)){econ=JSON.parse(JSON.stringify(c.econ));normEcon();LS.set("econ",econ)}
   saveLocal();
 }
 function persist(){saveLocal();if(!cloud)return;clearTimeout(cloudT);cloudT=setTimeout(pushCloud,800)}
@@ -1220,7 +1248,7 @@ async function initCloud(){
     if(!$("home").classList.contains("hidden"))home();
   }catch(e){clearTimeout(timer);setSync("retry")}
 }
-function show(id){curScreen=id;["home","learn","game","end","train"].forEach(s=>$(s).classList.toggle("hidden",s!==id));setTimeout(musUpdate,0);const cv=id==="game"||id==="learn";$("calcBtn").classList.toggle("hidden",!cv);if(!cv&&calcOpen)toggleCalc(false);}
+function show(id){curScreen=id;["home","learn","game","end","train","casino","profile"].forEach(s=>$(s).classList.toggle("hidden",s!==id));setTimeout(musUpdate,0);const cv=id==="game"||id==="learn";$("calcBtn").classList.toggle("hidden",!cv);if(!cv&&calcOpen)toggleCalc(false);}
 
 function start(f){
   let focus=null,pool=null,label=null;
@@ -1232,7 +1260,7 @@ function start(f){
   else if(f&&f.mastery){const um=LESSONS[selDay].filter(k=>lvl(k)<3);pool=um.length?um:LESSONS[selDay].slice();focus="mastery";label="Mastery run · Day "+DAYS[selDay].n}
   try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();ac.resume()}catch(e){}
   st={score:0,streak:0,maxStreak:0,time:TOTAL,elapsed:0,right:0,total:0,miss:{},paused:true,done:false,counting:true,
-      pu:[],freeze:0,shield:false,dbl:0,boost:0,queue:[],qn:0,lastSec:TOTAL+1,mode:"main",ltDone:!!focus,focus,pool,label,quiz,qlist,qi:0,qres:[],reviewOnly,revCount:0,revRight:0,review:!f&&dayPassed(selDay),lastFocus:f||null,wasM:dayMastered(selDay),day:selDay,gBest:bestOf(selDay),gDur:durOf(selDay)};
+      pu:[],coinsRun:0,training:false,freeze:0,shield:false,dbl:0,boost:0,queue:[],qn:0,lastSec:TOTAL+1,mode:"main",ltDone:!!focus,focus,pool,label,quiz,qlist,qi:0,qres:[],reviewOnly,revCount:0,revRight:0,review:!f&&dayPassed(selDay),lastFocus:f||null,wasM:dayMastered(selDay),day:selDay,gBest:bestOf(selDay),gDur:durOf(selDay)};
   $("gMode").textContent=label||"Unit "+selDay+(st.review?" · Review Rush":" · Rush");
   {const L=document.querySelectorAll("#game .stat small");L[0].textContent=quiz?"correct":"score";L[1].textContent=quiz?"to pass":"combo";L[2].textContent=quiz?"question":"time"}
   $("game").classList.toggle("quizmode",quiz);
@@ -1272,15 +1300,19 @@ function frame(dt){
   if(st.gBest){$("ghd").style.left=(ghostScore/top*100)+"%";
     const d=Math.round(st.score-ghostScore);$("vs").innerHTML=d>=0?`<span style="color:var(--good)">+${d.toLocaleString()} ahead of your best</span>`:`<span style="color:var(--bad)">${d.toLocaleString()} behind your best</span>`}
 }
+function addCoins(n){
+  n=Math.max(0,n);if(st&&st.training)n*=TRAINING_MULT;n=Math.round(n);
+  if(n>0){econ.coins+=n;if(st&&typeof st.coinsRun==="number")st.coinsRun+=n;saveEcon()}
+  return n}
 function renderPU(){
-  const box=$("pu");box.innerHTML="";
-  for(let s=0;s<2;s++){const k=st.pu[s],b=document.createElement("button");
-    if(k){b.className="pu";b.innerHTML=`<span>${PU[k].icon}</span>${PU[k].name}`;b.onclick=()=>usePU(s)}
-    else{b.className="pu empty";b.textContent="Power-up slot";b.disabled=true}
-    box.appendChild(b)}
+  const box=$("pu");box.innerHTML="";let any=false;
+  for(const k of Object.keys(PU)){const n=econ.inv[k]||0;if(n<=0)continue;any=true;
+    const b=document.createElement("button");b.className="pu";b.innerHTML=`<span>${PU[k].icon}</span>${PU[k].name} ×${n}`;b.onclick=()=>usePU(k);box.appendChild(b)}
+  if(!any){const d=document.createElement("div");d.className="pu none";d.textContent="No power-ups. Buy them in the 🎰 Casino shop.";box.appendChild(d)}
 }
-function usePU(s){
-  if(st.paused||st.done||st.mode!=="main")return;const k=st.pu.splice(s,1)[0];if(!k)return;
+function usePU(k){
+  if(st.paused||st.done||st.mode!=="main"||!PU[k]||(econ.inv[k]||0)<=0)return;
+  econ.inv[k]--;saveEcon();
   if(k==="freeze")st.freeze+=5;if(k==="shield")st.shield=true;if(k==="double")st.dbl+=3;if(k==="boost")st.boost+=3;
   beep(990,.12,"triangle",.12);beep(1480,.15,"triangle",.1,.08);popup(PU[k].name+"!","var(--root)");renderPU();
 }
@@ -1387,7 +1419,7 @@ function popup(t,c){const p=$("pop");p.innerHTML=t;p.style.color=c;p.classList.r
 function resolve(ok){
   st.locked=true;$("idk").classList.add("hidden");st.total++;
   if(st.quiz){st.qi++;st.qres.push([st.cur.key,ok?1:0]);
-    if(ok){st.right++;$("sc").textContent=st.right;popup("Correct","var(--good)");beep(880,.08);flash("fok");setTimeout(next,450)}
+    if(ok){st.right++;$("sc").textContent=st.right;const cg=addCoins(COIN_PER_RIGHT);popup(`Correct<div style="font-size:15px">+${cg} 🪙</div>`,"var(--good)");beep(880,.08);flash("fok");setTimeout(next,450)}
     else{popup("Missed","var(--bad)");beep(150,.2,"square",.07);flash("fbad");st.paused=true;showWalk();$("go").classList.remove("hidden");$("why").classList.remove("hidden");setTimeout(()=>$("go").scrollIntoView({behavior:"smooth",block:"nearest"}),60)}
     return}
   const mk=st.cur.key,mo=sk[mk]||{r:0,t:0},xb=xpOf(mk),wasSM=xb>=MX;let mg=0;
@@ -1414,7 +1446,8 @@ function resolve(ok){
     if(mg>0)extra+=`<div style="font-size:15px;color:var(--good)">+${mg} mastery${st.boost>=0&&mg>25?" (boosted)":""}</div>`;
     if(revMsg)extra+=`<div style="font-size:15px;color:var(--good)">${revMsg}</div>`;
     if(nowSM){extra+=`<div style="font-size:20px;color:var(--good)">${TAGS[mk]} mastered!</div>`;beep(1047,.15,"triangle",.12,.15);beep(1568,.25,"triangle",.12,.3)}
-    if(st.streak%4===0&&st.pu.length<2){const k=pick(Object.keys(PU));st.pu.push(k);renderPU();extra+=`<div style="font-size:18px;color:var(--root)">power-up: ${PU[k].name}</div>`}
+    const cg=addCoins(COIN_PER_RIGHT+(mg>0?mg*COIN_PER_MASTERY:0)+(nowSM?COIN_MASTERED:0));
+    extra+=`<div style="font-size:15px;color:var(--hot)">+${cg} 🪙</div>`;
     popup(`+${pts}${extra}`,"var(--hot)");
     beep(Math.min(1200,520+st.streak*45),.1);if(up)beep(1320,.15,"triangle",.12,.08);
     flash("fok");buzz(15);
@@ -1453,7 +1486,7 @@ function ltAnswer(v){
   if(st.mode!=="lt"||st.ltLock)return;st.ltLock=true;
   const bs=[...$("opts").querySelectorAll(".tfb")],ok=v===st.lt.t;
   bs[st.lt.t?0:1].classList.add("ok");
-  if(ok){st.score+=100;st.ltScore+=100;$("sc").textContent=st.score.toLocaleString();beep(900+st.ltScore/5,.06);flash("fok");setTimeout(ltNext,160)}
+  if(ok){addCoins(COIN_PER_LT);st.score+=100;st.ltScore+=100;$("sc").textContent=st.score.toLocaleString();beep(900+st.ltScore/5,.06);flash("fok");setTimeout(ltNext,160)}
   else{bs[v?0:1].classList.add("no");beep(160,.15,"square",.07);flash("fbad");buzz(40);
     const lockEnd=performance.now()+LT_WRONG_LOCK*1000;bs.forEach(b=>b.classList.add("locked"));
     const tick=()=>{if(st.mode!=="lt"||st.lt!==cur)return;const left=Math.ceil((lockEnd-performance.now())/1000);
@@ -1482,12 +1515,14 @@ function finishQuiz(){
   const d=st.day,N=st.qlist.length,need=Math.ceil(N*.8),pass=st.right>=need,nx=DAY_ORDER[DAY_ORDER.indexOf(d)+1];
   const missed=[...new Set(st.qres.filter(x=>!x[1]).map(x=>x[0]))];
   if(pass)passed[d]=true;else missed.forEach(k=>{const o=sk[k];if(o){o.xp=60;o.m=false}});
+  if(pass)addCoins(COIN_QUIZ_PASS);
+  $("eCoins").textContent=`+${st.coinsRun} 🪙 · total ${econ.coins.toLocaleString()}`;
   updateDay();persist();
   $("eHead").textContent=pass?`Day ${DAYS[d].n} complete!`+(nx?` Day ${DAYS[nx].n} unlocked`:""):"Not quite yet";
   $("eScore").textContent=`${st.right}/${N}`;$("eRank").textContent=pass?"Passed":`Need ${need} to pass`;
   $("eBest").closest(".card").classList.add("hidden");
   $("eTip").textContent=pass?(missed.length?`You passed. Worth a quick look: ${missed.map(k=>TAGS[k]).join(", ")}.`:"Perfect quiz. You've proven every skill.")+(nx?` Day ${DAYS[nx].n} is open.`:"")
-    :`Missed: ${missed.map(k=>TAGS[k]).join(", ")}. Those skills dropped back to 60 mastery. Win them back in a Mastery run, then retake the quiz.`;
+    :`Missed: ${missed.map(k=>TAGS[k]).join(", ")}. Those skills dropped back to 60 mastery. Win them back with the practice run below, then retake the quiz.`;
   if(pass&&nx){$("again").textContent=`Go to Day ${DAYS[nx].n}`;$("again").onclick=()=>setDay(nx)}
   else if(pass){$("again").textContent="Home";$("again").onclick=home}
   else{$("again").textContent="Practice missed skills";$("again").onclick=()=>start({mastery:true})}
@@ -1512,7 +1547,7 @@ function showTrain(w){
   $("trRule").innerHTML=S.rule;$("trEx").innerHTML=S.ex;
   const li0=(LESSON_SKILL[w.d]||[]).findIndex(a=>a.includes(w.k));
   $("trLearn").classList.toggle("hidden",li0<0);$("trLearn").onclick=()=>{selDay=w.d;openLearn(li0)};
-  $("trGo").onclick=()=>start(w.k);$("trSkip").onclick=()=>show("end");
+  $("trGo").onclick=()=>{start(w.k);st.training=true};$("trSkip").onclick=()=>show("end");
   show("train");window.scrollTo(0,0);
 }
 function finish(){
@@ -1529,7 +1564,7 @@ function finish(){
   $("eScore").textContent=st.score.toLocaleString();$("eRank").textContent=rank(st.score);
   $("eBest").textContent=bestOf(st.day).toLocaleString();
   $("eAcc").textContent=st.total?Math.round(st.right/st.total*100)+"% ("+st.right+"/"+st.total+")":"—";
-  $("eStreak").textContent=st.maxStreak;
+  $("eStreak").textContent=st.maxStreak;$("eCoins").textContent=`+${st.coinsRun} 🪙 · total ${econ.coins.toLocaleString()}`;
   $("eDay").textContent=day.streak+(day.streak===1?" day":" days")+dm;
   const w=Object.entries(st.miss).sort((a,b)=>b[1]-a[1])[0];
   $("eWeak").textContent=w?TAGS[w[0]]:"None";
@@ -1606,6 +1641,30 @@ function toggleCalc(on){calcOpen=on===undefined?!calcOpen:on;$("calc").classList
   const box=$("cKeys");keys.forEach(k=>{const b=mkBtn(k==="="?"eq":"+−×÷^√∛()".includes(k)?"op":k==="C"||k==="⌫"||k==="ans"?"fn":"",k,()=>cKey(k));if(k==="0")b.style.gridColumn="span 2";box.appendChild(b)});
   $("calcBtn").onclick=()=>toggleCalc();$("cClose").onclick=()=>toggleCalc(false)})();
 
+const api={
+  coins:()=>econ.coins,
+  spend(n,why){n=Math.floor(+n);if(!(n>=0)||econ.coins<n)return false;econ.coins-=n;saveEcon();return true},
+  earn(n,why){n=Math.floor(+n);if(!(n>0))return;econ.coins+=n;saveEcon()},
+  sound(k){const m={win:[[784,.12],[1047,.18]],lose:[[220,.25]],click:[[600,.04]],chip:[[900,.05]],spin:[[500,.04]],buy:[[880,.08],[1320,.12]]}[k];if(m)m.forEach((x,i)=>beep(x[0],x[1],"triangle",.1,i*.09))},
+  toast(h){popup(h,"var(--hot)")},
+  back(){home()},
+  powerups:()=>Object.keys(PU).map(k=>({key:k,name:PU[k].name,icon:PU[k].icon,desc:PU_DESC[k],price:PU_PRICE[k],owned:econ.inv[k]||0})),
+  buyPowerup(k){if(!PU_PRICE[k]||!api.spend(PU_PRICE[k],"powerup "+k))return false;econ.inv[k]=(econ.inv[k]||0)+1;saveEcon();return true},
+  stats(){const all=Object.values(LESSONS).flat();return{mastered:all.filter(k=>lvl(k)===3).length,total:all.length,passedDays:Object.values(passed).filter(Boolean).length,runs,best:Math.max(0,...Object.values(bestBy).map(x=>+(x&&x.best)||0))}},
+  owned:()=>econ.owned.slice(),
+  equipped:()=>Object.assign({},econ.equipped),
+  buyItem(id){const it=window.RRProfile&&RRProfile.CATALOG&&RRProfile.CATALOG.find(x=>x.id===id);if(!it||econ.owned.includes(id)||!api.spend(it.price,"item "+id))return false;econ.owned.push(id);saveEcon();return true},
+  equip(slot,id){if(id==null)delete econ.equipped[slot];else if(econ.owned.includes(id))econ.equipped[slot]=id;else return;saveEcon()}
+};
+function openMount(screen,mountId,lib,msg){show(screen);const d=$(mountId);d.innerHTML="";
+  try{if(window[lib])window[lib].mount(d,api);else d.textContent=msg}catch(e){d.textContent=msg;console.error(e)}
+  window.scrollTo(0,0)}
+function openCasino(){openMount("casino","casinoMount","RRCasino","Casino is loading…")}
+function openProfile(){openMount("profile","profileMount","RRProfile","Profile is loading…")}
+function renderProfBtn(){const b=$("profBtn");if(!b)return;let h="👤";
+  try{if(window.RRProfile&&RRProfile.avatarSVG)h=RRProfile.avatarSVG({smart:RRProfile.smartLevel(api.stats()),equipped:econ.equipped,size:34,crop:"head"})}catch(e){}
+  b.innerHTML=h}
+$("casinoBtn").onclick=openCasino;$("coinChip").onclick=openCasino;$("profBtn").onclick=openProfile;$("cHome").onclick=home;$("pHome").onclick=home;
 home();
 initCloud();
 </script>
