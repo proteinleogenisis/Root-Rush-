@@ -299,7 +299,7 @@ body.calc-open .calc-fab{display:none}
     <div style="font-size:15px;line-height:1.7;margin-top:10px">
     <div><b>Runs</b>: 3 minutes, racing a grey ghost of your best score</div>
     <div><b>Question styles</b>: multiple choice, tap the steps in order, and tap where a root lands on the number line</div>
-    <div><b>Lightning round</b>: at 1:30 left (after you finish the question you're on), 20 seconds of rapid true/false for +100 each. A wrong answer locks you out for 3 seconds, so don't guess</div>
+    <div><b>Lightning round</b>: at 1:30 left (after you finish the question you're on), 20 seconds of rapid true/false for +100 each. A wrong answer locks you out for 5 seconds, so don't guess</div>
     <div><b>Right answer</b>: +100 × combo, +1 second, and up to +75 for speed</div>
     <div><b>Combo</b>: goes up every 3 in a row (max ×5)</div>
     <div><b>Last 10 seconds</b>: double points</div>
@@ -661,7 +661,7 @@ let selDay=LS.get("selDay","5.2");
 function bestOf(d){return (bestBy[d]||{}).best||0}
 function durOf(d){return (bestBy[d]||{}).dur||60}
 let day=LS.get("day",{streak:0,last:null,freezes:0});
-const TOTAL=180,LT_AT=90,LT_WRONG_LOCK=3; // LT_WRONG_LOCK: seconds you can't answer after a wrong lightning answer
+const TOTAL=180,LT_AT=90,LT_WRONG_LOCK=5; // LT_WRONG_LOCK: seconds you can't answer after a wrong lightning answer
 const PU={freeze:{name:"Freeze",icon:"❄"},shield:{name:"Shield",icon:"◆"},double:{name:"Double",icon:"×2"},boost:{name:"Boost",icon:"▲"}};
 
 let ac=null,sound=LS.get("sound",true);
