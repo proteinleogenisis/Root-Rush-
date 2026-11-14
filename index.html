@@ -684,6 +684,18 @@ const LT52=[
 ()=>{const p=ri(2,6),s=pick([2,3,5]),ok=Math.random()<.5;return{s:`√${p*p*s} = ${ok?p:p*p}√${s}`,t:ok,why:`√${p*p} = ${p}, so ${p}√${s}.`}},
 ()=>{const k=ri(2,3);return{s:`∜(${k**4}x<sup>8</sup>) = ${k}x<sup>2</sup>`,t:true,why:"Divide exponents by the index."}},
 ()=>{const s=pick([2,3,5]);return{s:`2√${s} + 3∛${s} = 5√${s}`,t:false,why:"Different indexes aren't like terms."}}];
+// Which skill each lightning item drills (same order as LT / LT52).
+const LT_SK=[["neg"],["neg"],["sols"],["sols"],["bottom"],["bottom"],["sols"],["sols"],["entry"],["bottom"],["bottom"],["iso"]];
+const LT52_SK=[["radmul"],["like"],["rules"],["rules"],["like"],["rules"],["rules"],["simp"],["vars"],["like"]];
+const LT_STRUGGLE_ACC=0.6,LT_STRUGGLE_MIN=2;
+// Lightning aims at the day's mastered skills; with none mastered, at the ones the student is struggling with.
+function ltTargets(d){const ks=LESSONS[d]||[];const m=ks.filter(k=>xpOf(k)>=MX);if(m.length)return{keys:m,why:"mastered"};
+  const acc=k=>{const r=(sk[k]&&sk[k].rec)||[];return r.length?r.reduce((a,b)=>a+b,0)/r.length:1};
+  let w=ks.filter(k=>(st.miss&&st.miss[k])||acc(k)<=LT_STRUGGLE_ACC);
+  if(!w.length)w=ks.slice().sort((a,b)=>xpOf(a)-xpOf(b)).slice(0,LT_STRUGGLE_MIN);
+  return{keys:w,why:"tricky"}}
+function ltPool(d){const L=d==="5.2"?LT52:LT,T=d==="5.2"?LT52_SK:LT_SK,t=ltTargets(d);
+  const p=L.filter((f,i)=>T[i].some(k=>t.keys.includes(k)));return{items:p.length?p:L,why:p.length?t.why:"all",keys:t.keys}}
 let st={done:true},lastKey=null,raf=null,runSeq=0;
 const $=id=>document.getElementById(id);
 const LS={get(k,d){try{const v=localStorage.getItem("rootrush_"+k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem("rootrush_"+k,JSON.stringify(v))}catch(e){}}};
@@ -1452,15 +1464,15 @@ function resolve(ok){
 $("go").onclick=()=>{st.paused=false;st.wkAll=null;if(st.time<=0)return finish();window.scrollTo({top:0,behavior:"smooth"});next()};
 
 function startLightning(){$("idk").classList.add("hidden");
-  st.mode="lt";st.ltTime=20;st.ltScore=0;st.ltLock=false;
+  st.mode="lt";st.ltTime=20;st.ltScore=0;st.ltLock=false;st.ltP=ltPool(st.day);
   beep(660,.1,"square",.08);beep(880,.1,"square",.08,.1);beep(1320,.2,"square",.08,.2);buzz([30,30,30]);
   popup("Lightning round!","var(--root)");
   $("qc").classList.add("ltcard");ltNext();
 }
 function ltNext(){
   if(st.mode!=="lt")return;
-  const s=(st.day==="5.2"?pick(LT52):pick(LT))();st.lt=s;st.ltLock=false;
-  $("qm").classList.add("hidden");$("tg").textContent="Lightning: true or false, +100 each";$("tg").classList.add("rm");
+  const s=pick((st.ltP||ltPool(st.day)).items)();st.lt=s;st.ltLock=false;
+  $("qm").classList.add("hidden");$("tg").textContent="Lightning"+({mastered:" · your mastered skills",tricky:" · your tricky skills"}[(st.ltP||{}).why]||"")+": true or false, +100 each";$("tg").classList.add("rm");
   $("qt").innerHTML=s.s;$("go").classList.add("hidden");$("why").classList.add("hidden");
   const box=$("opts");box.innerHTML="";const row=document.createElement("div");row.className="tf";
   row.appendChild(mkBtn("tfb","True",()=>ltAnswer(true)));row.appendChild(mkBtn("tfb","False",()=>ltAnswer(false)));box.appendChild(row);
