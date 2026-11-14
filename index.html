@@ -151,6 +151,12 @@ body.fok{background:var(--goodbg)}body.fbad{background:var(--badbg)}
 .rl-bar span{font-size:9px;color:var(--mute);white-space:nowrap}.rl-bar small{font-size:9px;color:var(--mute);margin-top:2px;white-space:nowrap}
 .rl-hbars{margin:6px 0}.rl-hb{display:flex;align-items:center;gap:8px;width:100%;background:none;border:0;padding:4px 0;color:var(--ink);font-size:13px;cursor:pointer}.rl-hb span{width:72px;flex:none;text-align:left}.rl-hb em{flex:1;display:block}.rl-hb b{width:28px;flex:none;text-align:right}.rl-hb i{display:block;height:14px;border-radius:7px;background:var(--line);transition:background .3s}.rl-hb.on i{background:var(--hot)}.rl-hb b{font-size:12px;color:var(--mute)}
 @media (prefers-reduced-motion:reduce){.rl-ants,.rl-wave{animation:none}}
+.rl-q{background:var(--bg);border-radius:12px;padding:10px 12px;margin:4px 0 8px}
+.rl-qh{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--mute)}
+.rl-qt{font-size:16px;line-height:1.5;margin:4px 0 8px}.rl-ch .rl-opt{margin:6px 0 0;padding:11px 12px;font-size:15px}
+.rl-sol{margin:6px 0}.rl-step{font-size:15px;line-height:1.5;padding:6px 0;border-bottom:1px dashed var(--line);animation:rlStep .45s ease both}
+@keyframes rlStep{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
+.rl-scene{margin-top:8px;animation:paneIn .35s ease both}.rl-scene-h{display:flex;justify-content:space-between;align-items:center}
 .rl-teaser{font-size:14px;color:var(--mute);margin:0 2px 10px}
 .rl-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:10px}
 .rl-card.locked{display:flex;gap:12px;align-items:center;padding:11px 16px;opacity:.6}.rl-lock{font-size:18px}.rl-hint{font-size:13px;margin-top:2px}
@@ -851,93 +857,164 @@ const f2=x=>(+(+x).toFixed(2)).toLocaleString();
 function rlTone(f,d=.6){try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();ac.resume();const t=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();o.type="triangle";o.frequency.value=f;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.2,t+.02);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g).connect(ac.destination);o.start(t);o.stop(t+d)}catch(e){}}
 function rlSlider(el,lab,min,max,step,val,on){const w=document.createElement("label");w.className="rl-sl";w.innerHTML=`<span>${lab}</span><input type="range" min="${min}" max="${max}" step="${step}" value="${val}"><b></b>`;
   const i=w.querySelector("input"),b=w.querySelector("b");const go=()=>{b.textContent=on(+i.value)};i.oninput=()=>{go();if(w._after)w._after()};el.appendChild(w);go();return w}
+// Real-life card helpers: animation tokens (a new play cancels the old one), easing, the "try your own" label, and the question flow
+function rlTok(el){return el._tok=(el._tok||0)+1}
+function rlLive(el,tok){return el._tok===tok&&el.isConnected}
+const rlEase=t=>1-(1-t)**3;
+function rlTween(el,ms,f,done){const tok=rlTok(el),t0=performance.now();const step=now=>{if(!rlLive(el,tok))return;const t=Math.min(1,(now-t0)/ms);f(t);if(t<1)requestAnimationFrame(step);else if(done)done()};requestAnimationFrame(step)}
+function rlTry(el,txt){const d=document.createElement("div");d.className="rl-qh";d.style.marginTop="10px";d.textContent=txt||"Try your own numbers";el.appendChild(d)}
+function rlAsk(R0,key,inner){const A=R0.ask,box=document.createElement("div");box.className="rl-q";
+  box.innerHTML=`<div class="rl-qh">The question</div><div class="rl-qt">${A.q}</div>`;const ch=document.createElement("div");ch.className="rl-ch";box.appendChild(ch);
+  const sol=document.createElement("div");sol.className="rl-sol hidden";const scene=document.createElement("div");scene.className="rl-scene hidden";inner.appendChild(box);inner.appendChild(sol);inner.appendChild(scene);
+  const done=LS.get("rlDone",{});let api=null;
+  const reveal=(pick,anim)=>{ch.querySelectorAll("button").forEach(b=>{b.disabled=true;if(b.dataset.v===A.c)b.classList.add("ok");else if(b.dataset.v===pick)b.classList.add("no")});
+    const right=pick===A.c;sol.innerHTML=`<div class="rl-qh" style="color:var(--${right?"good":"bad"})">${right?"Right!":"Not quite."} Here's how</div>`+A.steps.map((x,i)=>`<div class="rl-step mono" style="animation-delay:${anim?i*380:0}ms">${x}</div>`).join("");sol.classList.remove("hidden");
+    scene.innerHTML="";const hd=document.createElement("div");hd.className="rl-scene-h";hd.innerHTML=`<span class="rl-qh">Watch it play out</span>`;scene.appendChild(hd);
+    const ui=document.createElement("div");scene.appendChild(ui);try{api=R0.ui(ui)||{}}catch(e){api={}}
+    hd.appendChild(mkBtn("small","▶ Replay",()=>api.play&&api.play()));
+    const wait=anim?A.steps.length*380+350:150;setTimeout(()=>{scene.classList.remove("hidden");if(api.play&&ui.isConnected)api.play()},wait)};
+  shuffle([A.c,...A.w]).forEach(v=>{const b=mkBtn("opt words rl-opt",v,()=>{done[key]=v;LS.set("rlDone",done);reveal(v,true)});b.dataset.v=v;ch.appendChild(b)});
+  if(done[key])reveal(done[key],false)}
 function rlSvg(el,vb){const v=document.createElementNS("http://www.w3.org/2000/svg","svg");v.setAttribute("viewBox",vb);v.setAttribute("class","rl-svg");el.appendChild(v);return v}
 function rlOut(el,cls){const d=document.createElement("div");d.className="rl-out"+(cls?" "+cls:"");el.appendChild(d);return d}
 function rlSimp(X){let k=1;for(let a=2;a*a<=X;a++)if(X%(a*a)===0)k=a;const r=X/(k*k);return k===1?`√${X}`:r===1?`${k}`:`${k}√${r}`}
 const REAL={
-bottom:{t:"Why a piano sounds right",use:`Each key vibrates exactly 2<sup>1/${R(12)}</sup> times faster than the key below it. The bottom 12 is the root: 12 keys up, the speed doubles, because (2<sup>1/12</sup>)<sup>12</sup> = 2. Piano tuners set every string this way.`,
- ui(el){const keys=["A","A#","B","C","C#","D","D#","E","F","F#","G","G#","A"],row=document.createElement("div");row.className="rl-keys";el.appendChild(row);const o=rlOut(el,"mono");o.textContent="Tap a key";
-  keys.forEach((k,n)=>{const b=mkBtn("rl-key"+(k.includes("#")?" blk":""),k,()=>{const f=440*2**(n/12);rlTone(f);b.classList.remove("hit");void b.offsetWidth;b.classList.add("hit");
-    o.innerHTML=`${k}: 440 × 2<sup>${P(n)}/${R(12)}</sup> = <b>${f2(f)}</b> vibrations a second`});row.appendChild(b)})}},
-entry:{t:"Camera f-stops",use:`The f-numbers on a camera (1.4, 2, 2.8, 4, 5.6, 8…) are 2<sup>n/2</sup>. Each step lets in half the light. Typing it wrong gives a setting no camera has.`,
- ui(el){const ap=document.createElement("div");ap.className="rl-ap";ap.innerHTML="<i></i>";el.appendChild(ap);const o=rlOut(el,"mono");
-  rlSlider(el,"Step n",0,8,1,5,n=>{const f=2**(n/2);ap.firstChild.style.transform=`scale(${1/f})`;
-    o.innerHTML=`2 ^ ( ${n} ÷ 2 ) = <b>${f2(f)}</b> → f/${[1,1.4,2,2.8,4,5.6,8,11,16][n]}<br><span style="color:var(--bad)">2 ^ ${n} ÷ 2 = ${f2(2**n/2)}</span> ← no ( ), wrong`;return "n = "+n})}},
-neg:{t:"Signs that mean direction",use:`In science and on maps, a minus sign often means a direction: below sea level, to the left, backward. An ${P("odd")} root keeps that sign: if x<sup>3</sup> = −8, then x = −2. An ${P("even")} root can't: no real number squared gives −16, which is why calculators say Error.`,
- ui(el){const sv=rlSvg(el,"0 0 300 120");const o=rlOut(el,"mono");o.textContent="Tap one";const row=document.createElement("div");row.className="rl-row";el.appendChild(row);
-  const draw=(v,ok)=>{const y=u=>60-u*10;let h=`<rect x="0" y="0" width="300" height="60" fill="var(--rlsky)"/><rect x="0" y="60" width="300" height="60" fill="var(--rlsea)"/><line x1="0" y1="60" x2="300" y2="60" stroke="var(--ink)" stroke-dasharray="4 3"/><text x="292" y="55" text-anchor="end" class="rl-lab">sea level 0</text>`;
-   for(let u=-5;u<=5;u++)h+=`<line x1="40" y1="${y(u)}" x2="48" y2="${y(u)}" stroke="var(--mute)"/>${u%5===0||u===v?`<text x="34" y="${y(u)+4}" text-anchor="end" class="rl-lab">${co(u)}</text>`:""}`;
-   h+=`<line x1="44" y1="8" x2="44" y2="112" stroke="var(--mute)"/>`;
-   if(ok)h+=`<g class="rl-move" style="transform:translateY(${y(v)-60}px)"><circle cx="140" cy="60" r="11" fill="var(--hot)"/><text x="160" y="65" class="rl-lab big">${co(v)} (${v<0?-v+" below":"above"})</text></g>`;
-   else h+=`<text x="150" y="65" text-anchor="middle" class="rl-lab big" fill="var(--bad)">✗ no spot on the line for it</text>`;sv.innerHTML=h};
-  draw(0,false);sv.innerHTML=sv.innerHTML.replace(/✗ no spot on the line for it/,"tap a root below");
-  [["∛(−8)",-2,true,"= −2 ✓ an odd root keeps the minus"],["∛(−125)",-5,true,"= −5 ✓ odd root"],["√(−16)",0,false,"Error: an even root of a negative isn't real"],["∜(−81)",0,false,"Error: even root"]].forEach(([q,v,ok,a])=>row.appendChild(mkBtn("small",q,()=>{draw(v,ok);o.innerHTML=`${q} ${ok?a:`<span style="color:var(--bad)">${a}</span>`}`})))}},
-sols:{t:"How long a fall takes",use:`Drop something and it falls 16t<sup>2</sup> feet in t seconds. Solving gives ± (an even power), but time can't be negative, so you keep the + answer. Divers, stunt crews and ride designers use this.`,
- ui(el){const box=document.createElement("div");box.className="rl-drop";box.innerHTML="<i></i>";el.appendChild(box);const o=rlOut(el,"mono");let h=64;
-  rlSlider(el,"Height (ft)",16,400,16,64,v=>{h=v;const t=Math.sqrt(v/16);o.innerHTML=`16t<sup>2</sup> = ${v} → t<sup>2</sup> = ${f2(v/16)} → t = ±${f2(t)}<br>Time can't be negative, so <b>${f2(t)} seconds</b>`;return v+" ft"});
-  el.appendChild(mkBtn("small","Drop it",()=>{const t=Math.sqrt(h/16),d=box.firstChild;d.style.transition="none";d.style.transform="translateY(0)";void d.offsetWidth;d.style.transition=`transform ${t}s cubic-bezier(.55,0,1,.6)`;d.style.transform="translateY(96px)"}))}},
-iso:{t:"How big a ball is",use:`A ball's volume is V = (4/3)πr<sup>3</sup>. To get the radius, isolate r<sup>3</sup> first, then take the cube root. A basketball holds about 434 in<sup>3</sup> of air, so its radius is about 4.7 in.`,
- ui(el){const ball=document.createElement("div");ball.className="rl-ball";el.appendChild(ball);const o=rlOut(el,"mono");
-  rlSlider(el,"Air (in³)",50,1000,2,434,V=>{const r3=3*V/(4*Math.PI),r=Math.cbrt(r3);ball.style.width=ball.style.height=(r*16)+"px";
-    o.innerHTML=`${V} = (4/3)πr<sup>3</sup> → r<sup>3</sup> = ${f2(r3)} → r = ∛${f2(r3)} = <b>${f2(r)} in</b>`;return V+" in³"})}},
-shift:{t:"Your money's yearly growth",use:`If $1,000 grows to $1,331 in 3 years, the yearly rate r comes from 1000(1 + r)<sup>3</sup> = 1331. Undo in reverse: divide, take the cube root, then subtract 1. Banks, sneaker resellers and investors do this.`,
+bottom:{t:"Why a piano sounds right",use:`Every piano key vibrates 2<sup>1/${R(12)}</sup> times faster than the key below it. That's a 12th root.`,
+ ask:{q:`The A key vibrates <b>440</b> times a second. Each key up multiplies that by 2<sup>1/12</sup>. How fast does the A <b>12 keys up</b> vibrate?`,c:"880 times a second",w:["452 times a second","5,280 times a second"],
+  steps:[`440 × (2<sup>1/12</sup>)<sup>12</sup>`,`= 440 × 2<sup>12/12</sup>   (power of a power: multiply)`,`= 440 × 2 = <b>880</b>: twelve keys up, the speed doubles`]},
+ ui(el){const row=document.createElement("div");row.className="rl-keys";el.appendChild(row);const o=rlOut(el,"mono");o.textContent="Tap any key";
+  const keys=["A","A#","B","C","C#","D","D#","E","F","F#","G","G#","A"],btns=[];
+  const hit=n=>{const f=440*2**(n/12),b=btns[n];rlTone(f);b.classList.remove("hit");void b.offsetWidth;b.classList.add("hit");o.innerHTML=`${keys[n]}${n===12?" (12 keys up)":""}: 440 × 2<sup>${P(n)}/${R(12)}</sup> = <b>${f2(f)}</b> a second`};
+  keys.forEach((k,n)=>{const b=mkBtn("rl-key"+(k.includes("#")?" blk":""),k,()=>hit(n));btns.push(b);row.appendChild(b)});
+  rlTry(el,"Tap any key to hear it and see its math.");
+  return{play(){const tok=rlTok(el);let n=0;const go=()=>{if(!rlLive(el,tok))return;hit(n);if(++n<=12)setTimeout(go,n===12?450:240)};go()}}}},
+entry:{t:"Camera f-stops",use:`The f-numbers on a camera lens (1.4, 2, 2.8, 4, 5.6, 8…) come from 2<sup>n/2</sup>. Each step lets in half the light.`,
+ ask:{q:`A lens setting is 2<sup>n/2</sup> at step n. What f-number is step <b>5</b>?`,c:"5.66, so f/5.6",w:["16, so f/16","2.5, so f/2.5"],
+  steps:[`Type it with parentheses: 2 ^ ( 5 ÷ 2 )`,`= 5.66 → the lens says <b>f/5.6</b>`,`Without ( ): 2 ^ 5 ÷ 2 = 16, a totally different setting`]},
+ ui(el){const sv=rlSvg(el,"0 0 300 110"),o=rlOut(el,"mono"),S=[1,1.4,2,2.8,4,5.6,8,11,16];let n=5;
+  const draw=x=>{const f=2**(x/2),r=40/f,dark=Math.min(.86,1-1/(f*f));
+   sv.innerHTML=`<circle cx="62" cy="52" r="46" fill="#0d0d0d" stroke="var(--line)" stroke-width="3"/><circle cx="62" cy="52" r="${r}" fill="#fff3c4"/><text x="62" y="106" text-anchor="middle" class="rl-lab big">f/${S[Math.round(x)]}</text>
+   <rect x="130" y="10" width="160" height="88" rx="8" fill="#9fd2f5"/><circle cx="252" cy="34" r="12" fill="#ffd34d"/><path d="M130 80 Q180 54 230 78 T290 70 V98 H130Z" fill="#5fa04a"/><rect x="130" y="10" width="160" height="88" rx="8" fill="#000" opacity="${dark}"/>
+   <text x="210" y="106" text-anchor="middle" class="rl-lab">your photo</text>`};
+  const out=()=>{o.innerHTML=`2 ^ ( ${n} ÷ 2 ) = <b>${f2(2**(n/2))}</b> → f/${S[n]} · ${n?"1/"+2**n+" of the light":"all the light"}`};
+  draw(n);out();rlTry(el);rlSlider(el,"Step n",0,8,1,5,v=>{n=v;draw(v);out();return "n = "+v});
+  return{play(){rlTween(el,2200,t=>draw(Math.min(n,Math.floor(t*(n+1)))))}}}},
+neg:{t:"Signs that mean direction",use:`Below sea level, to the left, backward: a minus sign often means a direction. Odd roots keep it. Even roots can't handle it.`,
+ ask:{q:`A diver's depth d (in meters, negative means below sea level) fits d<sup>3</sup> = −8. Where is the diver?`,c:"2 m below sea level",w:["2 m above sea level","Nowhere: it's impossible"],
+  steps:[`d = ∛(−8)`,`A cube root is an odd root, so the minus stays: d = −2`,`−2 means <b>2 m below sea level</b>`]},
+ ui(el){const sv=rlSvg(el,"0 0 300 120"),o=rlOut(el,"mono");const y=u=>60-u*10;
+  const draw=(v,good,lab)=>{let h=`<rect width="300" height="60" fill="var(--rlsky)"/><rect y="60" width="300" height="60" fill="var(--rlsea)"/><line x1="0" y1="60" x2="300" y2="60" stroke="var(--ink)" stroke-dasharray="4 3"/><text x="292" y="55" text-anchor="end" class="rl-lab">sea level 0</text><line x1="44" y1="8" x2="44" y2="112" stroke="var(--mute)"/>`;
+   for(let u=-5;u<=5;u++)h+=`<line x1="40" y1="${y(u)}" x2="48" y2="${y(u)}" stroke="var(--mute)"/>${u%5===0?`<text x="34" y="${y(u)+4}" text-anchor="end" class="rl-lab">${co(u)}</text>`:""}`;
+   h+=good?`<circle cx="140" cy="${y(v)}" r="10" fill="var(--hot)"/><text x="158" y="${y(v)+5}" class="rl-lab big">${lab||""}</text>`:`<text x="150" y="65" text-anchor="middle" class="rl-lab big" fill="var(--bad)">✗ no spot on the line for it</text>`;sv.innerHTML=h};
+  const go=(v,good,q,a)=>{if(!good){draw(0,false);o.innerHTML=`${q} <span style="color:var(--bad)">${a}</span>`;return}const tok=rlTok(el);rlTween(el,1300,t=>{const u=v*rlEase(t);draw(u,true,t<1?"":`${co(v)} (${-v} below)`)});o.innerHTML=`${q} ${a}`};
+  draw(0,true,"diver");rlTry(el,"Try other roots:");const row=document.createElement("div");row.className="rl-row";el.appendChild(row);
+  [["∛(−8)",-2,true,"= −2 ✓ odd root keeps the minus"],["∛(−125)",-5,true,"= −5 ✓ odd root"],["√(−16)",0,false,"Error: an even root of a negative isn't real"],["∜(−81)",0,false,"Error: even root"]].forEach(([q,v,g,a])=>row.appendChild(mkBtn("small",q,()=>go(v,g,q,a))));
+  return{play(){go(-2,true,"∛(−8)","= −2 ✓ 2 m below sea level")}}}},
+sols:{t:"How long a fall takes",use:`A dropped object falls 16t<sup>2</sup> feet in t seconds. Divers, stunt crews and ride designers use this.`,
+ ask:{q:`You drop your phone from <b>64 ft</b> up. It falls 16t<sup>2</sup> feet in t seconds. How long until it hits the ground?`,c:"2 seconds",w:["±2 seconds","4 seconds"],
+  steps:[`16t<sup>2</sup> = 64`,`t<sup>2</sup> = 4`,`t = ±2, but time can't be negative`,`<b>2 seconds</b>`]},
+ ui(el){const sv=rlSvg(el,"0 0 300 150"),o=rlOut(el,"mono");let h=64;
+  const draw=(tt,done)=>{const H=24+h/400*106,top=140-H,T=Math.sqrt(h/16),fall=Math.min(h,16*tt*tt),py=top+fall/h*H-6;
+   sv.innerHTML=`<rect width="300" height="150" fill="var(--rlsky)"/><rect x="0" y="140" width="300" height="10" fill="var(--rlgrass)"/><rect x="24" y="${top}" width="56" height="${H}" fill="var(--ink)" opacity=".8" rx="2"/>
+   <text x="52" y="${top-6}" text-anchor="middle" class="rl-lab">${h} ft</text><rect x="96" y="${py-6}" width="10" height="16" rx="2" fill="var(--hot)"/>
+   <text x="290" y="24" text-anchor="end" class="rl-lab big">t = ${f2(Math.min(tt,T))} s${done?" · landed":""}</text>`};
+  const out=()=>{const T=Math.sqrt(h/16);o.innerHTML=`16t<sup>2</sup> = ${h} → t<sup>2</sup> = ${f2(h/16)} → t = ±${f2(T)} → <b>${f2(T)} seconds</b>`};
+  draw(0);out();rlTry(el);rlSlider(el,"Height (ft)",16,400,16,64,v=>{h=v;draw(0);out();return v+" ft"});
+  return{play(){const T=Math.sqrt(h/16);rlTween(el,T*1000,t=>draw(t*T,t>=1))}}}},
+iso:{t:"How big a ball is",use:`A ball's volume is V = (4/3)πr<sup>3</sup>. Ball makers work backward from the air inside to the size.`,
+ ask:{q:`A basketball holds about <b>434 in³</b> of air. V = (4/3)πr<sup>3</sup>. What's its radius?`,c:"about 4.7 in",w:["about 103.6 in","about 7.6 in"],
+  steps:[`434 = (4/3)πr<sup>3</sup>`,`Isolate r<sup>3</sup> first: r<sup>3</sup> = 434 × 3 ÷ (4π) ≈ 103.6`,`Then take the cube root: r = ∛103.6 ≈ <b>4.7 in</b>`]},
+ ui(el){const sv=rlSvg(el,"0 0 300 140"),o=rlOut(el,"mono");let V=434;
+  const draw=k=>{const r=Math.cbrt(3*V/(4*Math.PI)),px=r*10*k;
+   sv.innerHTML=`<circle cx="150" cy="70" r="${px}" fill="url(#rlBall)"/><defs><radialGradient id="rlBall" cx=".35" cy=".35"><stop offset="0" stop-color="#f7a35c"/><stop offset="1" stop-color="#c75b1e"/></radialGradient></defs>
+   ${k>.98?`<line x1="150" y1="70" x2="${150+px}" y2="70" stroke="#fff" stroke-width="2"/><text x="${150+px/2}" y="64" text-anchor="middle" class="rl-lab" fill="#fff">r = ${f2(r)} in</text>`:""}`};
+  const out=()=>{const r3=3*V/(4*Math.PI);o.innerHTML=`${V} = (4/3)πr<sup>3</sup> → r<sup>3</sup> = ${f2(r3)} → r = ∛${f2(r3)} = <b>${f2(Math.cbrt(r3))} in</b>`};
+  draw(1);out();rlTry(el);rlSlider(el,"Air (in³)",50,1000,2,434,v=>{V=v;draw(1);out();return v+" in³"});
+  return{play(){rlTween(el,1500,t=>draw(rlEase(t)))}}}},
+shift:{t:"Your money's yearly growth",use:`Banks, investors and sneaker resellers turn "it grew this much in a few years" into a yearly rate.`,
+ ask:{q:`Your $1,000 sneaker collection is worth <b>$1,331</b> after <b>3 years</b>. What yearly growth rate is that?`,c:"10% a year",w:["11% a year","33.1% a year"],
+  steps:[`1000(1 + r)<sup>3</sup> = 1331`,`Divide by 1000: (1 + r)<sup>3</sup> = 1.331`,`Cube root: 1 + r = 1.1`,`Subtract 1 last: r = 0.1 = <b>10% a year</b>`]},
  ui(el){const ch=document.createElement("div");ch.className="rl-bars";el.appendChild(ch);const o=rlOut(el,"mono");let end=1331,yrs=3;
-  const upd=()=>{const g=end/1000,x=g**(1/yrs),r=x-1;o.innerHTML=`(1 + r)<sup>${yrs}</sup> = ${f2(g)} → 1 + r = ${f2(g)}<sup>1/${yrs}</sup> = ${f2(x)} → r = <b>${f2(r*100)}% a year</b>`;
-   const vals=[...Array(yrs+1)].map((_,t)=>1000*x**t);ch.innerHTML=vals.map((v,t)=>`<div class="rl-bar"><span>$${Math.round(v).toLocaleString()}</span><i style="height:${Math.max(4,v/5000*100)}%"></i><small>${t===0?"now":"yr "+t}</small></div>`).join("")};
-  rlSlider(el,"$1,000 grows to",1001,5001,10,1331,v=>{end=v;upd();return "$"+v.toLocaleString()});rlSlider(el,"Years",1,10,1,3,v=>{yrs=v;upd();return v+(v>1?" yrs":" yr")});upd()}},
-order:{t:"How fast a tsunami moves",use:`In open ocean a wave travels at v = √(9.8d) meters a second, where d is the depth. That's why tsunamis cross oceans as fast as jets. To go backward (speed → depth), undo from the outside in: square first, then divide by 9.8.`,
- ui(el){const sv=rlSvg(el,"0 0 300 120");const o=rlOut(el,"mono");
-  rlSlider(el,"Ocean depth (m)",10,6000,10,4000,d=>{const v=Math.sqrt(9.8*d),floor=26+d/6000*86,dur=Math.min(14,2.5+300/v);
-   sv.innerHTML=`<rect x="0" y="0" width="300" height="120" fill="var(--rlsky)"/><rect x="0" y="26" width="300" height="${floor-26}" fill="var(--rlsea)" class="rl-tr"/><path d="M0 ${floor} Q75 ${floor-6} 150 ${floor} T300 ${floor} V120 H0Z" fill="var(--rlsand)"/>
-   <g class="rl-wave" style="animation-duration:${dur}s"><path d="M-60 26 Q-30 6 0 26Z" fill="var(--root)"/></g>
-   <line x1="286" y1="28" x2="286" y2="${floor-2}" stroke="var(--ink)" stroke-width="1.5"/><text x="280" y="${(26+floor)/2+4}" text-anchor="end" class="rl-lab">${d} m deep</text>
-   <text x="6" y="16" class="rl-lab">wave speed: ${Math.round(v*3.6)} km/h</text>`;
-   o.innerHTML=`v = √(9.8 · ${d}) = ${f2(v)} m/s ≈ <b>${Math.round(v*3.6)} km/h</b>`;return d+" m"});
-  const n=document.createElement("div");n.className="mute rl-note";n.innerHTML="Backward: a wave clocked at 20 m/s → 20<sup>2</sup> = 400 → 400 ÷ 9.8 ≈ 41 m deep.";el.appendChild(n)}},
-line:{t:"How far you can see",use:`From h meters up, the horizon is about 3.57√h kilometers away. Estimating √h is enough to know: from a 50 m building, √50 is between 7 and 8, so you see 25 to 29 km.`,
- ui(el){const sv=rlSvg(el,"0 0 300 130");const o=rlOut(el,"mono");
-  rlSlider(el,"Height (m)",2,500,1,50,h=>{const a=Math.floor(Math.sqrt(h)),d=3.57*Math.sqrt(h),R=700,cx=40,cy=118+R,tx=62,th=12+Math.sqrt(h/500)*80,ty=118-th;
-   const ang=Math.min(.36,d/80*.36),hx=cx+R*Math.sin(ang),hy=cy-R*Math.cos(ang);
-   sv.innerHTML=`<rect width="300" height="130" fill="var(--rlsky)"/><circle cx="${cx}" cy="${cy}" r="${R}" fill="var(--rlgrass)"/>
-   <rect x="${tx-6}" y="${ty}" width="12" height="${th}" fill="var(--ink)" opacity=".85" rx="2"/><circle cx="${tx}" cy="${ty-5}" r="5" fill="var(--hot)"/>
-   <line x1="${tx}" y1="${ty-5}" x2="${hx}" y2="${hy}" stroke="var(--hot)" stroke-width="2" stroke-dasharray="5 4" class="rl-ants"/><circle cx="${hx}" cy="${hy}" r="4" fill="var(--hot)"/>
-   <text x="${Math.min(260,(tx+hx)/2+14)}" y="${(ty+hy)/2-10}" class="rl-lab big">${f2(d)} km</text><text x="${tx-10}" y="${ty+th/2+4}" text-anchor="end" class="rl-lab">${h} m</text>`;
-   o.innerHTML=`${a}<sup>2</sup> = ${a*a} ≤ ${h} &lt; ${(a+1)**2} = ${a+1}<sup>2</sup> → √${h} is between ${a} and ${a+1}<br>3.57√${h} ≈ <b>${f2(d)} km</b>`;return h+" m"})}},
-rules:{t:"Why elephants eat less than you'd think",use:`An animal's resting energy is about 70 · M<sup>3/4</sup> calories a day (M in kg). Per kilogram that's 70 · M<sup>3/4</sup> ÷ M = 70 · M<sup>−1/4</sup>: same base, dividing, so subtract the exponents. Bigger animals burn less per kilogram.`,
- ui(el){const o=rlOut(el,"mono");const A=[["Mouse",.02],["Cat",4],["You",70],["Horse",500],["Elephant",5000]],top=70*.02**-.25;
-  const ch=document.createElement("div");ch.className="rl-hbars";el.appendChild(ch);
-  const pickA=i=>{const[n,m]=A[i];ch.querySelectorAll(".rl-hb").forEach((r,j)=>r.classList.toggle("on",j===i));
-   o.innerHTML=`${n}: 70 · ${m}<sup>3/4</sup> ≈ <b>${Math.round(70*m**.75).toLocaleString()} cal a day</b> · that's ${Math.round(70*m**-.25)} per kg`};
-  ch.innerHTML='<div class="mute rl-note" style="margin-bottom:4px">Calories per kg of body each day:</div>'+A.map(([n,m])=>`<button class="rl-hb"><span>${n}</span><em><i style="width:${70*m**-.25/top*100}%"></i></em><b>${Math.round(70*m**-.25)}</b></button>`).join("");
-  ch.querySelectorAll(".rl-hb").forEach((b,i)=>b.onclick=()=>pickA(i));pickA(4)}},
-radmul:{t:"Speed from skid marks",use:`Crash investigators find a car's speed with s = √(30df): d is the skid length in feet, f is how grippy the road is. Written as √30 · √d · √f, the indexes match, so it all goes under one root.`,
- ui(el){const sv=rlSvg(el,"0 0 300 70");const o=rlOut(el,"mono");let d=120,f=.75;
-  const upd=()=>{const X=Math.round(30*d*f),len=d/300*230,road=f===.75?"#3a3a3a":f===.5?"#2c3e52":"#cfe3ee";
-   sv.innerHTML=`<rect x="0" y="14" width="300" height="44" rx="6" fill="${road}"/><line x1="0" y1="36" x2="300" y2="36" stroke="#e8c34a" stroke-dasharray="10 8" stroke-width="2"/>
-   <g><rect x="12" y="22" width="${len}" height="4" fill="#111" opacity=".75" class="rl-tr"/><rect x="12" y="46" width="${len}" height="4" fill="#111" opacity=".75" class="rl-tr"/></g>
-   <g class="rl-move" style="transform:translateX(${len}px)"><rect x="6" y="18" width="38" height="36" rx="7" fill="var(--hot)"/><rect x="28" y="22" width="10" height="28" rx="3" fill="#cfe8ff" opacity=".8"/></g>
-   <text x="12" y="10" class="rl-lab">skid: ${d} ft</text>`;
-   o.innerHTML=`√30 · √${d} · √${f} = √${X} = ${rlSimp(X)} ≈ <b>${Math.round(Math.sqrt(X))} mph</b>`};
-  rlSlider(el,"Skid (ft)",20,300,4,120,v=>{d=v;upd();return v+" ft"});const row=document.createElement("div");row.className="rl-row";el.appendChild(row);
-  [["Dry",.75],["Wet",.5],["Icy",.15]].forEach(([n,v],i)=>{const b=mkBtn("small"+(i===0?" on":""),n,()=>{f=v;row.querySelectorAll("button").forEach(x=>x.classList.remove("on"));b.classList.add("on");upd()});row.appendChild(b)});upd()}},
-simp:{t:"Checking a room is square",use:`Builders check a square room by measuring corner to corner. The diagonal of a square with side s is √(s<sup>2</sup> + s<sup>2</sup>) = √(2s<sup>2</sup>), and simplest form turns that into s√2. If the tape says something else, the walls aren't square.`,
- ui(el){const sv=document.createElementNS("http://www.w3.org/2000/svg","svg");sv.setAttribute("viewBox","0 0 100 100");sv.setAttribute("class","rl-sq");sv.innerHTML='<rect x="10" y="10" width="80" height="80" rx="2"/><line x1="10" y1="90" x2="90" y2="10"/>';el.appendChild(sv);const o=rlOut(el,"mono");
-  rlSlider(el,"Side (ft)",2,20,1,12,s=>{o.innerHTML=`√(${s}<sup>2</sup> + ${s}<sup>2</sup>) = √${2*s*s} = <b>${s}√2</b> ≈ ${f2(s*Math.SQRT2)} ft`;return s+" ft"})}},
-vars:{t:"Distance is never negative",use:`Map apps find the distance between two spots on a line with √((b − a)<sup>2</sup>). An even root of something squared gives |b − a|: the absolute value. That's why your "how far" answer is never negative, even when you walk backward.`,
- ui(el){const sv=rlSvg(el,"0 0 300 86");const o=rlOut(el,"mono");let a=-3,b=5;
-  const upd=()=>{const x=v=>20+(v+10)*13,dist=Math.abs(b-a);let h=`<line x1="14" y1="50" x2="286" y2="50" stroke="var(--mute)"/>`;
+  const draw=shown=>{const x=(end/1000)**(1/yrs);ch.innerHTML=[...Array(yrs+1)].map((_,t)=>{const v=1000*x**t;return `<div class="rl-bar"><span style="opacity:${t<shown?1:0}">$${Math.round(v).toLocaleString()}</span><i style="height:${t<shown?Math.max(4,v/5000*100):0}%"></i><small>${t===0?"now":"yr "+t}</small></div>`}).join("")};
+  const out=()=>{const g=end/1000,x=g**(1/yrs);o.innerHTML=`(1 + r)<sup>${yrs}</sup> = ${f2(g)} → 1 + r = ${f2(x)} → r = <b>${f2((x-1)*100)}% a year</b>`};
+  draw(99);out();rlTry(el);rlSlider(el,"$1,000 grows to",1001,5001,10,1331,v=>{end=v;draw(99);out();return "$"+v.toLocaleString()});rlSlider(el,"Years",1,10,1,3,v=>{yrs=v;draw(99);out();return v+(v>1?" yrs":" yr")});
+  return{play(){const tok=rlTok(el);let k=0;draw(0);const go=()=>{if(!rlLive(el,tok))return;draw(++k);if(k<=yrs)setTimeout(go,450)};setTimeout(go,60)}}}},
+order:{t:"How deep the ocean is under a tsunami",use:`Tsunamis travel at v = √(9.8d) meters a second, where d is the ocean depth. Scientists run it backward to read the sea floor.`,
+ ask:{q:`A tsunami is clocked at <b>200 m/s</b>. Speed is v = √(9.8d). How deep is the ocean there?`,c:"about 4,082 m",w:["about 416 m","about 20 m"],
+  steps:[`200 = √(9.8d)`,`Undo the outside first (the root): square both sides → 40,000 = 9.8d`,`Then undo the × 9.8: d = 40,000 ÷ 9.8 ≈ <b>4,082 m</b>`]},
+ ui(el){const sv=rlSvg(el,"0 0 300 120"),o=rlOut(el,"mono");let d=4082;
+  const draw=(wx,gp)=>{const v=Math.sqrt(9.8*d),floor=26+d/6000*86,g=26+(floor-28)*gp;
+   sv.innerHTML=`<rect width="300" height="120" fill="var(--rlsky)"/><rect y="26" width="300" height="${floor-26}" fill="var(--rlsea)"/><path d="M0 ${floor} Q75 ${floor-6} 150 ${floor} T300 ${floor} V120 H0Z" fill="var(--rlsand)"/>
+   <path d="M${wx-40} 26 Q${wx-20} 4 ${wx} 26Z" fill="var(--root)"/><line x1="286" y1="28" x2="286" y2="${g}" stroke="var(--ink)" stroke-width="2"/>
+   <text x="280" y="${Math.max(44,(26+g)/2+4)}" text-anchor="end" class="rl-lab">${Math.round(d*gp).toLocaleString()} m deep</text><text x="6" y="16" class="rl-lab">wave: ${Math.round(v)} m/s ≈ ${Math.round(v*3.6)} km/h</text>`};
+  const out=()=>{const v=Math.sqrt(9.8*d);o.innerHTML=`v = √(9.8 · ${d.toLocaleString()}) ≈ ${f2(v)} m/s ≈ <b>${Math.round(v*3.6)} km/h</b>`};
+  draw(150,1);out();rlTry(el);rlSlider(el,"Ocean depth (m)",10,6000,1,4082,v=>{d=v;draw(150,1);out();return v.toLocaleString()+" m"});
+  return{play(){const v=Math.sqrt(9.8*d);rlTween(el,Math.min(8000,1200+240000/v),t=>draw(-20+t*360,Math.min(1,t*1.6)))}}}},
+line:{t:"How far you can see",use:`From h meters up, the horizon is about 3.57√h kilometers away. Pilots, sailors and lifeguards use this.`,
+ ask:{q:`You're on the roof of a <b>50 m</b> building. The horizon is 3.57√h km away. About how far can you see?`,c:"between 25 and 29 km",w:["between 7 and 8 km","about 178 km"],
+  steps:[`Estimate √50: 7<sup>2</sup> = 49 and 8<sup>2</sup> = 64, so √50 is between 7 and 8`,`3.57 × 7 ≈ 25 and 3.57 × 8 ≈ 29`,`You can see <b>25 to 29 km</b> (exactly about 25.2)`]},
+ ui(el){const sv=rlSvg(el,"0 0 300 130"),o=rlOut(el,"mono");let h=50;
+  const draw=(pt,pl)=>{const d=3.57*Math.sqrt(h),R=700,cx=40,cy=118+R,tx=62,th=(12+Math.sqrt(h/500)*80)*pt,ty=118-th,ang=Math.min(.36,d/80*.36),hx=cx+R*Math.sin(ang),hy=cy-R*Math.cos(ang),ex=tx+(hx-tx)*pl,ey=ty-5+(hy-ty+5)*pl;
+   sv.innerHTML=`<rect width="300" height="130" fill="var(--rlsky)"/><circle cx="${cx}" cy="${cy}" r="${R}" fill="var(--rlgrass)"/><rect x="${tx-6}" y="${ty}" width="12" height="${th}" fill="var(--ink)" opacity=".85" rx="2"/><circle cx="${tx}" cy="${ty-5}" r="5" fill="var(--hot)"/>
+   ${pl>0?`<line x1="${tx}" y1="${ty-5}" x2="${ex}" y2="${ey}" stroke="var(--hot)" stroke-width="2" stroke-dasharray="5 4"/>`:""}${pl>=1?`<circle cx="${hx}" cy="${hy}" r="4" fill="var(--hot)"/><text x="${Math.min(260,(tx+hx)/2+14)}" y="${(ty+hy)/2-10}" class="rl-lab big">${f2(d)} km</text>`:""}<text x="${tx-10}" y="${ty+th/2+4}" text-anchor="end" class="rl-lab">${Math.round(h*pt)} m</text>`};
+  const out=()=>{const a=Math.floor(Math.sqrt(h));o.innerHTML=`${a}<sup>2</sup> = ${a*a} ≤ ${h} &lt; ${(a+1)**2} = ${a+1}<sup>2</sup> → √${h} is between ${a} and ${a+1}<br>3.57√${h} ≈ <b>${f2(3.57*Math.sqrt(h))} km</b>`};
+  draw(1,1);out();rlTry(el);rlSlider(el,"Height (m)",2,500,1,50,v=>{h=v;draw(1,1);out();return v+" m"});
+  return{play(){rlTween(el,2600,t=>t<.45?draw(rlEase(t/.45),0):draw(1,rlEase((t-.45)/.55)))}}}},
+rules:{t:"Why elephants eat less than you'd think",use:`Animals need about 70 · M<sup>3/4</sup> calories a day (M = weight in kg). Zoos and vets plan food with this.`,
+ ask:{q:`Food needed is about 70 · M<sup>3/4</sup>. An animal <b>16 times heavier</b> needs how many times the food?`,c:"8 times",w:["16 times","12 times"],
+  steps:[`(16M)<sup>3/4</sup> = 16<sup>3/4</sup> · M<sup>3/4</sup>   (power of a product)`,`16<sup>3/4</sup> = (16<sup>1/4</sup>)<sup>3</sup> = 2<sup>3</sup>`,`= <b>8 times</b> the food, not 16`]},
+ ui(el){const sv=rlSvg(el,"0 0 300 86"),o=rlOut(el,"mono");let k=16;
+  const draw=p=>{const food=k**.75,W=210;sv.innerHTML=`<text x="6" y="26" class="rl-lab">Weight</text><rect x="70" y="14" width="${W*p}" height="16" rx="8" fill="var(--root)"/><text x="${74+W*p}" y="26" class="rl-lab">×${k.toLocaleString()}</text>
+   <text x="6" y="62" class="rl-lab">Food</text><rect x="70" y="50" width="${W*food/k*p}" height="16" rx="8" fill="var(--hot)"/><text x="${74+W*food/k*p}" y="62" class="rl-lab">×${Math.round(food).toLocaleString()}</text>`};
+  const out=()=>{o.innerHTML=`${k.toLocaleString()}<sup>3/4</sup> = (${k.toLocaleString()}<sup>1/4</sup>)<sup>3</sup> = ${Math.round(k**.25)}<sup>3</sup> = <b>${Math.round(k**.75).toLocaleString()}× the food</b>`};
+  draw(1);out();rlTry(el,"Try other sizes:");const row=document.createElement("div");row.className="rl-row";el.appendChild(row);
+  [16,81,625,10000].forEach(v=>row.appendChild(mkBtn("small"+(v===16?" on":""),"×"+v.toLocaleString()+" heavier",e=>{k=v;row.querySelectorAll("button").forEach(x=>x.classList.remove("on"));e.currentTarget.classList.add("on");out();rlTween(el,1100,t=>draw(rlEase(t)))})));
+  return{play(){rlTween(el,1400,t=>draw(rlEase(t)))}}}},
+radmul:{t:"Speed from skid marks",use:`Crash investigators find a car's speed from its skid marks: s = √(30df), where d is the skid length in feet and f is how grippy the road is.`,
+ ask:{q:`A car left <b>120 ft</b> of skid marks on a dry road (f = 0.75). Speed s = √30 · √d · √f. How fast was it going?`,c:"30√3 ≈ 52 mph",w:["about 17 mph","2,700 mph"],
+  steps:[`√30 · √120 · √0.75: same index, so one root → √(30 · 120 · 0.75)`,`= √2700 = √(900 · 3)`,`= 30√3 ≈ <b>52 mph</b>`]},
+ ui(el){const sv=rlSvg(el,"0 0 300 74"),o=rlOut(el,"mono");let d=120,f=.75;
+  const draw=(cx,ml,mph)=>{const road=f===.75?"#3a3a3a":f===.5?"#2c3e52":"#cfe3ee";
+   sv.innerHTML=`<rect x="0" y="16" width="300" height="44" rx="6" fill="${road}"/><line x1="0" y1="38" x2="300" y2="38" stroke="#e8c34a" stroke-dasharray="10 8" stroke-width="2"/>
+   <rect x="22" y="24" width="${ml}" height="4" fill="#111" opacity=".75"/><rect x="22" y="48" width="${ml}" height="4" fill="#111" opacity=".75"/>
+   <g transform="translate(${cx} 0)"><rect x="0" y="20" width="38" height="36" rx="7" fill="var(--hot)"/><rect x="22" y="24" width="10" height="28" rx="3" fill="#cfe8ff" opacity=".8"/></g>
+   <text x="6" y="11" class="rl-lab">skid: ${d} ft</text><text x="294" y="72" text-anchor="end" class="rl-lab big">${Math.round(mph)} mph</text>`};
+  const len=()=>d/300*226,spd=()=>Math.sqrt(30*d*f);
+  const out=()=>{const X=Math.round(30*d*f);o.innerHTML=`√30 · √${d} · √${f} = √${X} = ${rlSimp(X)} ≈ <b>${Math.round(Math.sqrt(X))} mph</b>`};
+  draw(len()+22,len(),0);out();rlTry(el);rlSlider(el,"Skid (ft)",20,300,4,120,v=>{d=v;draw(len()+22,len(),0);out();return v+" ft"});
+  const row=document.createElement("div");row.className="rl-row";el.appendChild(row);
+  [["Dry",.75],["Wet",.5],["Icy",.15]].forEach(([n,v],i)=>{const b=mkBtn("small"+(i===0?" on":""),n,()=>{f=v;row.querySelectorAll("button").forEach(x=>x.classList.remove("on"));b.classList.add("on");draw(len()+22,len(),0);out()});row.appendChild(b)});
+  return{play(){const L=len(),S=spd();rlTween(el,2600,t=>{if(t<.3)draw(-40+(62)*(t/.3),0,S);else{const u=rlEase((t-.3)/.7);draw(22+L*u,L*u,S*(1-u))}})}}}},
+simp:{t:"Checking a room is square",use:`Builders check that a room is square by measuring corner to corner. The diagonal of a square with side s is √(2s<sup>2</sup>).`,
+ ask:{q:`A square room is <b>12 ft</b> on each side. If the walls are truly square, what should the tape read corner to corner?`,c:"12√2 ≈ 17 ft",w:["24 ft","144 ft"],
+  steps:[`√(12<sup>2</sup> + 12<sup>2</sup>) = √288`,`288 = <span class="grp">(2 · 2)</span> · <span class="grp">(2 · 2)</span> · <span class="grp">(3 · 3)</span> · 2 → 2 · 2 · 3 = 12 comes out, 2 stays`,`= 12√2 ≈ <b>16.97 ft</b>`]},
+ ui(el){const sv=rlSvg(el,"0 0 300 130"),o=rlOut(el,"mono");let s=12;
+  const draw=p=>{const x0=95,y0=14,S=104,dg=s*Math.SQRT2;sv.innerHTML=`<rect x="${x0}" y="${y0}" width="${S}" height="${S}" fill="var(--rlsand)" opacity=".5" stroke="var(--ink)" stroke-width="2"/><text x="${x0+S/2}" y="${y0+S+13}" text-anchor="middle" class="rl-lab">${s} ft</text><text x="${x0-6}" y="${y0+S/2}" text-anchor="end" class="rl-lab">${s} ft</text>
+   <line x1="${x0}" y1="${y0+S}" x2="${x0+S*p}" y2="${y0+S-S*p}" stroke="#e8c34a" stroke-width="5" stroke-linecap="round"/><text x="${x0+S*p+6}" y="${y0+S-S*p}" class="rl-lab big">${f2(dg*p)} ft</text>`};
+  const out=()=>{o.innerHTML=`√(${s}<sup>2</sup> + ${s}<sup>2</sup>) = √${2*s*s} = <b>${s}√2</b> ≈ ${f2(s*Math.SQRT2)} ft`};
+  draw(1);out();rlTry(el);rlSlider(el,"Side (ft)",2,20,1,12,v=>{s=v;draw(1);out();return v+" ft"});
+  return{play(){rlTween(el,1800,t=>draw(rlEase(t)))}}}},
+vars:{t:"Distance is never negative",use:`Map apps measure distance with √((b − a)<sup>2</sup>). An even root of a square gives an absolute value, so distance is never negative.`,
+ ask:{q:`You're at <b>−3</b> on a street and the store is at <b>5</b>. Distance = √((b − a)<sup>2</sup>). How far is it?`,c:"8 blocks",w:["2 blocks","−8 blocks"],
+  steps:[`√((5 − (−3))<sup>2</sup>) = √(8<sup>2</sup>)`,`= √64`,`= |8| = <b>8 blocks</b>, and it'd be 8 walking either way`]},
+ ui(el){const sv=rlSvg(el,"0 0 300 86"),o=rlOut(el,"mono");let a=-3,b=5;
+  const draw=p=>{const x=v=>20+(v+10)*13,dist=Math.abs(b-a),w=a+(b-a)*p;let h=`<line x1="14" y1="50" x2="286" y2="50" stroke="var(--mute)"/>`;
    for(let v=-10;v<=10;v++)h+=`<line x1="${x(v)}" y1="46" x2="${x(v)}" y2="54" stroke="var(--mute)"/>${v%5===0?`<text x="${x(v)}" y="68" text-anchor="middle" class="rl-lab">${co(v)}</text>`:""}`;
-   if(dist)h+=`<line x1="${x(a)}" y1="30" x2="${x(b)}" y2="30" stroke="var(--good)" stroke-width="3" class="rl-ants" stroke-dasharray="6 4"/><path d="M${x(b)} 30 l${b>a?-7:7} -5 v10Z" fill="var(--good)"/><text x="${(x(a)+x(b))/2}" y="22" text-anchor="middle" class="rl-lab big" fill="var(--good)">${dist} blocks</text>`;
-   h+=`<circle cx="${x(a)}" cy="50" r="8" fill="var(--hot)" class="rl-tr"/><text x="${x(a)}" y="82" text-anchor="middle" class="rl-lab">You</text><circle cx="${x(b)}" cy="50" r="8" fill="var(--root)"/><text x="${x(b)}" y="${b===a?72:82}" text-anchor="middle" class="rl-lab">Store</text>`;
-   sv.innerHTML=h;o.innerHTML=`√((${b} − ${a<0?"("+co(a)+")":a})<sup>2</sup>) = √${(b-a)**2} = |${co(b-a)}| = <b>${dist} blocks</b>${b<a?" (walking backward, still positive)":""}`};
-  rlSlider(el,"You (a)",-10,10,1,-3,v=>{a=v;upd();return co(v)});rlSlider(el,"Store (b)",-10,10,1,5,v=>{b=v;upd();return co(v)});upd()}},
-like:{t:"Buying fence for two gardens",use:`Two square garden beds with areas 3a<sup>2</sup> and 3b<sup>2</sup> have sides a√3 and b√3. They're like radicals, so the total fence is 4a√3 + 4b√3 = 4(a + b)√3. One number to take to the store.`,
- ui(el){const sv=rlSvg(el,"0 0 300 150");const o=rlOut(el,"mono");let a=5,b=3;
-  const upd=()=>{const k=118/(8*Math.sqrt(3)),s1=a*Math.sqrt(3)*k,s2=b*Math.sqrt(3)*k,y0=138;
-   const bed=(x,s,n,area)=>`<rect x="${x}" y="${y0-s}" width="${s}" height="${s}" fill="var(--rlgrass)" stroke="var(--hot)" stroke-width="3" stroke-dasharray="7 4" class="rl-ants" rx="2"/><text x="${x+s/2}" y="${y0-s/2+4}" text-anchor="middle" class="rl-lab">${area} ft²</text><text x="${x+s/2}" y="${y0-s-5}" text-anchor="middle" class="rl-lab">${n}√3</text>`;
-   sv.innerHTML=bed(20,s1,a,3*a*a)+bed(Math.max(40+s1,160),s2,b,3*b*b);
-   o.innerHTML=`Areas ${3*a*a} and ${3*b*b} ft<sup>2</sup> → sides ${a}√3 and ${b}√3<br>${4*a}√3 + ${4*b}√3 = <b>${4*(a+b)}√3</b> ≈ ${f2(4*(a+b)*Math.sqrt(3))} ft of fence (the dashed line)`};
-  rlSlider(el,"Bed 1 (a)",1,8,1,5,v=>{a=v;upd();return String(v)});rlSlider(el,"Bed 2 (b)",1,8,1,3,v=>{b=v;upd();return String(v)});upd()}}
+   if(dist&&p>0)h+=`<line x1="${x(a)}" y1="30" x2="${x(w)}" y2="30" stroke="var(--good)" stroke-width="3"/><text x="${(x(a)+x(w))/2}" y="22" text-anchor="middle" class="rl-lab big" fill="var(--good)">${Math.round(dist*p)} blocks</text>`;
+   h+=`<circle cx="${x(b)}" cy="50" r="8" fill="var(--root)"/><text x="${x(b)}" y="82" text-anchor="middle" class="rl-lab">Store</text><circle cx="${x(w)}" cy="50" r="8" fill="var(--hot)"/><text x="${x(w)}" y="${Math.abs(w-b)<1.2?72:82}" text-anchor="middle" class="rl-lab">You</text>`;sv.innerHTML=h};
+  const out=()=>{o.innerHTML=`√((${b} − ${a<0?"("+co(a)+")":a})<sup>2</sup>) = √${(b-a)**2} = |${co(b-a)}| = <b>${Math.abs(b-a)} blocks</b>${b<a?" (walking backward, still positive)":""}`};
+  draw(1);out();rlTry(el);rlSlider(el,"You (a)",-10,10,1,-3,v=>{a=v;draw(1);out();return co(v)});rlSlider(el,"Store (b)",-10,10,1,5,v=>{b=v;draw(1);out();return co(v)});
+  return{play(){rlTween(el,Math.max(900,Math.abs(b-a)*260),t=>draw(t))}}}},
+like:{t:"Buying fence for two gardens",use:`Square gardens often have sides like 5√3 ft. Since those are like radicals, the fence adds up to one simple number.`,
+ ask:{q:`Two square gardens have sides <b>5√3 ft</b> and <b>3√3 ft</b>. How much fence goes around both?`,c:"32√3 ≈ 55.4 ft",w:["8√3 ≈ 13.9 ft","32√6 ≈ 78.4 ft"],
+  steps:[`Garden 1: 4 sides × 5√3 = 20√3`,`Garden 2: 4 sides × 3√3 = 12√3`,`Like radicals, so add the fronts: 20√3 + 12√3 = <b>32√3 ≈ 55.4 ft</b>`]},
+ ui(el){const sv=rlSvg(el,"0 0 300 150"),o=rlOut(el,"mono");let a=5,b=3;
+  const draw=p=>{const k=118/(8*Math.sqrt(3)),s1=a*Math.sqrt(3)*k,s2=b*Math.sqrt(3)*k,y0=138,tot=4*(a+b)*Math.sqrt(3);
+   const bed=(x,s,n,area)=>{const per=4*s;return `<rect x="${x}" y="${y0-s}" width="${s}" height="${s}" fill="var(--rlgrass)" rx="2"/><rect x="${x}" y="${y0-s}" width="${s}" height="${s}" fill="none" stroke="var(--hot)" stroke-width="3" stroke-dasharray="${per}" stroke-dashoffset="${per*(1-p)}" rx="2"/><text x="${x+s/2}" y="${y0-s/2+4}" text-anchor="middle" class="rl-lab">${area} ft²</text><text x="${x+s/2}" y="${y0-s-5}" text-anchor="middle" class="rl-lab">${n}√3</text>`};
+   sv.innerHTML=bed(20,s1,a,3*a*a)+bed(Math.max(40+s1,160),s2,b,3*b*b)+`<text x="294" y="16" text-anchor="end" class="rl-lab big">fence: ${f2(tot*p)} ft</text>`};
+  const out=()=>{o.innerHTML=`${4*a}√3 + ${4*b}√3 = <b>${4*(a+b)}√3</b> ≈ ${f2(4*(a+b)*Math.sqrt(3))} ft of fence`};
+  draw(1);out();rlTry(el);rlSlider(el,"Garden 1 (a)",1,8,1,5,v=>{a=v;draw(1);out();return v+"√3"});rlSlider(el,"Garden 2 (b)",1,8,1,3,v=>{b=v;draw(1);out();return v+"√3"});
+  return{play(){rlTween(el,2200,t=>draw(t))}}}}
 };
 const rlOpen=new Set();
 function renderReal(){const box=$("real");if(!box)return;const d=selDay,ks=LESSONS[d].filter(k=>REAL[k]);box.innerHTML="";
@@ -950,8 +1027,8 @@ function renderReal(){const box=$("real");if(!box)return;const d=selDay,ks=LESSO
     if(!open(k)){c.className="rl-card locked";c.innerHTML=`<span class="rl-lock">🔒</span><div><div class="rl-t">${R0.t}</div><div class="mute rl-hint">Master <b>${TAGS[k]}</b> to unlock</div></div>`;box.appendChild(c);return}
     const isNew=!seen.includes(d+":"+k),wasOpen=rlOpen.has(d+":"+k)||isNew;c.className="rl-card"+(isNew?" new":"");
     c.innerHTML=`<button class="rl-head"><span><span class="rl-sk">${TAGS[k]}</span><span class="rl-t" style="display:block">${R0.t}</span></span><span class="rl-chev">▼</span></button><div class="rl-body"><div><div class="rl-use">${R0.use}</div></div></div>`;
-    const inner=c.querySelector(".rl-body>div"),ui=document.createElement("div");ui.className="rl-ui";inner.appendChild(ui);let built=false;
-    const openIt=on=>{c.classList.toggle("open",on);if(on){rlOpen.add(d+":"+k);if(!built){built=true;try{R0.ui(ui)}catch(e){ui.textContent=""}}}else rlOpen.delete(d+":"+k)};
+    const inner=c.querySelector(".rl-body>div");let built=false;
+    const openIt=on=>{c.classList.toggle("open",on);if(on){rlOpen.add(d+":"+k);if(!built){built=true;rlAsk(R0,d+":"+k,inner)}}else rlOpen.delete(d+":"+k)};
     c.querySelector(".rl-head").onclick=()=>openIt(!c.classList.contains("open"));openIt(wasOpen);
     box.appendChild(c);if(isNew)fresh.push(d+":"+k)});
   if(fresh.length&&hTab!=="real"){const tb=document.querySelector('#htabs [data-t="real"]');if(tb)tb.classList.add("newdot")}
