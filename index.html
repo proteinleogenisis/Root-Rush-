@@ -687,6 +687,29 @@ const LT52=[
 // Which skill each lightning item drills (same order as LT / LT52).
 const LT_SK=[["neg"],["neg"],["sols"],["sols"],["bottom"],["bottom"],["sols"],["sols"],["entry"],["bottom"],["bottom"],["iso"]];
 const LT52_SK=[["radmul"],["like"],["rules"],["rules"],["like"],["rules"],["rules"],["simp"],["vars"],["like"]];
+// Day 1 lightning items for shifted equations, order of steps and estimating (appended; tags in LT_SK).
+const TF=()=>Math.random()<.5,SG=h=>h<0?`− ${-h}`:`+ ${h}`;
+const LT_MORE=[
+// shift
+[["shift"],()=>{const r=ri(2,5),h=ri(1,9),t=TF();return{s:`(x + ${h})<sup>3</sup> = ${r**3} → x = ${t?r-h:r+h}`,t,why:`Cube root first: x + ${h} = ${r}. Then subtract ${h}: x = ${r-h}.`}}],
+[["shift"],()=>{const r=ri(2,6),h=ri(1,9),t=TF();return{s:t?`(x − ${h})<sup>2</sup> = ${r*r} has two solutions: x = ${h+r} and x = ${h-r}`:`(x − ${h})<sup>2</sup> = ${r*r} has only one solution: x = ${h+r}`,t,why:`Even power → ±: x − ${h} = ±${r}, so x = ${h+r} or x = ${h-r}.`}}],
+[["shift"],()=>{const n=pick([3,5]),h=ri(2,12),k=ri(20,300),t=TF();return{s:`To solve (x + ${h})<sup>${n}</sup> = ${k}, the first step is to ${t?`take the ${ROOT[n]} root`:`subtract ${h}`}`,t,why:`The ${h} is stuck inside the parentheses under the power. Undo the power first (${ROOT[n]} root), then subtract ${h}.`}}],
+[["shift"],()=>{const n=pick([3,4]),h=ri(1,9),k=ri(8,90);return{s:`(x + ${h})<sup>${n}</sup> = −${k} has no real solution`,t:n===4,why:n===4?`Even powers are never negative, so no real x works.`:`Odd powers can be negative: x + ${h} = ∛−${k}, which is a real number.`}}],
+[["shift"],()=>{const r=ri(2,4),h=ri(1,9),t=TF();return{s:`(x − ${h})<sup>3</sup> = −${r**3} → x = ${t?h-r:h+r}`,t,why:`Cube root keeps the negative: x − ${h} = −${r}, so x = ${h-r}.`}}],
+// order
+[["order"],()=>{const a=ri(2,5),n=pick([2,3]),h=ri(2,9),c=ri(5,40),d=c+a*ri(1,4)**n,o=TF()?[`subtract ${c}`,1]:pick([[`divide by ${a}`,0],[`take the ${ROOT[n]} root`,0],[`subtract ${h}`,0]]);return{s:`In ${a}(x + ${h})<sup>${n}</sup> + ${c} = ${d}, the first step is to ${o[0]}`,t:!!o[1],why:`Peel from the outside in: subtract ${c}, divide by ${a}, take the ${ROOT[n]} root, subtract ${h}.`}}],
+[["order"],()=>{const a=ri(2,6),n=pick([2,3]),h=ri(2,9),c=ri(5,30),d=c+a*ri(1,4)**n,t=TF();return{s:`In ${a}(x − ${h})<sup>${n}</sup> + ${c} = ${d}, you ${t?`divide by ${a} before taking the ${ROOT[n]} root`:`take the ${ROOT[n]} root before dividing by ${a}`}`,t,why:`The root only undoes the power once the power is alone. Divide by ${a} first.`}}],
+[["order"],()=>{const a=ri(2,5),n=pick([2,3]),h=ri(1,9),c=ri(5,30),r=ri(1,4),d=c+a*r**n,t=TF();return{s:`${a}(x + ${h})<sup>${n}</sup> + ${c} = ${d} → (x + ${h})<sup>${n}</sup> = ${t?r**n:d-c}`,t,why:`Subtract ${c}: ${d-c}. Then divide by ${a}: ${r**n}.`}}],
+[["order"],()=>{const a=ri(2,5),n=pick([2,3]),h=ri(2,9),c=ri(5,30),d=c+a*ri(1,4)**n,t=TF();return{s:`In ${a}(x + ${h})<sup>${n}</sup> + ${c} = ${d}, the last step is to subtract ${t?h:c}`,t,why:`The ${h} is the deepest inside, so it comes off last. The ${c} comes off first.`}}],
+[["order"],()=>{const a=ri(2,5),h=ri(1,9),r=ri(1,4),c=ri(5,30),neg=TF(),d=neg?c-a*r*r:c+a*r*r;return{s:`${a}(x + ${h})<sup>2</sup> + ${c} = ${d} has two real solutions`,t:!neg,why:neg?`Subtract ${c} and divide by ${a}: (x + ${h})<sup>2</sup> = −${r*r}. A square can't be negative, so no real solution.`:`Subtract ${c} and divide by ${a}: (x + ${h})<sup>2</sup> = ${r*r}, so x + ${h} = ±${r}: two solutions.`}}],
+// line (estimating)
+[["line"],()=>{const n=pick([2,2,3,3,4]),a=n===4?ri(2,3):ri(2,7),k=ri(a**n+1,(a+1)**n-1),o=pick([0,0,1,-1]);return{s:`${rad(n,k)} is between ${a+o} and ${a+o+1}`,t:o===0,why:`${a}<sup>${n}</sup> = ${a**n} and ${a+1}<sup>${n}</sup> = ${(a+1)**n}. ${k} is between them, so ${rad(n,k)} is between ${a} and ${a+1}.`}}],
+[["line"],()=>{const n=pick([2,3]),a=ri(2,6),k=ri(a**n+1,(a+1)**n-1),v=k**(1/n),t=v-a<0.5;return{s:`${rad(n,k)} is closer to ${a} than to ${a+1}`,t,why:`${rad(n,k)} ≈ ${v.toFixed(2)}, so it's closer to ${t?a:a+1}.`}}],
+[["line"],()=>{const n=pick([2,3]),a=ri(4,9),up=TF(),k=up?a**n+ri(1,3):a**n-ri(1,3),t=TF();return{s:`${rad(n,k)} is a little ${t?(up?"more":"less"):(up?"less":"more")} than ${a}`,t,why:`${a}<sup>${n}</sup> = ${a**n}, and ${k} is a little ${up?"more":"less"}, so ${rad(n,k)} is a little ${up?"more":"less"} than ${a} (≈ ${(k**(1/n)).toFixed(2)}).`}}],
+[["line"],()=>{const k=ri(10,200),t=TF();return{s:t?`√${k} is bigger than ∛${k}`:`∜${k} is bigger than √${k}`,t,why:`For numbers above 1, a higher root gives a smaller answer: √${k} ≈ ${Math.sqrt(k).toFixed(2)}, ∛${k} ≈ ${Math.cbrt(k).toFixed(2)}, ∜${k} ≈ ${(k**.25).toFixed(2)}.`}}],
+[["line"],()=>{const n=pick([2,3]),a=ri(2,9),t=TF(),k=t?a**n:a**n+pick([-2,-1,1,2]);return{s:`${rad(n,k)} is a whole number`,t,why:t?`${a}<sup>${n}</sup> = ${k}, so ${rad(n,k)} = ${a}.`:`${a}<sup>${n}</sup> = ${a**n}, not ${k}, so ${rad(n,k)} is a decimal (≈ ${(k**(1/n)).toFixed(2)}).`}}]
+];
+LT_MORE.forEach(([k,f])=>{LT.push(f);LT_SK.push(k)});
 const LT_STRUGGLE_ACC=0.6,LT_STRUGGLE_MIN=2;
 // Lightning aims at the day's mastered skills; with none mastered, at the ones the student is struggling with.
 function ltTargets(d){const ks=LESSONS[d]||[];const m=ks.filter(k=>xpOf(k)>=MX);if(m.length)return{keys:m,why:"mastered"};
@@ -1472,7 +1495,7 @@ function startLightning(){$("idk").classList.add("hidden");
 function ltNext(){
   if(st.mode!=="lt")return;
   const s=pick((st.ltP||ltPool(st.day)).items)();st.lt=s;st.ltLock=false;
-  $("qm").classList.add("hidden");$("tg").textContent="Lightning"+({mastered:" · your mastered skills",tricky:" · your tricky skills"}[(st.ltP||{}).why]||"")+": true or false, +100 each";$("tg").classList.add("rm");
+  $("qm").classList.add("hidden");$("tg").textContent="Lightning"+({mastered:" · mastered skills",tricky:" · tricky skills"}[(st.ltP||{}).why]||": true or false")+" · +100 each";$("tg").classList.add("rm");
   $("qt").innerHTML=s.s;$("go").classList.add("hidden");$("why").classList.add("hidden");
   const box=$("opts");box.innerHTML="";const row=document.createElement("div");row.className="tf";
   row.appendChild(mkBtn("tfb","True",()=>ltAnswer(true)));row.appendChild(mkBtn("tfb","False",()=>ltAnswer(false)));box.appendChild(row);
