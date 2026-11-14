@@ -234,6 +234,51 @@ check("spinReels empirical frequencies track weights (200k draws, 1.5 pt toleran
   for (const s of S) truthy(Math.abs(cnt[s.sym] / n - s.weight / W) < 0.015, s.sym + " freq " + cnt[s.sym] / n);
 });
 
+// ---- roulette wheel drawing vs the paid number ----
+const REAL_ORDER = [0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,10,5,24,16,33,1,20,14,31,9,22,18,29,7,28,12,35,3,26];
+const POCKETS = [...L.wheelSvg().matchAll(/data-n="(\d+)" data-c="(\w+)" data-ang="([\d.]+)" fill="(#[0-9a-f]+)"/g)]
+  .map(m => ({ n: +m[1], c: m[2], ang: +m[3], fill: m[4] }));
+const mod360 = a => ((a % 360) + 360) % 360;
+check("wheel order: 37 unique numbers 0-36 in the real European order", () => {
+  eq(L.WHEEL_ORDER.length, 37, "length");
+  eq(new Set(L.WHEEL_ORDER).size, 37, "unique");
+  truthy(L.WHEEL_ORDER.every(n => Number.isInteger(n) && n >= 0 && n <= 36), "range");
+  eq(L.WHEEL_ORDER.join(), REAL_ORDER.join(), "order");
+});
+check("the drawn wheel has 37 pockets in that same order, clockwise", () => {
+  eq(POCKETS.length, 37, "pockets drawn");
+  eq(POCKETS.map(p => p.n).join(), REAL_ORDER.join(), "drawn order");
+  POCKETS.forEach((p, i) => truthy(Math.abs(p.ang - (i + 0.5) * 360 / 37) < 0.01, "pocket " + p.n + " angle " + p.ang));
+});
+check("pocket colours drawn match rouletteColor (0 green, 18 red, 18 black)", () => {
+  const fillOf = {};
+  POCKETS.forEach(p => {
+    eq(p.c, L.rouletteColor(p.n), "colour of " + p.n);
+    if (fillOf[p.c] === undefined) fillOf[p.c] = p.fill; else eq(p.fill, fillOf[p.c], "fill of " + p.c);
+  });
+  eq(new Set(Object.values(fillOf)).size, 3, "three distinct fills");
+  eq(POCKETS.filter(p => p.c === "red").length, 18); eq(POCKETS.filter(p => p.c === "black").length, 18);
+  eq(POCKETS.filter(p => p.c === "green").length, 1);
+});
+check("wheelAngleFor(n) puts pocket n under the pointer, for every n", () => {
+  for (let n = 0; n <= 36; n++) {
+    const a = L.wheelAngleFor(n);
+    truthy(a >= 0 && a < 360, "range for " + n + ": " + a);
+    eq(L.pocketAt(a), n, "pocketAt(wheelAngleFor(" + n + "))");
+    for (const extra of [360, 1440, -720]) eq(L.pocketAt(a + extra), n, "full turns of " + n);
+    const p = POCKETS.find(q => q.n === n);
+    const d = mod360(p.ang + a); // data-ang is printed to 3 decimals
+    truthy(Math.min(d, 360 - d) < 0.01, "drawn pocket " + n + " centre ends at the top");
+  }
+});
+check("pocketAt stays on the same pocket across its whole width and changes at the edges", () => {
+  for (let n = 0; n <= 36; n++) {
+    const a = L.wheelAngleFor(n), half = 360 / 37 / 2;
+    eq(L.pocketAt(a + half * 0.9), n, "just inside, " + n); eq(L.pocketAt(a - half * 0.9), n, "just inside the other side, " + n);
+  }
+  truthy(L.pocketAt(L.wheelAngleFor(5) + 360 / 37) !== 5, "next pocket differs");
+});
+
 // ---- module shape ----
 check("RRCasino exposes mount and logic; loads without document", () => {
   eq(typeof globalThis.RRCasino.mount, "function");
