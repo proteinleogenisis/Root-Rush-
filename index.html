@@ -153,7 +153,7 @@ body.fok{background:var(--goodbg)}body.fbad{background:var(--badbg)}
 @media (prefers-reduced-motion:reduce){.rl-ants,.rl-wave{animation:none}}
 .rl-q{background:var(--bg);border-radius:12px;padding:10px 12px;margin:4px 0 8px}
 .rl-qh{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--mute)}
-.rl-qt{font-size:16px;line-height:1.5;margin:4px 0 8px}.rl-ch .rl-opt{margin:6px 0 0;padding:11px 12px;font-size:15px}
+.rl-qt{font-size:16px;line-height:1.5;margin:4px 0 8px}.rl-show{margin-top:4px;padding:12px;font-size:16px}.rl-ans{font-size:16px;padding:8px 12px;border-radius:10px;background:var(--goodbg);color:var(--good);animation:paneIn .3s ease both}
 .rl-sol{margin:6px 0}.rl-step{font-size:15px;line-height:1.5;padding:6px 0;border-bottom:1px dashed var(--line);animation:rlStep .45s ease both}
 @keyframes rlStep{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
 .rl-scene{margin-top:8px;animation:paneIn .35s ease both}.rl-scene-h{display:flex;justify-content:space-between;align-items:center}
@@ -864,17 +864,18 @@ const rlEase=t=>1-(1-t)**3;
 function rlTween(el,ms,f,done){const tok=rlTok(el),t0=performance.now();const step=now=>{if(!rlLive(el,tok))return;const t=Math.min(1,(now-t0)/ms);f(t);if(t<1)requestAnimationFrame(step);else if(done)done()};requestAnimationFrame(step)}
 function rlTry(el,txt){const d=document.createElement("div");d.className="rl-qh";d.style.marginTop="10px";d.textContent=txt||"Try your own numbers";el.appendChild(d)}
 function rlAsk(R0,key,inner){const A=R0.ask,box=document.createElement("div");box.className="rl-q";
-  box.innerHTML=`<div class="rl-qh">The question</div><div class="rl-qt">${A.q}</div>`;const ch=document.createElement("div");ch.className="rl-ch";box.appendChild(ch);
+  box.innerHTML=`<div class="rl-qh">Think about it</div><div class="rl-qt">${A.q}</div>`;const ch=document.createElement("div");ch.className="rl-ch";box.appendChild(ch);
   const sol=document.createElement("div");sol.className="rl-sol hidden";const scene=document.createElement("div");scene.className="rl-scene hidden";inner.appendChild(box);inner.appendChild(sol);inner.appendChild(scene);
   const done=LS.get("rlDone",{});let api=null;
-  const reveal=(pick,anim)=>{ch.querySelectorAll("button").forEach(b=>{b.disabled=true;if(b.dataset.v===A.c)b.classList.add("ok");else if(b.dataset.v===pick)b.classList.add("no")});
-    const right=pick===A.c;sol.innerHTML=`<div class="rl-qh" style="color:var(--${right?"good":"bad"})">${right?"Right!":"Not quite."} Here's how</div>`+A.steps.map((x,i)=>`<div class="rl-step mono" style="animation-delay:${anim?i*380:0}ms">${x}</div>`).join("");sol.classList.remove("hidden");
+  const reveal=anim=>{ch.innerHTML=`<div class="rl-ans">Answer: <b>${A.c}</b></div>`;
+    sol.innerHTML=`<div class="rl-qh">Here's how</div>`+A.steps.map((x,i)=>`<div class="rl-step mono" style="animation-delay:${anim?i*380:0}ms">${x}</div>`).join("");sol.classList.remove("hidden");
     scene.innerHTML="";const hd=document.createElement("div");hd.className="rl-scene-h";hd.innerHTML=`<span class="rl-qh">Watch it play out</span>`;scene.appendChild(hd);
     const ui=document.createElement("div");scene.appendChild(ui);try{api=R0.ui(ui)||{}}catch(e){api={}}
     hd.appendChild(mkBtn("small","▶ Replay",()=>api.play&&api.play()));
     const wait=anim?A.steps.length*380+350:150;setTimeout(()=>{scene.classList.remove("hidden");if(api.play&&ui.isConnected)api.play()},wait)};
-  shuffle([A.c,...A.w]).forEach(v=>{const b=mkBtn("opt words rl-opt",v,()=>{done[key]=v;LS.set("rlDone",done);reveal(v,true)});b.dataset.v=v;ch.appendChild(b)});
-  if(done[key])reveal(done[key],false)}
+  // No quiz here: the question is just shown, and one tap reveals the answer, the steps, then the play-out
+  ch.appendChild(mkBtn("big rl-show","Show me the answer",()=>{done[key]=1;LS.set("rlDone",done);reveal(true)}));
+  if(done[key])reveal(false)}
 function rlSvg(el,vb){const v=document.createElementNS("http://www.w3.org/2000/svg","svg");v.setAttribute("viewBox",vb);v.setAttribute("class","rl-svg");el.appendChild(v);return v}
 function rlOut(el,cls){const d=document.createElement("div");d.className="rl-out"+(cls?" "+cls:"");el.appendChild(d);return d}
 function rlSimp(X){let k=1;for(let a=2;a*a<=X;a++)if(X%(a*a)===0)k=a;const r=X/(k*k);return k===1?`√${X}`:r===1?`${k}`:`${k}√${r}`}
