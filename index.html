@@ -1398,12 +1398,13 @@ function renderWalkSteps(){
 }
 function wkNext(){if(!st.wkAll||st.wkN>=st.wkAll.length)return false;st.wkN++;beep(650+st.wkN*70,.05);renderWalkSteps();const el=$("wkSteps").lastElementChild;el&&el.scrollIntoView({behavior:"smooth",block:"nearest"});return true}
 function setQM(k,anim){const x=xpOf(k);$("qm").classList.remove("hidden");$("qmBar").style.width=(x/MX*100)+"%";$("qmBar").style.background=x>=MX?"var(--good)":"var(--root)";$("qmTxt").textContent=x>=MX?"Mastered ✓":`Mastery ${x}/${MX}`;if(anim){$("qm").classList.remove("pulse");void $("qm").offsetWidth;$("qm").classList.add("pulse")}}
-function popup(t,c){const p=$("pop");p.innerHTML=t;p.style.color=c;p.classList.remove("on");void p.offsetWidth;p.classList.add("on");setTimeout(()=>p.classList.remove("on"),550)}
+const POP_MS=550,POP_MISS_MS=2200;let popT=0;
+function popup(t,c,ms){const p=$("pop");p.innerHTML=t;p.style.color=c;p.classList.remove("on");void p.offsetWidth;p.classList.add("on");clearTimeout(popT);popT=setTimeout(()=>p.classList.remove("on"),ms||POP_MS)}
 function resolve(ok){
   st.locked=true;$("idk").classList.add("hidden");st.total++;
   if(st.quiz){st.qi++;st.qres.push([st.cur.key,ok?1:0]);
     if(ok){st.right++;$("sc").textContent=st.right;const cg=addCoins(COIN_PER_RIGHT);popup(`Correct<div style="font-size:15px">+${cg} 🪙</div>`,"var(--good)");beep(880,.08);flash("fok");setTimeout(next,450)}
-    else{popup("Missed","var(--bad)");beep(150,.2,"square",.07);flash("fbad");st.paused=true;showWalk();$("go").classList.remove("hidden");$("why").classList.remove("hidden");setTimeout(()=>$("go").scrollIntoView({behavior:"smooth",block:"nearest"}),60)}
+    else{popup("Missed","var(--bad)",POP_MISS_MS);beep(150,.2,"square",.07);flash("fbad");st.paused=true;showWalk();$("go").classList.remove("hidden");$("why").classList.remove("hidden");setTimeout(()=>$("go").scrollIntoView({behavior:"smooth",block:"nearest"}),60)}
     return}
   const mk=st.cur.key,mo=sk[mk]||{r:0,t:0},xb=xpOf(mk),wasSM=xb>=MX;let mg=0;
   if(!wasSM){if(ok){mg=MX_GAIN+(mult()>=3?5:0)}else mg=-(st.pk&&st.pk.idk?IDK_LOSS:MX_LOSS)}
@@ -1425,10 +1426,10 @@ function resolve(ok){
     if(red)extra+='<div style="font-size:16px">rematch won</div>';
     else if(speed>=45)extra+='<div style="font-size:16px">fast</div>';
     if(up)extra+=`<div style="font-size:20px">combo ×${mult()}</div>`;
-    if(mg>0)extra+=`<div style="font-size:15px;color:var(--good)">+${mg} mastery</div>`;
+    if(mg>0)extra+=`<div style="font-size:15px;color:var(--good)">+${mg} progress · ${mo.xp}/${MX}</div>`;
     if(revMsg)extra+=`<div style="font-size:15px;color:var(--good)">${revMsg}</div>`;
     if(nowSM){extra+=`<div style="font-size:20px;color:var(--good)">${TAGS[mk]} mastered!</div>`;beep(1047,.15,"triangle",.12,.15);beep(1568,.25,"triangle",.12,.3)}
-    const cg=addCoins(COIN_PER_RIGHT+(mg>0?mg*COIN_PER_MASTERY:0)+(nowSM?COIN_MASTERED:0));
+    const cg=addCoins(COIN_PER_RIGHT+(nowSM?COIN_MASTERED:0));
     extra+=`<div style="font-size:15px;color:var(--hot)">+${cg} 🪙</div>`;
     popup(`+${pts}${extra}`,"var(--hot)");
     beep(Math.min(1200,520+st.streak*45),.1);if(up)beep(1320,.15,"triangle",.12,.08);
@@ -1442,7 +1443,7 @@ function resolve(ok){
     let note="−3s";
     st.streak=0;if(mg<0)note+=` · −${-mg} mastery`
     if(revMsg)note+=" · "+revMsg;
-    hudCombo();popup(note,"var(--bad)");beep(140,.28,"square",.08);buzz([60,40,60]);flash("fbad");
+    hudCombo();popup(note,"var(--bad)",POP_MISS_MS);beep(140,.28,"square",.08);buzz([60,40,60]);flash("fbad");
     st.paused=true;showWalk();
     $("why").classList.remove("hidden");$("go").classList.remove("hidden");
     setTimeout(()=>$("go").scrollIntoView({behavior:"smooth",block:"nearest"}),60);
