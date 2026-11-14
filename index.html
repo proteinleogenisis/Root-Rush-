@@ -65,9 +65,6 @@ body{transition:background .15s}
 body.fok{background:var(--goodbg)}body.fbad{background:var(--badbg)}
 .opt.words{font-size:15px;line-height:1.35;padding:12px 14px}
 .small{padding:8px 12px;font-size:14px}
-.pu{flex:1;padding:10px 8px;font-size:14px;font-weight:700;border-color:var(--root);color:var(--root);display:flex;gap:6px;align-items:center;justify-content:center}
-.pu.none{flex:1;text-align:center;font-size:13px;color:var(--mute);padding:8px;border:1px dashed var(--line);border-radius:12px;display:block;font-weight:400}
-.pu.empty{border-style:dashed;color:var(--mute);border-color:var(--line);font-weight:400}
 .tag.rm{background:var(--hot);color:#fff}
 .slots{display:flex;flex-direction:column;gap:6px;margin-top:8px}
 .slot{border:1px dashed var(--line);border-radius:10px;padding:10px 12px;font-size:15px;color:var(--mute);min-height:42px}
@@ -251,7 +248,7 @@ body.calc-open .calc-fab{display:none}
 .wk-sum{margin-top:12px;font-size:15px;border-top:1px solid var(--line);padding-top:10px}
 .why .l-step .mono{font-size:17px}
 .quizbtn{background:var(--good);border-color:var(--good);margin-bottom:6px}
-#game.quizmode #pu,#game.quizmode .race,#game.quizmode #mt{display:none}
+#game.quizmode .race,#game.quizmode #mt{display:none}
 .revcard{border-color:var(--root);border-width:2px;margin-top:18px}
 .rv-t{font-size:17px;font-weight:700;margin-bottom:4px}.rv-s{font-size:13px;margin-bottom:6px}
 .rvbtn{background:var(--root);border-color:var(--root);margin-top:6px}
@@ -328,8 +325,7 @@ body.calc-open .calc-fab{display:none}
     <div><b>Combo</b>: goes up every 3 in a row (max ×5)</div>
     <div><b>Last 10 seconds</b>: double points</div>
     <div><b>Wrong answer</b>: −3 seconds, combo resets, and the clock stops so you can read why</div>
-    <div><b>Coins</b>: every right answer earns coins, with bonuses for mastering a skill and passing a final quiz. Spend them in the <b>🎰 Casino</b> (tap Casino on Home): gamble if you dare, buy power-ups, and dress up your profile</div>
-    <div><b>Power-ups</b>: buy them in the Casino shop with coins. Freeze stops the clock for 5s. Shield saves your combo and mastery on one miss. Double makes the next 3 answers worth ×2 points. Boost makes the next 3 answers worth ×2 mastery</div>
+    <div><b>Coins</b>: every right answer earns coins, with bonuses for mastering a skill and passing a final quiz. Spend them in the <b>🎰 Casino</b> (tap Casino on Home): gamble if you dare, and dress up your profile</div>
     <div><b>I don't know</b>: tap it (top right of the question) instead of guessing. It counts as a miss (−10 mastery instead of −15), and you go straight to the step-by-step</div>
     <div><b>Rematch</b>: a type you miss comes back a few questions later. Get it right for +150</div>
     <div><b>Mastery</b>: each skill fills to 100. A right answer is +20 (+25 at combo ×3 or higher), a miss is −15. Once a skill hits 100 it stays Mastered and stops showing up in runs. When every skill in a day is mastered, take the <b>final quiz</b> (2 questions per skill, no timer, 80% to pass) to unlock the next day. Skills you miss on the quiz drop back to 60.</div>
@@ -374,7 +370,6 @@ body.calc-open .calc-fab{display:none}
   <div class="race"><div class="track"></div><div class="dot gh" id="ghd" style="left:0"></div><div class="dot you" id="yd" style="left:0"></div></div>
   <div class="mono mute" id="vs" style="font-size:13px;text-align:right;margin-top:-6px;margin-bottom:6px">no ghost yet</div>
   <div class="banner" id="bn"></div>
-  <div id="pu" style="display:flex;gap:8px;margin-bottom:10px"></div>
   <div class="card" id="qc">
     <button class="idk hidden" id="idk" aria-label="I don't know: show me how">I don't know</button>
     <span class="tag" id="tg"></span>
@@ -694,10 +689,8 @@ const $=id=>document.getElementById(id);
 const LS={get(k,d){try{const v=localStorage.getItem("rootrush_"+k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem("rootrush_"+k,JSON.stringify(v))}catch(e){}}};
 // ---- Economy: coins are earned only by studying. Tune the numbers here. ----
 const COIN_PER_RIGHT=2,COIN_PER_LT=1,COIN_PER_MASTERY=1,COIN_MASTERED=50,COIN_QUIZ_PASS=200,TRAINING_MULT=1.5;
-const PU_PRICE={freeze:150,shield:200,double:250,boost:300};
-const PU_DESC={freeze:"Stops the clock for 5 seconds",shield:"Saves your combo and mastery on one miss",double:"Next 3 answers worth ×2 points",boost:"Next 3 answers worth ×2 mastery"};
-let econ=LS.get("econ",{coins:0,inv:{freeze:0,shield:0,double:0,boost:0},owned:[],equipped:{},t:0});
-function normEcon(){if(!econ||typeof econ!=="object")econ={};econ.coins=Math.max(0,Math.floor(+econ.coins||0));econ.inv=Object.assign({freeze:0,shield:0,double:0,boost:0},econ.inv||{});econ.owned=Array.isArray(econ.owned)?econ.owned:[];econ.equipped=econ.equipped&&typeof econ.equipped==="object"?econ.equipped:{};econ.t=+econ.t||0}
+let econ=LS.get("econ",{coins:0,owned:[],equipped:{},t:0});
+function normEcon(){if(!econ||typeof econ!=="object")econ={};econ.coins=Math.max(0,Math.floor(+econ.coins||0));delete econ.inv;econ.owned=Array.isArray(econ.owned)?econ.owned:[];econ.equipped=econ.equipped&&typeof econ.equipped==="object"?econ.equipped:{};econ.t=+econ.t||0}
 normEcon();
 function saveEcon(){econ.t=Date.now();LS.set("econ",econ);persist()}
 let runs=LS.get("runs",0);
@@ -707,7 +700,6 @@ function bestOf(d){return (bestBy[d]||{}).best||0}
 function durOf(d){return (bestBy[d]||{}).dur||60}
 let day=LS.get("day",{streak:0,last:null,freezes:0});
 const TOTAL=180,LT_AT=90,LT_WRONG_LOCK=5; // LT_WRONG_LOCK: seconds you can't answer after a wrong lightning answer
-const PU={freeze:{name:"Freeze",icon:"❄"},shield:{name:"Shield",icon:"◆"},double:{name:"Double",icon:"×2"},boost:{name:"Boost",icon:"▲"}};
 
 let ac=null,sound=LS.get("sound",true);
 function beep(f,d=.09,type="sine",v=.14,delay=0){if(!sound||!ac)return;try{const t=ac.currentTime+delay,o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g).connect(ac.destination);o.start(t);o.stop(t+d)}catch(e){}}
@@ -1260,11 +1252,11 @@ function start(f){
   else if(f&&f.mastery){const um=LESSONS[selDay].filter(k=>lvl(k)<3);pool=um.length?um:LESSONS[selDay].slice();focus="mastery";label="Mastery run · Day "+DAYS[selDay].n}
   try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();ac.resume()}catch(e){}
   st={score:0,streak:0,maxStreak:0,time:TOTAL,elapsed:0,right:0,total:0,miss:{},paused:true,done:false,counting:true,
-      pu:[],coinsRun:0,training:false,freeze:0,shield:false,dbl:0,boost:0,queue:[],qn:0,lastSec:TOTAL+1,mode:"main",ltDone:!!focus,focus,pool,label,quiz,qlist,qi:0,qres:[],reviewOnly,revCount:0,revRight:0,review:!f&&dayPassed(selDay),lastFocus:f||null,wasM:dayMastered(selDay),day:selDay,gBest:bestOf(selDay),gDur:durOf(selDay)};
+      coinsRun:0,training:false,queue:[],qn:0,lastSec:TOTAL+1,mode:"main",ltDone:!!focus,focus,pool,label,quiz,qlist,qi:0,qres:[],reviewOnly,revCount:0,revRight:0,review:!f&&dayPassed(selDay),lastFocus:f||null,wasM:dayMastered(selDay),day:selDay,gBest:bestOf(selDay),gDur:durOf(selDay)};
   $("gMode").textContent=label||"Unit "+selDay+(st.review?" · Review Rush":" · Rush");
   {const L=document.querySelectorAll("#game .stat small");L[0].textContent=quiz?"correct":"score";L[1].textContent=quiz?"to pass":"combo";L[2].textContent=quiz?"question":"time"}
   $("game").classList.toggle("quizmode",quiz);
-  $("sc").textContent="0";$("bn").textContent="";hudCombo();renderPU();
+  $("sc").textContent="0";$("bn").textContent="";hudCombo();
   $("vs").textContent=st.gBest?"":"no ghost yet: set one this run";
   show("game");next();cancelAnimationFrame(raf);let last=performance.now();
   const loop=now=>{const dt=Math.min(.1,(now-last)/1000);last=now;frame(dt);if(!st.done)raf=requestAnimationFrame(loop)};raf=requestAnimationFrame(loop);
@@ -1283,16 +1275,15 @@ function frame(dt){
   }
   if(!st.paused){
     st.elapsed+=dt;
-    if(st.freeze>0)st.freeze=Math.max(0,st.freeze-dt);else st.time-=dt;
+    st.time-=dt;
     const sec=Math.ceil(st.time);if(sec<st.lastSec){st.lastSec=sec;if(sec<=5&&sec>0)beep(660,.05,"square",.05)}
     if(!st.ltDone&&st.time<=LT_AT)st.ltPending=true;
   }
   if(st.time<=0){st.time=0;return finish()}
   $("tm").textContent=Math.ceil(st.time);$("tf").style.width=Math.min(100,st.time/TOTAL*100)+"%";
-  $("tf").style.background=st.freeze>0?"var(--root)":st.time<=10?"var(--hot)":"var(--pow)";
+  $("tf").style.background=st.time<=10?"var(--hot)":"var(--pow)";
   let b="";
-  if(!st.counting){if(st.freeze>0)b=`Clock frozen: ${Math.ceil(st.freeze)}s`;else if(st.time<=10)b="Double points: last 10 seconds";else if(st.boost>0)b=`Mastery boost: next ${st.boost} answer${st.boost>1?"s":""} ×2`;else if(st.dbl>0)b=`Double: ${st.dbl} left`;else if(mult()===5)b="On fire: ×5";else if(!st.ltDone&&st.time<=LT_AT+5)b="Lightning round incoming";}
-  if(st.shield&&!b)b="Shield up: your combo is protected";
+  if(!st.counting){if(st.time<=10)b="Double points: last 10 seconds";else if(mult()===5)b="On fire: ×5";else if(!st.ltDone&&st.time<=LT_AT+5)b="Lightning round incoming";}
   $("bn").textContent=b;
   const ghostScore=st.gBest*Math.min(1,st.elapsed/st.gDur);
   const top=Math.max(st.gBest,st.score,1)*1.05;
@@ -1304,18 +1295,6 @@ function addCoins(n){
   n=Math.max(0,n);if(st&&st.training)n*=TRAINING_MULT;n=Math.round(n);
   if(n>0){econ.coins+=n;if(st&&typeof st.coinsRun==="number")st.coinsRun+=n;saveEcon()}
   return n}
-function renderPU(){
-  const box=$("pu");box.innerHTML="";let any=false;
-  for(const k of Object.keys(PU)){const n=econ.inv[k]||0;if(n<=0)continue;any=true;
-    const b=document.createElement("button");b.className="pu";b.innerHTML=`<span>${PU[k].icon}</span>${PU[k].name} ×${n}`;b.onclick=()=>usePU(k);box.appendChild(b)}
-  if(!any){const d=document.createElement("div");d.className="pu none";d.textContent="No power-ups. Buy them in the 🎰 Casino shop.";box.appendChild(d)}
-}
-function usePU(k){
-  if(st.paused||st.done||st.mode!=="main"||!PU[k]||(econ.inv[k]||0)<=0)return;
-  econ.inv[k]--;saveEcon();
-  if(k==="freeze")st.freeze+=5;if(k==="shield")st.shield=true;if(k==="double")st.dbl+=3;if(k==="boost")st.boost+=3;
-  beep(990,.12,"triangle",.12);beep(1480,.15,"triangle",.1,.08);popup(PU[k].name+"!","var(--root)");renderPU();
-}
 function mkBtn(cls,html,fn){const b=document.createElement("button");b.className=cls;b.innerHTML=html;b.onclick=fn;return b}
 function playPool(){
   const um=a=>a.filter(k=>lvl(k)<3);
@@ -1423,8 +1402,7 @@ function resolve(ok){
     else{popup("Missed","var(--bad)");beep(150,.2,"square",.07);flash("fbad");st.paused=true;showWalk();$("go").classList.remove("hidden");$("why").classList.remove("hidden");setTimeout(()=>$("go").scrollIntoView({behavior:"smooth",block:"nearest"}),60)}
     return}
   const mk=st.cur.key,mo=sk[mk]||{r:0,t:0},xb=xpOf(mk),wasSM=xb>=MX;let mg=0;
-  if(!wasSM){if(ok){mg=(MX_GAIN+(mult()>=3?5:0))*(st.boost>0?2:1)}else if(!st.shield)mg=-(st.pk&&st.pk.idk?IDK_LOSS:MX_LOSS)}
-  if(st.boost>0)st.boost--;
+  if(!wasSM){if(ok){mg=MX_GAIN+(mult()>=3?5:0)}else mg=-(st.pk&&st.pk.idk?IDK_LOSS:MX_LOSS)}
   mo.t++;if(ok)mo.r++;mo.rec=(mo.rec||[]).concat(ok?1:0).slice(-10);mo.xp=Math.max(0,Math.min(MX,xb+mg));if(mo.xp>=MX)mo.m=true;sk[mk]=mo;LS.set("skills",sk);
   const nowSM=!wasSM&&mo.m;setQM(mk,true);
   if(nowSM){mo.due=Date.now()+2*DAYMS;mo.iv=2}
@@ -1434,7 +1412,7 @@ function resolve(ok){
     const before=mult();
     st.streak++;st.maxStreak=Math.max(st.maxStreak,st.streak);st.right++;
     const win=st.cur.win||5,secs=(performance.now()-st.qStart)/1000,speed=Math.max(0,Math.round((win-secs)*75/win));
-    let x=1;if(st.time<=10)x*=2;if(st.dbl>0){x*=2;st.dbl--}
+    let x=1;if(st.time<=10)x*=2;
     const red=st.cur.rematch?150:0;
     const pts=(100*mult()+speed+red)*x;
     st.score+=pts;st.time=Math.min(TOTAL,st.time+1);
@@ -1443,7 +1421,7 @@ function resolve(ok){
     if(red)extra+='<div style="font-size:16px">rematch won</div>';
     else if(speed>=45)extra+='<div style="font-size:16px">fast</div>';
     if(up)extra+=`<div style="font-size:20px">combo ×${mult()}</div>`;
-    if(mg>0)extra+=`<div style="font-size:15px;color:var(--good)">+${mg} mastery${st.boost>=0&&mg>25?" (boosted)":""}</div>`;
+    if(mg>0)extra+=`<div style="font-size:15px;color:var(--good)">+${mg} mastery</div>`;
     if(revMsg)extra+=`<div style="font-size:15px;color:var(--good)">${revMsg}</div>`;
     if(nowSM){extra+=`<div style="font-size:20px;color:var(--good)">${TAGS[mk]} mastered!</div>`;beep(1047,.15,"triangle",.12,.15);beep(1568,.25,"triangle",.12,.3)}
     const cg=addCoins(COIN_PER_RIGHT+(mg>0?mg*COIN_PER_MASTERY:0)+(nowSM?COIN_MASTERED:0));
@@ -1458,7 +1436,7 @@ function resolve(ok){
     st.time-=3;st.miss[st.cur.key]=(st.miss[st.cur.key]||0)+1;
     st.queue.push({key:st.cur.key,at:st.qn+ri(2,4)});
     let note="−3s";
-    if(st.shield){st.shield=false;note="−3s · shield saved your combo and mastery"}else{st.streak=0;if(mg<0)note+=` · −${-mg} mastery`}
+    st.streak=0;if(mg<0)note+=` · −${-mg} mastery`
     if(revMsg)note+=" · "+revMsg;
     hudCombo();popup(note,"var(--bad)");beep(140,.28,"square",.08);buzz([60,40,60]);flash("fbad");
     st.paused=true;showWalk();
@@ -1648,8 +1626,6 @@ const api={
   sound(k){const m={win:[[784,.12],[1047,.18]],lose:[[220,.25]],click:[[600,.04]],chip:[[900,.05]],spin:[[500,.04]],buy:[[880,.08],[1320,.12]]}[k];if(m)m.forEach((x,i)=>beep(x[0],x[1],"triangle",.1,i*.09))},
   toast(h){popup(h,"var(--hot)")},
   back(){home()},
-  powerups:()=>Object.keys(PU).map(k=>({key:k,name:PU[k].name,icon:PU[k].icon,desc:PU_DESC[k],price:PU_PRICE[k],owned:econ.inv[k]||0})),
-  buyPowerup(k){if(!PU_PRICE[k]||!api.spend(PU_PRICE[k],"powerup "+k))return false;econ.inv[k]=(econ.inv[k]||0)+1;saveEcon();return true},
   stats(){const all=Object.values(LESSONS).flat();return{mastered:all.filter(k=>lvl(k)===3).length,total:all.length,passedDays:Object.values(passed).filter(Boolean).length,runs,best:Math.max(0,...Object.values(bestBy).map(x=>+(x&&x.best)||0))}},
   owned:()=>econ.owned.slice(),
   equipped:()=>Object.assign({},econ.equipped),
@@ -1662,7 +1638,7 @@ function openMount(screen,mountId,lib,msg){show(screen);const d=$(mountId);d.inn
 function openCasino(){openMount("casino","casinoMount","RRCasino","Casino is loading…")}
 function openProfile(){openMount("profile","profileMount","RRProfile","Profile is loading…")}
 function renderProfBtn(){const b=$("profBtn");if(!b)return;let h="👤";
-  try{if(window.RRProfile&&RRProfile.avatarSVG)h=RRProfile.avatarSVG({smart:RRProfile.smartLevel(api.stats()),equipped:econ.equipped,size:34,crop:"head"})}catch(e){}
+  try{if(window.RRProfile&&RRProfile.avatarSVG)h=RRProfile.avatarSVG({equipped:econ.equipped,size:34,crop:"head"})}catch(e){}
   b.innerHTML=h}
 $("casinoBtn").onclick=openCasino;$("coinChip").onclick=openCasino;$("profBtn").onclick=openProfile;$("cHome").onclick=home;$("pHome").onclick=home;
 home();

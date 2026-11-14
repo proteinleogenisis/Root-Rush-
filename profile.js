@@ -1,4 +1,4 @@
-/* Root Rush profile: the guy, his smart level, and the cosmetics shop.
+/* Root Rush profile: the guy and the cosmetics shop.
    Plain script: sets globalThis.RRProfile. Touches document only inside mount(). */
 (function () {
   "use strict";
@@ -23,9 +23,6 @@
     { id: "penthouse", slot: "place", name: "Penthouse", price: 6000, desc: "Marble floors, night skyline" },
     { id: "yacht", slot: "place", name: "Yacht", price: 12000, desc: "Open water, sun on deck" }
   ];
-  var SMART_NAMES = ["Clueless", "Learning", "Sharp", "Brainy", "Genius", "Professor"];
-  var SMART_STEPS = [0, 2, 5, 9, 14, 20]; // score needed per level
-  var PASSED_DAY_WEIGHT = 3;               // a passed day counts like this many mastered skills
   var TRY_ON_MS = 2000;                    // how long a try-on preview shows
   var SLOTS = [
     ["place", "Place", "🏠"], ["ride", "Ride", "🚗"], ["outfit", "Outfit", "👕"],
@@ -41,15 +38,6 @@
   var BY_ID = {};
   CATALOG.forEach(function (c) { BY_ID[c.id] = c; });
 
-  function score(stats) {
-    stats = stats || {};
-    return (Number(stats.mastered) || 0) + PASSED_DAY_WEIGHT * (Number(stats.passedDays) || 0);
-  }
-  function smartLevel(stats) {
-    var s = score(stats), lv = 0;
-    for (var i = 0; i < SMART_STEPS.length; i++) if (SMART_STEPS[i] <= s) lv = i;
-    return lv;
-  }
   function netWorth(owned) {
     var t = 0;
     (owned || []).forEach(function (id) { if (BY_ID[id]) t += BY_ID[id].price; });
@@ -165,7 +153,6 @@
 
   function avatarSVG(o) {
     o = o || {};
-    var smart = Math.max(0, Math.min(5, Math.floor(Number(o.smart)) || 0));
     var eq = o.equipped || {};
     var size = Number(o.size) > 0 ? Math.round(Number(o.size)) : 220;
     var crop = o.crop === "head";
@@ -174,7 +161,7 @@
     var outfit = eq.outfit, hat = eq.hat, shades = eq.shades, chain = eq.chain;
     var pants = outfit === "suit" ? "#23252d" : "#3d5a99";
     var s = [];
-    s.push('<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + (crop ? "66 34 88 88" : "0 0 300 300") + '" width="' + size + '" height="' + size + '" role="img" aria-label="Your guy, ' + SMART_NAMES[smart] + '">');
+    s.push('<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + (crop ? "66 34 88 88" : "0 0 300 300") + '" width="' + size + '" height="' + size + '" role="img" aria-label="Your guy">');
     s.push('<g class="pf-L-place">' + placeSVG(eq.place, id) + "</g>");
     if (eq.ride === "bike" || eq.ride === "sportscar") s.push('<g class="pf-L-ride">' + rideSVG(eq.ride) + "</g>");
     s.push('<g transform="translate(10,0)">');
@@ -234,10 +221,6 @@
       }
       s.push("</g>");
     }
-    // book under left arm
-    if (smart >= 3) {
-      s.push('<g class="pf-L-book" transform="rotate(-8 58 178)"><rect x="46" y="160" width="24" height="34" rx="2" fill="#2e7d32"/><rect x="46" y="160" width="5" height="34" fill="#1b5e20"/><rect x="52" y="166" width="14" height="3" fill="#ffd54f"/><rect x="52" y="172" width="10" height="2" fill="#ffd54f" opacity=".7"/><rect x="48" y="192" width="22" height="3" fill="#f4f1e8"/></g>');
-    }
     // hands
     s.push('<circle cx="63" cy="190" r="7.5" fill="' + skin + '"/><circle cx="137" cy="190" r="7.5" fill="' + skin + '"/>');
     // head
@@ -245,28 +228,21 @@
     s.push('<circle cx="100" cy="82" r="34" fill="' + skin + '"/>');
     s.push('<path d="M65 80 Q60 40 100 42 Q140 40 135 80 Q130 60 112 57 Q100 66 86 58 Q70 62 65 80Z" fill="' + hair + '"/>');
     // eyes
-    var px = smart === 0 ? 2 : 0, py = smart === 0 ? -2 : 1;
+    var px = 0, py = 1;
     s.push('<ellipse cx="88" cy="85" rx="6" ry="7" fill="#fff"/><ellipse cx="112" cy="85" rx="6" ry="7" fill="#fff"/>');
     s.push('<circle cx="' + (88 + px) + '" cy="' + (85 + py) + '" r="3.2" fill="#1d1d1b"/><circle cx="' + (112 + px) + '" cy="' + (85 + py) + '" r="3.2" fill="#1d1d1b"/>');
     s.push('<circle cx="' + (89 + px) + '" cy="' + (83 + py) + '" r="1" fill="#fff"/><circle cx="' + (113 + px) + '" cy="' + (83 + py) + '" r="1" fill="#fff"/>');
     // brows
-    if (smart === 0) s.push('<path d="M80 73 L96 76 M104 72 L120 66" stroke="' + hair + '" stroke-width="3" stroke-linecap="round" fill="none"/>');
-    else s.push('<path d="M80 74 Q88 70 96 74 M104 74 Q112 70 120 74" stroke="' + hair + '" stroke-width="3" stroke-linecap="round" fill="none"/>');
+    s.push('<path d="M80 74 Q88 70 96 74 M104 74 Q112 70 120 74" stroke="' + hair + '" stroke-width="3" stroke-linecap="round" fill="none"/>');
     s.push('<path d="M99 90 Q101 96 97 97" stroke="' + skinD + '" stroke-width="2" fill="none" stroke-linecap="round"/>');
     // mouth
-    if (smart === 0) s.push('<path d="M91 105 Q96 100 100 104 Q105 108 110 102" stroke="#7a3b2b" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M125 70 Q128 76 125 78 Q122 76 125 70Z" fill="#6ec6ff"/>');
-    else if (smart <= 2) s.push('<path d="M91 100 Q100 108 109 100" stroke="#7a3b2b" stroke-width="2.5" fill="none" stroke-linecap="round"/>');
-    else if (smart <= 4) s.push('<path d="M89 99 Q100 113 111 99" stroke="#7a3b2b" stroke-width="2.5" fill="none" stroke-linecap="round"/>');
-    else s.push('<path d="M88 98 Q100 116 112 98Z" fill="#7a1f2b"/><path d="M91 99 L109 99 L107 103 L93 103Z" fill="#fff"/>');
-    if (smart >= 3) s.push('<circle cx="80" cy="97" r="4" fill="#ff8a80" opacity=".45"/><circle cx="120" cy="97" r="4" fill="#ff8a80" opacity=".45"/>');
+    s.push('<path d="M91 100 Q100 108 109 100" stroke="#7a3b2b" stroke-width="2.5" fill="none" stroke-linecap="round"/>');
     // glasses / shades
     if (shades === "sunglasses") {
       s.push('<g class="pf-L-shades"><rect x="75" y="76" width="22" height="16" rx="6" fill="#111"/><rect x="103" y="76" width="22" height="16" rx="6" fill="#111"/><path d="M97 82 L103 82 M75 80 L66 78 M125 80 L134 78" stroke="#111" stroke-width="3" stroke-linecap="round"/><path d="M79 79 L85 79 M107 79 L113 79" stroke="#fff" stroke-opacity=".6" stroke-width="2" stroke-linecap="round"/></g>');
     } else if (shades === "goldshades") {
       s.push('<defs><linearGradient id="' + id + 'gl" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd54a"/><stop offset="1" stop-color="#a86b00"/></linearGradient></defs>');
       s.push('<g class="pf-L-shades"><rect x="75" y="76" width="22" height="16" rx="6" fill="url(#' + id + 'gl)" stroke="#f5c518" stroke-width="3"/><rect x="103" y="76" width="22" height="16" rx="6" fill="url(#' + id + 'gl)" stroke="#f5c518" stroke-width="3"/><path d="M97 82 L103 82 M75 80 L66 78 M125 80 L134 78" stroke="#f5c518" stroke-width="3" stroke-linecap="round"/><path d="M79 80 L85 80 M107 80 L113 80" stroke="#fff" stroke-opacity=".7" stroke-width="2" stroke-linecap="round"/>' + spark(128, 74, 7) + "</g>");
-    } else if (smart >= 2) {
-      s.push('<g class="pf-L-glasses"><circle cx="88" cy="85" r="10" fill="#cfe9ff" fill-opacity=".3" stroke="#222" stroke-width="2.5"/><circle cx="112" cy="85" r="10" fill="#cfe9ff" fill-opacity=".3" stroke="#222" stroke-width="2.5"/><path d="M98 84 L102 84 M78 83 L68 80 M122 83 L132 80" stroke="#222" stroke-width="2.5" stroke-linecap="round"/><path d="M82 80 L86 78" stroke="#fff" stroke-width="2" stroke-linecap="round"/></g>');
     }
     s.push("</g>");
     // hats
@@ -276,21 +252,8 @@
       s.push('<g class="pf-L-hat"><path d="M64 66 Q62 30 100 28 Q138 30 136 66Z" fill="#2a9d8f"/><rect x="62" y="56" width="76" height="15" rx="7" fill="#1f7a70"/><path d="M72 58 L72 69 M84 58 L84 69 M96 58 L96 69 M108 58 L108 69 M120 58 L120 69 M130 58 L130 69" stroke="#2a9d8f" stroke-width="2"/><circle cx="100" cy="24" r="9" fill="#f1faee"/><circle cx="96" cy="21" r="2" fill="#d6e4dc"/><circle cx="104" cy="26" r="2" fill="#d6e4dc"/></g>');
     } else if (hat === "crown") {
       s.push('<g class="pf-L-hat"><path d="M68 52 L68 22 L85 38 L100 14 L115 38 L132 22 L132 52Z" fill="#ffc400" stroke="#b8860b" stroke-width="2.5" stroke-linejoin="round"/><rect x="68" y="44" width="64" height="9" rx="2" fill="#e6a800" stroke="#b8860b" stroke-width="2"/><circle cx="100" cy="30" r="4.5" fill="#e63946"/><circle cx="82" cy="48" r="3" fill="#4fc3f7"/><circle cx="100" cy="48" r="3" fill="#e63946"/><circle cx="118" cy="48" r="3" fill="#66bb6a"/><circle cx="68" cy="20" r="3" fill="#fff6b0"/><circle cx="132" cy="20" r="3" fill="#fff6b0"/><circle cx="100" cy="12" r="3" fill="#fff6b0"/>' + spark(112, 24, 8) + spark(86, 30, 5) + "</g>");
-    } else if (smart >= 5) {
-      s.push('<g class="pf-L-grad"><path d="M78 48 L78 62 Q100 72 122 62 L122 48Z" fill="#26262b"/><polygon points="58,44 100,28 142,44 100,58" fill="#1b1b1f" stroke="#444" stroke-width="1.5"/><circle cx="100" cy="43" r="3" fill="#ffc400"/><path d="M100 43 L136 47 L136 66" stroke="#ffc400" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M133 64 L139 64 L141 76 L131 76Z" fill="#ffc400"/></g>');
-    }
-    // pencil behind ear
-    if (smart >= 1) {
-      s.push('<g class="pf-L-pencil" transform="rotate(24 134 80)"><rect x="131" y="58" width="6" height="26" fill="#fbc02d"/><rect x="131" y="54" width="6" height="5" fill="#f48fb1"/><rect x="131" y="52" width="6" height="3" fill="#b0bec5"/><polygon points="131,84 137,84 134,92" fill="#f1d3a1"/><polygon points="133,89 135,89 134,92" fill="#333"/></g>');
     }
     s.push("</g>"); // translate group
-    // thought bubble
-    if (smart >= 4) {
-      s.push('<g class="pf-L-bubble"><circle cx="172" cy="84" r="5" fill="#fff" stroke="#cfd8e3" stroke-width="1.5"/><circle cx="182" cy="70" r="7" fill="#fff" stroke="#cfd8e3" stroke-width="1.5"/>');
-      s.push('<ellipse cx="236" cy="38" rx="54" ry="30" fill="#fff" stroke="#cfd8e3" stroke-width="2"/>');
-      s.push('<text x="208" y="52" font-family="Georgia,serif" font-style="italic" font-weight="700" font-size="34" fill="#2b2f3a">a</text>');
-      s.push('<text x="230" y="34" font-family="Arial,sans-serif" font-weight="700" font-size="17" fill="#7F77DD">m/n</text></g>');
-    }
     s.push("</svg>");
     return s.join("");
   }
@@ -305,11 +268,6 @@
     "@keyframes pf-pop{0%{transform:scale(1)}40%{transform:scale(1.07)}100%{transform:scale(1)}}",
     ".pf-spk{transform-box:fill-box;transform-origin:center;animation:pf-tw 1.8s ease-in-out infinite}",
     "@keyframes pf-tw{50%{opacity:.35;transform:scale(.6)}}",
-    ".pf-name{text-align:center;font-size:26px;font-weight:700;letter-spacing:-.5px}",
-    ".pf-name small{display:block;font-size:12px;font-weight:500;color:var(--mute,#a3a199);letter-spacing:0;text-transform:lowercase}",
-    ".pf-meter{height:10px;border-radius:5px;background:var(--line,#33332f);margin:10px 4px 6px;overflow:hidden}",
-    ".pf-meter i{display:block;height:100%;background:var(--root,#7F77DD);border-radius:5px;transition:width .6s ease}",
-    ".pf-next{text-align:center;font-size:14px;color:var(--mute,#a3a199);min-height:20px}",
     ".pf-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0 6px}",
     ".pf-stat{background:var(--card,#1f1f1d);border:1px solid var(--line,#33332f);border-radius:12px;padding:10px 12px;min-width:0}",
     ".pf-stat small{display:block;font-size:11px;color:var(--mute,#a3a199);text-transform:lowercase}",
@@ -332,7 +290,7 @@
     ".pf-btn.buy{background:var(--hot,#D85A30);border-color:var(--hot,#D85A30);color:#fff}",
     ".pf-btn.poor{background:transparent;border-color:var(--line,#33332f);color:var(--mute,#a3a199)}",
     ".pf-btn.off{border-color:var(--good,#97C459);color:var(--good,#97C459)}",
-    "@media (prefers-reduced-motion:reduce){.pf-pop,.pf-spk,.pf-msg.bad{animation:none}.pf-meter i,.pf-card{transition:none}}"
+    "@media (prefers-reduced-motion:reduce){.pf-pop,.pf-spk,.pf-msg.bad{animation:none}.pf-card{transition:none}}"
   ].join("\n");
 
   function fmt(n) { return String(Math.round(Number(n) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
@@ -348,24 +306,14 @@
     var preview = null, timer = null, msg = null, pop = false;
 
     function render() {
-      var stats = api.stats() || {};
-      var lv = smartLevel(stats), sc = score(stats);
       var owned = api.owned() || [], eq = api.equipped() || {}, coins = api.coins();
       var shown = {}, k;
       for (k in eq) if (eq[k]) shown[k] = eq[k];
       if (preview) shown[preview.slot] = preview.id;
       var h = [];
       h.push('<div class="pf-wrap">');
-      h.push('<div class="pf-stage"><div class="pf-av' + (pop ? " pf-pop" : "") + '">' + avatarSVG({ smart: lv, equipped: shown, size: 260 }) + "</div></div>");
+      h.push('<div class="pf-stage"><div class="pf-av' + (pop ? " pf-pop" : "") + '">' + avatarSVG({ equipped: shown, size: 260 }) + "</div></div>");
       pop = false;
-      h.push('<div class="pf-name">' + SMART_NAMES[lv] + "<small>smart level " + lv + " of 5</small></div>");
-      var pct = 100, nextTxt = "Top level reached. You are a Professor.";
-      if (lv < 5) {
-        var lo = SMART_STEPS[lv], hi = SMART_STEPS[lv + 1];
-        pct = Math.round(100 * (sc - lo) / (hi - lo));
-        nextTxt = "Master skills to level up: " + (hi - sc) + " more";
-      }
-      h.push('<div class="pf-meter"><i style="width:' + pct + '%"></i></div><div class="pf-next">' + nextTxt + "</div>");
       h.push('<div class="pf-stats"><div class="pf-stat"><small>net worth</small><b>' + fmt(netWorth(owned)) + ' 🪙</b></div><div class="pf-stat"><small>coins now</small><b>' + fmt(coins) + ' 🪙</b></div></div>');
       h.push('<div class="pf-msg' + (msg ? " " + msg.kind : "") + '">' + (msg ? msg.text : (preview ? "Trying it on... buy it to keep it." : "Tap an item to try it on.")) + "</div>");
       SLOTS.forEach(function (sl) {
@@ -434,9 +382,6 @@
 
   globalThis.RRProfile = {
     CATALOG: CATALOG,
-    SMART_NAMES: SMART_NAMES,
-    SMART_STEPS: SMART_STEPS,
-    smartLevel: smartLevel,
     netWorth: netWorth,
     avatarSVG: avatarSVG,
     mount: mount
