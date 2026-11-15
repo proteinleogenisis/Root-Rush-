@@ -832,7 +832,7 @@ let st={done:true},lastKey=null,raf=null,runSeq=0;
 const $=id=>document.getElementById(id);
 const LS={get(k,d){try{const v=localStorage.getItem("rootrush_"+k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem("rootrush_"+k,JSON.stringify(v))}catch(e){}}};
 // ---- Economy: coins are earned only by studying. Tune the numbers here. ----
-const QUIZ_PASS_FRAC=1; // share of final-quiz answers needed to pass (1 = must ace it)
+const QUIZ_PASS_FRAC=1,QUIZ_MISS_XP=60; // QUIZ_MISS_XP: mastery a skill drops to when you miss it on the final quiz // share of final-quiz answers needed to pass (1 = must ace it)
 const COIN_PER_RIGHT=2,COIN_PER_LT=1,COIN_PER_MASTERY=1,COIN_MASTERED=50,COIN_QUIZ_PASS=200,TRAINING_MULT=1.5;
 let econ=LS.get("econ",{coins:0,owned:[],equipped:{},t:0});
 function normEcon(){if(!econ||typeof econ!=="object")econ={};econ.coins=Math.max(0,Math.floor(+econ.coins||0));delete econ.inv;econ.owned=Array.isArray(econ.owned)?econ.owned:[];econ.equipped=econ.equipped&&typeof econ.equipped==="object"?econ.equipped:{};econ.t=+econ.t||0}
@@ -1591,6 +1591,9 @@ function popup(t,c,ms){const p=$("pop");p.innerHTML=t;p.style.color=c;p.classLis
 function resolve(ok){
   st.locked=true;$("idk").classList.add("hidden");st.total++;
   if(st.quiz){st.qi++;st.qres.push([st.cur.key,ok?1:0]);
+    // A quiz miss counts right away (saved now), so quitting or closing the app can't dodge it.
+    // Each quiz answer also counts as an attempt, so the account sync (more attempts wins) keeps this result on every device.
+    (MIX_SK[st.cur.key]||[st.cur.key]).forEach(k=>{const o=sk[k];if(!o)return;o.t=(o.t||0)+1;if(ok)o.r=(o.r||0)+1;if(!ok){o.xp=Math.min(o.xp==null?MX:o.xp,QUIZ_MISS_XP);o.m=false}});LS.set("skills",sk);persist();
     if(ok){st.right++;$("sc").textContent=st.right;const cg=addCoins(COIN_PER_RIGHT);popup(`Correct<div style="font-size:15px">+${cg} 🪙</div>`,"var(--good)");beep(880,.08);flash("fok");setTimeout(next,450)}
     else{popup("Missed","var(--bad)",POP_MISS_MS);beep(150,.2,"square",.07);flash("fbad");st.paused=true;showWalk();$("go").classList.remove("hidden");$("why").classList.remove("hidden");setTimeout(()=>$("go").scrollIntoView({behavior:"smooth",block:"nearest"}),60)}
     return}
@@ -1684,7 +1687,7 @@ function finishQuiz(){
   if(st.done)return;st.done=true;cancelAnimationFrame(raf);
   const d=st.day,N=st.qlist.length,need=Math.ceil(N*QUIZ_PASS_FRAC),pass=st.right>=need,nx=DAY_ORDER[DAY_ORDER.indexOf(d)+1];
   const missedQ=[...new Set(st.qres.filter(x=>!x[1]).map(x=>x[0]))],missed=[...new Set(missedQ.flatMap(k=>MIX_SK[k]||[k]))];
-  if(pass)passed[d]=true;else missed.forEach(k=>{const o=sk[k];if(o){o.xp=60;o.m=false}});
+  if(pass)passed[d]=true;else missed.forEach(k=>{const o=sk[k];if(o){o.xp=Math.min(o.xp,QUIZ_MISS_XP);o.m=false}});
   if(pass)addCoins(COIN_QUIZ_PASS);
   $("eCoins").textContent=`+${st.coinsRun} 🪙 · total ${econ.coins.toLocaleString()}`;
   updateDay();persist();
