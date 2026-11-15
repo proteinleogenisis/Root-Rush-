@@ -328,7 +328,7 @@ body.calc-open .calc-fab{display:none}
     <div><b>Coins</b>: every right answer earns coins, with bonuses for mastering a skill and passing a final quiz. Spend them in the <b>🎰 Casino</b> (tap Casino on Home): gamble if you dare, and dress up your profile</div>
     <div><b>I don't know</b>: tap it (top right of the question) instead of guessing. It counts as a miss (−10 mastery instead of −15), and you go straight to the step-by-step</div>
     <div><b>Rematch</b>: a type you miss comes back a few questions later. Get it right for +150</div>
-    <div><b>Mastery</b>: each skill fills to 100. A right answer is +20 (+25 at combo ×3 or higher), a miss is −15. Once a skill hits 100 it stays Mastered and stops showing up in runs. When every skill in a day is mastered, take the <b>final quiz</b> (2 questions per skill, no timer, 80% to pass) to unlock the next day. Skills you miss on the quiz drop back to 60.</div>
+    <div><b>Mastery</b>: each skill fills to 100. A right answer is +20 (+25 at combo ×3 or higher), a miss is −15. Once a skill hits 100 it stays Mastered and stops showing up in runs. When every skill in a day is mastered, take the <b>final quiz</b> (2 questions per skill, no timer, every answer right to pass) to unlock the next day. Skills you miss on the quiz drop back to 60.</div>
     <div><b>Quick review</b>: after you pass a day, its skills come back every so often (2 days, then 4, 8, 16…). A right answer pushes the next review further out. A miss brings it back tomorrow</div>
     <div><b>Practice this</b>: a run with only one skill. It counts for skills and your streak, not your best score</div>
     <div><b>Day streak</b>: play once a day. Every 7 days earns a freeze that covers a missed day</div>
@@ -763,6 +763,7 @@ let st={done:true},lastKey=null,raf=null,runSeq=0;
 const $=id=>document.getElementById(id);
 const LS={get(k,d){try{const v=localStorage.getItem("rootrush_"+k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem("rootrush_"+k,JSON.stringify(v))}catch(e){}}};
 // ---- Economy: coins are earned only by studying. Tune the numbers here. ----
+const QUIZ_PASS_FRAC=1; // share of final-quiz answers needed to pass (1 = must ace it)
 const COIN_PER_RIGHT=2,COIN_PER_LT=1,COIN_PER_MASTERY=1,COIN_MASTERED=50,COIN_QUIZ_PASS=200,TRAINING_MULT=1.5;
 let econ=LS.get("econ",{coins:0,owned:[],equipped:{},t:0});
 function normEcon(){if(!econ||typeof econ!=="object")econ={};econ.coins=Math.max(0,Math.floor(+econ.coins||0));delete econ.inv;econ.owned=Array.isArray(econ.owned)?econ.owned:[];econ.equipped=econ.equipped&&typeof econ.equipped==="object"?econ.equipped:{};econ.t=+econ.t||0}
@@ -1152,9 +1153,9 @@ function home(){
   const D=DAYS[selDay],b=bestOf(selDay);$("dnote").textContent="";
   $("dsw").innerHTML="";DAY_ORDER.forEach(d=>{const u=dayUnlocked(d),m=dayMastered(d);$("dsw").appendChild(mkBtn(d===selDay?"on":u?"":"lock",`Day ${DAYS[d].n} · ${d}`+(dayPassed(d)?" ✓":u?"":" · locked"),()=>setDay(d)))});
   const mc=masteredCount(selDay),mt=LESSONS[selDay].length;$("mTxt").textContent=`Mastery: ${mc} of ${mt} skills`;$("mBar").style.width=(mc/mt*100)+"%";
-  $("mSlot").innerHTML="";const nxd=DAY_ORDER[DAY_ORDER.indexOf(selDay)+1],qN=mt*2,qNeed=Math.ceil(qN*.8);
+  $("mSlot").innerHTML="";const nxd=DAY_ORDER[DAY_ORDER.indexOf(selDay)+1],qN=mt*2,qNeed=Math.ceil(qN*QUIZ_PASS_FRAC);
   if(dayPassed(selDay)){$("mSlot").innerHTML=`<span class="mbadge">Day ${D.n} complete ✓${nxd?` · Day ${DAYS[nxd].n} unlocked`:""}</span>`;$("start").textContent="Review Rush · every skill";$("start").classList.remove("hidden")}
-  else if(mc===mt){$("mSlot").appendChild(mkBtn("big quizbtn",`Take the final quiz · ${qN} questions`,()=>start({quiz:true})));const n=document.createElement("div");n.className="mini mute";n.textContent=`No timer. Get ${qNeed} of ${qN} right to unlock ${nxd?"Day "+DAYS[nxd].n:"the next level"}. Skills you miss drop back to 60 mastery.`;$("mSlot").appendChild(n);$("start").classList.add("hidden")}
+  else if(mc===mt){$("mSlot").appendChild(mkBtn("big quizbtn",`Take the final quiz · ${qN} questions`,()=>start({quiz:true})));const n=document.createElement("div");n.className="mini mute";n.textContent=`No timer. Get ${qNeed===qN?"all "+qN:qNeed+" of "+qN} right to unlock ${nxd?"Day "+DAYS[nxd].n:"the next level"}. Skills you miss drop back to 60 mastery.`;$("mSlot").appendChild(n);$("start").classList.add("hidden")}
   else{$("start").textContent="Play Rush";$("start").classList.remove("hidden")}
   $("casinoBtn").textContent=`🎰 Casino · ${econ.coins.toLocaleString()} coins`;$("hCoins").textContent=econ.coins.toLocaleString();renderProfBtn();
   $("heroEye").textContent=`Unit 5 · Day ${D.n}`+(selDay===[...DAY_ORDER].reverse().find(dayUnlocked)?" · Current day":" · Review");$("heroTitle").textContent=D.t;$("heroRules").innerHTML=D.rules;$("rushMix").textContent=dayPassed(selDay)?"Review mode: every skill, just for practice":masteredCount(selDay)===LESSONS[selDay].length?"":D.mix+" · mastered skills are skipped";
@@ -1354,7 +1355,7 @@ function mult(){return Math.min(5,1+Math.floor(st.streak/3))}
 function hudCombo(){const m=mult();$("cb").textContent="×"+m;$("mt").style.width=(m===5?100:(st.streak%3)/3*100)+"%";$("qc").classList.toggle("fire",m===5)}
 function frame(dt){
   if(st.done)return;musUpdate();
-  if(st.quiz){const N=st.qlist.length;$("tm").textContent=`${Math.min(st.qi+1,N)}/${N}`;$("cb").textContent=`${Math.ceil(N*.8)}`;$("tf").style.width=(st.qi/N*100)+"%";$("tf").style.background="var(--root)";$("bn").textContent="Final quiz · no timer · no hints until you answer";$("vs").textContent="";return}
+  if(st.quiz){const N=st.qlist.length;$("tm").textContent=`${Math.min(st.qi+1,N)}/${N}`;$("cb").textContent=`${Math.ceil(N*QUIZ_PASS_FRAC)}`;$("tf").style.width=(st.qi/N*100)+"%";$("tf").style.background="var(--root)";$("bn").textContent="Final quiz · no timer · no hints until you answer";$("vs").textContent="";return}
   if(st.mode==="lt"){
     st.ltTime-=dt;$("ex").textContent=Math.max(0,Math.ceil(st.ltTime))+"s";
     $("bn").textContent="Lightning round: tap fast";
@@ -1578,14 +1579,14 @@ function updateDay(){
 }
 function finishQuiz(){
   if(st.done)return;st.done=true;cancelAnimationFrame(raf);
-  const d=st.day,N=st.qlist.length,need=Math.ceil(N*.8),pass=st.right>=need,nx=DAY_ORDER[DAY_ORDER.indexOf(d)+1];
+  const d=st.day,N=st.qlist.length,need=Math.ceil(N*QUIZ_PASS_FRAC),pass=st.right>=need,nx=DAY_ORDER[DAY_ORDER.indexOf(d)+1];
   const missed=[...new Set(st.qres.filter(x=>!x[1]).map(x=>x[0]))];
   if(pass)passed[d]=true;else missed.forEach(k=>{const o=sk[k];if(o){o.xp=60;o.m=false}});
   if(pass)addCoins(COIN_QUIZ_PASS);
   $("eCoins").textContent=`+${st.coinsRun} 🪙 · total ${econ.coins.toLocaleString()}`;
   updateDay();persist();
   $("eHead").textContent=pass?`Day ${DAYS[d].n} complete!`+(nx?` Day ${DAYS[nx].n} unlocked`:""):"Not quite yet";
-  $("eScore").textContent=`${st.right}/${N}`;$("eRank").textContent=pass?"Passed":`Need ${need} to pass`;
+  $("eScore").textContent=`${st.right}/${N}`;$("eRank").textContent=pass?"Passed":`Need all ${need} right to pass`;
   $("eBest").closest(".card").classList.add("hidden");
   $("eTip").textContent=pass?(missed.length?`You passed. Worth a quick look: ${missed.map(k=>TAGS[k]).join(", ")}.`:"Perfect quiz. You've proven every skill.")+(nx?` Day ${DAYS[nx].n} is open.`:"")
     :`Missed: ${missed.map(k=>TAGS[k]).join(", ")}. Those skills dropped back to 60 mastery. Win them back with the practice run below, then retake the quiz.`;
