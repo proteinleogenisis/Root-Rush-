@@ -134,8 +134,11 @@ body.fok{background:var(--goodbg)}body.fbad{background:var(--badbg)}
 .learnrow{display:flex;align-items:center;gap:10px;margin:14px 0 8px;font-size:13px}
 .lbar{flex:1;height:6px;background:var(--line);border-radius:3px;overflow:hidden}.lbar i{display:block;height:100%;width:0;background:var(--root)}
 .learnbtn{background:var(--root);border-color:var(--root)}
-.ldots{display:flex;gap:5px;margin-bottom:12px}.ldots i{flex:1;height:5px;border-radius:3px;background:var(--line)}
-.ldots i.on{background:var(--hot)}.ldots i.done{background:var(--good)}
+.ldots{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.ldots button{min-width:36px;min-height:36px;padding:0 8px;border-radius:10px;font-size:14px;font-weight:700;color:var(--mute)}
+.ldots button.done{color:var(--good);border-color:color-mix(in srgb,var(--good) 55%,var(--line))}
+.ldots button.on{background:var(--hot);border-color:var(--hot);color:#fff}
+.ldots button:disabled{opacity:.35}
 .hwtag{display:inline-block;font-size:12px;font-weight:700;color:var(--root);border:1px solid var(--root);border-radius:99px;padding:2px 9px;margin-bottom:8px}
 .rl-svg{display:block;width:100%;height:auto;margin:6px 0;border-radius:12px;overflow:hidden;background:var(--bg)}
 .rl-lab{font:600 11px system-ui,sans-serif;fill:var(--ink)}.rl-lab.big{font-size:13px}
@@ -1257,7 +1260,10 @@ let li=0,lStep=0,lState=null;
 function openLearn(i){li=i==null?Math.max(0,LRN().findIndex((_,j)=>!LD().includes(j))):i;if(li<0)li=0;lStep=0;lState=null;renderLearn();show("learn");window.scrollTo(0,0)}
 function renderLearn(){
   $("lCount").textContent=li>=LRN().length?"Done":`Lesson ${li+1} of ${LRN().length}`;
-  $("lDots").innerHTML=LRN().map((_,j)=>`<i class="${j===li?"on":LD().includes(j)?"done":""}"></i>`).join("");
+  // Lesson picker: jump to any lesson you've finished, or the next one you haven't.
+  const lFront=LRN().findIndex((_,j)=>!LD().includes(j)),lOpen=j=>LD().includes(j)||j===lFront;
+  $("lDots").innerHTML="";LRN().forEach((_,j)=>{const done=LD().includes(j),b=mkBtn(j===li?"on":done?"done":"",(done&&j!==li?"✓":"")+(j+1),()=>{if(!lOpen(j)||j===li)return;li=j;lStep=0;lState=null;renderLearn();window.scrollTo(0,0)});
+    b.disabled=!lOpen(j)&&j!==li;b.setAttribute("aria-label","Lesson "+(j+1)+(done?", done":""));$("lDots").appendChild(b)});
   const box=$("lCard");
   if(li>=LRN().length){box.innerHTML=`<div class="l-title">You've got ${selDay}</div><div class="l-rule">${LD().length} of ${LRN().length} lessons done. Each one matches a part of your homework, so you can go back to any of them while you work. Next, lock it in with a Rush.</div>`;
     box.appendChild(mkBtn("big l-btn","Play Rush",()=>start(null)));box.appendChild(mkBtn("l-btn","Home",home));return}
@@ -1266,8 +1272,9 @@ function renderLearn(){
   let h=`<span class="hwtag">${L.hw}</span>${ls.length?`<span class="hwtag sktag">Skill: ${ls.map(k=>TAGS[k]).join(" · ")}</span>`:""}<div class="l-title">${L.t}</div><div class="l-rule">${L.rule}</div><div class="l-h">Example</div><div class="l-problem mono">${L.prob}</div>`;
   L.steps.slice(0,lStep).forEach((s,j)=>{h+=`<div class="l-step"><b>${j+1}</b><div><span class="mono">${s[0]}</span><small>${s[1]}</small></div></div>`});
   box.innerHTML=h;
+  const skipDone=()=>{if(LD().includes(li)&&!(lState&&lState.ok))box.appendChild(mkBtn("l-btn",li===LRN().length-1?"Already done: finish ›":"Already done: skip to next lesson ›",()=>{li++;lStep=0;lState=null;renderLearn();window.scrollTo(0,0)}))};
   if(lStep<L.steps.length){box.appendChild(mkBtn("big l-btn",lStep===0?"Show step 1":"Next step",()=>{lStep++;beep(700+lStep*80,.06);renderLearn()}));
-    const sk=mkBtn("l-btn","Show all steps",()=>{lStep=L.steps.length;renderLearn()});box.appendChild(sk);return}
+    const sk=mkBtn("l-btn","Show all steps",()=>{lStep=L.steps.length;renderLearn()});box.appendChild(sk);skipDone();return}
   if(L.note){const n=document.createElement("div");n.className="l-note";n.innerHTML=L.note;box.appendChild(n)}
   const t=document.createElement("div");t.innerHTML=`<div class="l-h" style="margin-top:16px">Your turn</div><div class="q">${L.chk.q}</div>`;box.appendChild(t);
   if(!lState)lState={order:shuffle(L.chk.o.map((_,j)=>j)),tried:[],ok:false};
@@ -1279,6 +1286,7 @@ function renderLearn(){
     if(lState.ok&&j===L.chk.a)b.classList.add("ok");if(lState.tried.includes(j))b.classList.add("no");box.appendChild(b)});
   if(lState.tried.length||lState.ok){const w=document.createElement("div");w.className="why";w.style.borderColor=lState.ok?"var(--good)":"var(--bad)";
     w.innerHTML=(lState.ok?"<b>Yes.</b> ":"<b>Not that one. Try again.</b> ")+(lState.ok||lState.tried.length>1?L.chk.why:"Look back at step "+L.steps.length+" of the example.");box.appendChild(w)}
+  if(!lState.ok)skipDone();
   if(lState.ok)box.appendChild(mkBtn("big l-btn",li===LRN().length-1?"Finish":"Next lesson",()=>{li++;lStep=0;lState=null;renderLearn();window.scrollTo(0,0)}));
 }
 let cloud=null,cloudBusy=false,cloudAgain=false,cloudT=null,syncState="local";

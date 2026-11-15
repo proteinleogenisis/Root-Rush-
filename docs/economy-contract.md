@@ -52,7 +52,7 @@ RRCasino.logic = {
 }
 ```
 
-Bets: chips 10, 25, 50, 100 and "All in". Minimum bet 10. Never bet more than `api.coins()`.
+Bets: chips 10, 25, 50, 100 stack (each tap adds), Clear, and "All in". Minimum bet 10. Never bet more than `api.coins()`.
 The bet is taken with `api.spend` when the round starts; winnings come back with `api.earn`.
 
 ## `globalThis.RRProfile`

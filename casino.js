@@ -6,6 +6,7 @@
   // ---------- tunables ----------
   var CHIPS = [10, 25, 50, 100];
   var MIN_BET = 10;
+  var STACK_MAX = 12;          // most chips drawn in the bet pile
   var BIG_WIN_MULT = 5;        // toast when net win >= this many times the stake
   var BIG_WIN_COINS = 250;     // ...or this many coins
   var DEAL_STEP_MS = 260;      // stagger between dealt cards at the start of a hand
@@ -205,6 +206,12 @@
     ".cz-msg{border-radius:12px;padding:12px;font-weight:700;text-align:center;margin:10px 0;border:1px solid var(--line);background:var(--bg);color:var(--ink);line-height:1.35}",
     ".cz-msg.win{background:var(--goodbg);border-color:var(--good);color:var(--good)}",
     ".cz-msg.lose{background:var(--badbg);border-color:var(--bad);color:var(--bad)}",
+    ".cz-betrow{display:flex;align-items:center;justify-content:center;gap:12px;margin:4px 0 2px}",
+    ".cz-betrow .cz-sub{text-align:center;line-height:1.3}.cz-betrow .cz-sub b{font-size:18px;color:#ffe08a}.cz-betrow small{font-size:11px;opacity:.8}",
+    ".cz-stack{position:relative;width:46px;height:64px;flex:none;align-self:flex-end}",
+    ".cz-stack i{position:absolute;left:0;width:46px;height:15px;border-radius:50%;background:var(--chc);box-shadow:inset 0 0 0 2px rgba(255,255,255,.75),0 2px 0 rgba(0,0,0,.45);animation:cz-drop .25s ease-out both}",
+    "@keyframes cz-drop{from{transform:translateY(-14px);opacity:0}to{transform:none;opacity:1}}",
+    ".cz-clr{min-height:40px;padding:6px 12px;border-radius:20px;font-size:13px;font-weight:700}",
     ".cz-bets{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;margin:6px 0 10px}",
     ".cz-chb{position:relative;width:54px;height:54px;min-height:54px!important;border-radius:50%!important;padding:0;font-weight:800;font-size:16px;color:#fff!important;border:0!important;background:var(--chc,#2b6cb0)!important;box-shadow:inset 0 0 0 3px var(--chc,#2b6cb0),inset 0 0 0 5px rgba(255,255,255,.9),0 3px 0 rgba(0,0,0,.55);text-shadow:0 1px 2px rgba(0,0,0,.6)}",
     ".cz-chb::after{content:'';position:absolute;inset:7px;border-radius:50%;border:2px dashed rgba(255,255,255,.65);pointer-events:none}",
@@ -525,23 +532,28 @@
     function normBet() {
       var c = api.coins();
       if (g.all) return;
-      if (g.bet > c) {
-        g.bet = MIN_BET;
-        for (var i = 0; i < CHIPS.length; i++) if (CHIPS[i] <= c) g.bet = CHIPS[i];
-      }
+      if (g.bet > c) g.bet = c >= MIN_BET ? c : 0;
     }
     function curBet() { var c = api.coins(); return g.all ? c : Math.min(g.bet, c); }
     function canBet() { return api.coins() >= MIN_BET; }
 
     function betPicker() {
       normBet();
-      var c = api.coins(), b = curBet(), h = '<div class="cz-sub" style="text-align:center">Your bet: ' + b + ' coins</div><div class="cz-bets">';
+      // Chips stack: each tap adds that chip to the bet. Clear empties it.
+      var c = api.coins(), b = curBet(), h = '<div class="cz-betrow"><div class="cz-stack" aria-hidden="true">' + stackHtml(b) + '</div><div class="cz-sub">Your bet: <b>' + b + "</b> coins" + (b < MIN_BET ? "<br><small>Tap chips to stack a bet</small>" : "") + '</div><button class="cz-clr" data-a="clear"' + (b ? "" : " disabled") + ">Clear</button></div><div class=\"cz-bets\">";
       CHIPS.forEach(function (v) {
-        h += '<button class="cz-chb d' + v + (!g.all && b === v ? " on" : "") + '" data-a="chip" data-v="' + v + '" aria-label="Bet ' + v + '"' + (c < v ? " disabled" : "") + ">" + v + "</button>";
+        h += '<button class="cz-chb d' + v + '" data-a="chip" data-v="' + v + '" aria-label="Add ' + v + '"' + (g.all || b + v > c ? " disabled" : "") + ">+" + v + "</button>";
       });
       h += '<button class="cz-allin' + (g.all ? " on" : "") + '" data-a="allin"' + (c < MIN_BET ? " disabled" : "") + ">All in</button></div>";
       return h;
     }
+    // A small pile of chips that matches the bet (biggest chips at the bottom).
+    function stackHtml(b) {
+      var out = [], left = b, i, k = 0;
+      for (i = CHIPS.length - 1; i >= 0; i--) while (left >= CHIPS[i] && out.length < STACK_MAX) { out.push(CHIPS[i]); left -= CHIPS[i]; }
+      return out.map(function (v) { return '<i class="d' + v + '" style="bottom:' + (k++ * 6) + 'px"></i>'; }).join("");
+    }
+    function goDis() { return curBet() < MIN_BET ? " disabled" : ""; }
     function broke() { return '<div class="cz-broke">😕 Out of coins: play a Rush to earn more.</div>'; }
     function takeBet(why) {
       var b = curBet();
@@ -610,7 +622,7 @@
       setHtml("#bj-msg", msgBox(bj.msg, bj.win));
       var h = "";
       if (bj.phase === "bet" || bj.phase === "done") {
-        h = canBet() ? betPicker() + '<button class="cz-go" data-a="bj-deal">' + (bj.phase === "done" ? "Deal again" : "Deal") + " (" + curBet() + ")</button>" : broke();
+        h = canBet() ? betPicker() + '<button class="cz-go" data-a="bj-deal"' + goDis() + '>' + (bj.phase === "done" ? "Deal again" : "Deal") + " (" + curBet() + ")</button>" : broke();
       } else {
         var play = bj.phase === "play", canDbl = play && bj.p.length === 2 && api.coins() >= bj.bet;
         h = '<div class="cz-row"><button data-a="bj-hit"' + (play ? "" : " disabled") + '>Hit</button><button class="cz-stand" data-a="bj-stand"' + (play ? "" : " disabled") + '>Stand</button><button class="cz-dbl" data-a="bj-dbl"' + (canDbl ? "" : " disabled") + ">Double</button></div>";
@@ -761,7 +773,7 @@
       setHtml("#sl-msg", msgBox(sl.msg, sl.win));
       var h;
       if (sl.phase === "spin") h = '<div class="cz-msg">Spinning…</div>';
-      else h = canBet() ? betPicker() + '<button class="cz-go" data-a="sl-spin">Spin (' + curBet() + ")</button>" : broke();
+      else h = canBet() ? betPicker() + '<button class="cz-go" data-a="sl-spin"' + goDis() + '>Spin (' + curBet() + ")</button>" : broke();
       setHtml("#sl-ctl", h);
     }
     function slReady() { return view === "sl" && (sl.phase === "bet" || sl.phase === "done") && canBet(); }
@@ -876,7 +888,7 @@
       }
       h += "</div></div>";
       if (!spinning) {
-        h += (canBet() ? betPicker() + '<button class="cz-go" data-a="ro-spin"' + (ro.sel ? "" : " disabled") + ">Spin (" + curBet() + ")</button>" : broke());
+        h += (canBet() ? betPicker() + '<button class="cz-go" data-a="ro-spin"' + (ro.sel ? goDis() : " disabled") + ">Spin (" + curBet() + ")</button>" : broke());
         h += '<div class="cz-total" style="text-align:center;margin-top:8px">Red/black/odd/even pay ×2 (0 loses). A number pays ×36.</div>';
       }
       setHtml("#ro-lay", h);
@@ -969,7 +981,7 @@
         h = '<div class="cz-row"><button class="cz-stand" data-a="hl-higher"' + (r === 13 || dis ? " disabled" : "") + '>▲ Higher</button><button class="cz-dbl" data-a="hl-lower"' + (r === 1 || dis ? " disabled" : "") + ">▼ Lower</button></div>";
         h += '<button class="cz-go" style="margin-top:8px" data-a="hl-cash"' + (hl.streak < 1 || dis ? " disabled" : "") + ">Cash out " + (hl.streak < 1 ? "" : "(" + hlPot() + ")") + "</button>";
       } else {
-        h = canBet() ? betPicker() + '<button class="cz-go" data-a="hl-start">' + (hl.phase === "done" ? "Play again" : "Start") + " (" + curBet() + ")</button>" : broke();
+        h = canBet() ? betPicker() + '<button class="cz-go" data-a="hl-start"' + goDis() + '>' + (hl.phase === "done" ? "Play again" : "Start") + " (" + curBet() + ")</button>" : broke();
       }
       setHtml("#hl-ctl", h);
     }
@@ -1050,7 +1062,8 @@
       switch (a) {
         case "open": return go(v, t);
         case "back": return go("lobby");
-        case "chip": g.all = false; g.bet = +v; snd("chip"); return refresh();
+        case "chip": if (g.all) g.bet = 0; g.all = false; g.bet = Math.min(api.coins(), (g.bet || 0) + (+v)); snd("chip"); return refresh();
+        case "clear": g.all = false; g.bet = 0; snd("click"); return refresh();
         case "allin": g.all = true; snd("chip"); return refresh();
         case "bj-deal": return bjDeal();
         case "bj-hit": return bjHit();
