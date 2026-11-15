@@ -774,7 +774,7 @@ let selDay=LS.get("selDay","5.2");
 function bestOf(d){return (bestBy[d]||{}).best||0}
 function durOf(d){return (bestBy[d]||{}).dur||60}
 let day=LS.get("day",{streak:0,last:null,freezes:0});
-const TOTAL=180,LT_AT=90,LT_WRONG_LOCK=5; // LT_WRONG_LOCK: seconds you can't answer after a wrong lightning answer
+const TOTAL=180,LT_AT=90,LT_WRONG_SHOW_MS=900; // LT_WRONG_SHOW_MS: a wrong lightning answer ends the round after showing the right answer this long
 
 let ac=null,sound=LS.get("sound",true);
 function beep(f,d=.09,type="sine",v=.14,delay=0){if(!sound||!ac)return;try{const t=ac.currentTime+delay,o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g).connect(ac.destination);o.start(t);o.stop(t+d)}catch(e){}}
@@ -1536,7 +1536,7 @@ function resolve(ok){
 $("go").onclick=()=>{st.paused=false;st.wkAll=null;if(st.time<=0)return finish();window.scrollTo({top:0,behavior:"smooth"});next()};
 
 function startLightning(){$("idk").classList.add("hidden");
-  st.mode="lt";st.ltTime=20;st.ltScore=0;st.ltLock=false;st.ltP=ltPool(st.day);
+  st.mode="lt";st.ltTime=20;st.ltScore=0;st.ltLock=false;st.ltWrong=false;st.ltP=ltPool(st.day);
   beep(660,.1,"square",.08);beep(880,.1,"square",.08,.1);beep(1320,.2,"square",.08,.2);buzz([30,30,30]);
   popup("Lightning round!","var(--root)");
   $("qc").classList.add("ltcard");ltNext();
@@ -1555,14 +1555,13 @@ function ltAnswer(v){
   bs[st.lt.t?0:1].classList.add("ok");
   if(ok){addCoins(COIN_PER_LT);st.score+=100;st.ltScore+=100;$("sc").textContent=st.score.toLocaleString();beep(900+st.ltScore/5,.06);flash("fok");setTimeout(ltNext,160)}
   else{bs[v?0:1].classList.add("no");beep(160,.15,"square",.07);flash("fbad");buzz(40);
-    const lockEnd=performance.now()+LT_WRONG_LOCK*1000;bs.forEach(b=>b.classList.add("locked"));
-    const tick=()=>{if(st.mode!=="lt"||st.lt!==cur)return;const left=Math.ceil((lockEnd-performance.now())/1000);
-      if(left<=0)return ltNext();$("why").innerHTML=`${st.lt.why}<div class="lt-lock">Wrong, so you're locked for ${left}s</div>`;setTimeout(tick,200)};
-    const cur=st.lt;$("why").classList.remove("hidden");tick()}
+    // A wrong answer ends the lightning round: show the right answer for a moment, then back to Rush.
+    $("why").innerHTML=st.lt.why;$("why").classList.remove("hidden");st.ltWrong=true;
+    setTimeout(()=>{if(st.mode==="lt")endLightning()},LT_WRONG_SHOW_MS)}
 }
 function endLightning(){
   st.mode="main";$("qc").classList.remove("ltcard");$("tg").classList.remove("rm");
-  popup(`Lightning +${st.ltScore}`,"var(--root)");beep(1047,.2);
+  popup(st.ltWrong?`Wrong: lightning over<div style="font-size:16px">+${st.ltScore}</div>`:`Lightning +${st.ltScore}`,st.ltWrong?"var(--bad)":"var(--root)");st.ltWrong=false;$("why").classList.add("hidden");beep(1047,.2);
   st.qStart=performance.now();next();
 }
 
