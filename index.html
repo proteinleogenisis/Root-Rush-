@@ -665,42 +665,43 @@ spot2(){
 
 };
 const KEYS=Object.keys(GEN);
-// ---- Final-quiz "mixed" questions: each one combines two or three of the day's skills, like a test question.
-// MIX_SK says which skills a mixed question checks (a miss drops those skills back, like a normal miss).
+// ---- Final quiz: homework-style questions ("Evaluate", "Solve", "Simplify" with the actual answer), one skill each.
+// HW_DAY lists the quiz for each day as [question type, skill]; a miss drops that skill back.
 const sgn=n=>n<0?"−"+(-n):String(n);
 const pw=(b,e)=>e==="1"?String(b):b+"<sup>"+e+"</sup>";
 const frac=(n,d)=>{const g=gcd(n,d);n/=g;d/=g;if(d<0){n=-n;d=-d}return d===1?sgn(n):sgn(n)+"/"+d};
-const MIX={
+const HW={
+hw_entry(){if(Math.random()<.5){const n=pick([3,4,5]),b=ri(20,900),v=b**(1/n),c=v.toFixed(2);
+    return{q:`Evaluate with a calculator. Round to two decimals: ${rad(n,b)}`,ex:rad(n,b),c,w:uniq(c,[(b/n).toFixed(2),Math.sqrt(b).toFixed(2),(b**(1/(n+1))).toFixed(2),(v+1).toFixed(2)]),
+    walk:[[rad(n,b),`A ${ROOT[n]} root is the power 1/${n}`],[`${b} ^ (1 ÷ ${n})`,"Type it with the fraction in parentheses"],[`≈ ${c}`,"Round to two decimals"]],
+    why:`Type ${b} ^ (1 ÷ ${n}) ≈ ${c}.`}}
+  const b=ri(6,300),n=pick([3,4,5,6]),m=pick([2,3,5]),neg=Math.random()<.3,e=neg?-m/n:m/n,v=b**e,c=v.toFixed(2);
+  return{q:`Evaluate with a calculator. Round to two decimals: ${b}<sup>${neg?"−":""}${m}/${n}</sup>`,ex:`${b}<sup>${neg?"−":""}${P(m)}/${R(n)}</sup>`,c,
+    w:uniq(c,[(neg?b**-m/n:b**m/n).toFixed(2),(b**(neg?-n/m:n/m)).toFixed(2),(neg?-(b**(m/n)):b*m/n).toFixed(2),(b**(1/n)).toFixed(2),(v+1).toFixed(2)]),
+    walk:[[`${b}<sup>${neg?"−":""}${m}/${n}</sup>`,"Use the calculator"],[`${b} ^ (${neg?"−":""}${m} ÷ ${n})`,"The whole fraction goes in parentheses"],[`≈ ${c}`,"Round to two decimals"]],
+    why:`Type ${b} ^ (${neg?"−":""}${m} ÷ ${n}). Without the parentheses you get ${(neg?b**-m/n:b**m/n).toFixed(2)}.`}},
+hw_iso(){const a=ri(2,6),n=pick([2,3,4,5]),even=n%2===0,r=ri(2,n>=4?3:5),c=ri(3,40),neg=Math.random()<.3,k=neg?-(r**n):r**n,d=a*k+c,xn=pw("x",String(n));
+  const cc=even?(neg?"No real solution":`x = ±${r}`):`x = ${sgn(neg?-r:r)}`;
+  return{q:`Solve ${a}${xn} + ${c} = ${sgn(d)}`,ex:`${a}${pw("x",P(n))} + ${c} = ${sgn(d)}`,c:cc,w:uniq(cc,[`x = ±${r}`,`x = ${r}`,`x = −${r}`,"No real solution",`x = ±${r**n}`]),
+  walk:[[`${a}${xn} = ${sgn(d-c)}`,`Subtract ${c}`],[`${xn} = ${sgn(k)}`,`Divide by ${a}`],[cc,even?(neg?"An even power can't be negative":"Even power: ±"):"Odd root: one answer, the sign stays"]],
+  why:`Get ${xn} alone first: ${xn} = ${sgn(k)}. `+(even?(neg?"An even power is never negative, so there's no real solution.":`Even power, so x = ±${r}.`):`Odd power, so x = ${rad(n,sgn(k))} = ${sgn(neg?-r:r)}.`)}},
+hw_shift(){const n=pick([2,2,3,4]),even=n%2===0,r=ri(2,n===4?3:7),h=ri(1,9),plus=Math.random()<.5,neg=!even&&Math.random()<.4,k=neg?-(r**n):r**n;
+  const inner=plus?`x + ${h}`:`x − ${h}`,sh=plus?-h:h,root=neg?-r:r;
+  const cc=even?`x = ${sgn(r+sh)} or x = ${sgn(-r+sh)}`:`x = ${sgn(root+sh)}`;
+  const wr=even?[`x = ${sgn(r+sh)}`,`x = ${sgn(r-sh)} or x = ${sgn(-r-sh)}`,`x = ${sgn(k+sh)} or x = ${sgn(-k+sh)}`,`x = ±${sgn(r+sh)}`]:[`x = ${sgn(root-sh)}`,`x = ${sgn(-root+sh)}`,`x = ${sgn(k+sh)}`,`x = ±${sgn(root+sh)}`];
+  return{q:`Solve (${inner})<sup>${n}</sup> = ${sgn(k)}`,ex:`(${inner})<sup>${P(n)}</sup> = ${sgn(k)}`,c:cc,w:uniq(cc,wr),
+  walk:[[`${inner} = ${even?"±"+r:sgn(root)}`,`Take the ${ROOT[n]} root first`+(even?" (even: ±)":"")],[cc,plus?`Subtract ${h}`:`Add ${h}`]],
+  why:`Undo the power first: ${inner} = ${even?"±"+r:sgn(root)}. Then ${plus?"subtract":"add"} ${h}: ${cc}.`}},
+hw_order(){const a=ri(2,4),n=pick([2,3]),r=ri(1,4),h=ri(2,9),c=ri(5,40),d=a*r**n+c;
+  const cc=n===3?`x = ${sgn(r-h)}`:`x = ${sgn(r-h)} or x = ${sgn(-r-h)}`;
+  const wr=n===3?[`x = ${sgn(r+h)}`,`x = ${sgn(-r-h)}`,`x = ${sgn(r*a-h)}`,`x = ${sgn(r**3-h)}`,`x = ${sgn(h-r)}`,`x = ${sgn(r-h+1)}`]:[`x = ${sgn(r-h)}`,`x = ${sgn(r+h)} or x = ${sgn(-r+h)}`,`x = ${sgn(r*r-h)} or x = ${sgn(-r*r-h)}`,`x = ${sgn(r*a-h)} or x = ${sgn(-r*a-h)}`];
+  return{q:`Solve ${a}(x + ${h})<sup>${n}</sup> + ${c} = ${d}`,ex:`${a}(x + ${h})<sup>${P(n)}</sup> + ${c} = ${d}`,c:cc,w:uniq(cc,wr),
+  walk:[[`${a}(x + ${h})<sup>${n}</sup> = ${d-c}`,`Subtract ${c}`],[`(x + ${h})<sup>${n}</sup> = ${r**n}`,`Divide by ${a}`],[`x + ${h} = ${n===2?"±":""}${r}`,`Take the ${ROOT[n]} root`],[cc,`Subtract ${h}`]],
+  why:`Peel from the outside in: subtract ${c}, divide by ${a}, ${ROOT[n]} root, subtract ${h}.`+(n===2?" Even power, so two answers.":"")}},
 mx_negfrac(){const n=pick([3,5]),r=ri(2,n===5?2:4),m=pick(n===5?[2,3,4]:[2,4,5]),b=r**n,val=(-r)**m;
   return{q:`Evaluate (−${b})<sup>${m}/${n}</sup>`,ex:`(−${b})<sup>${P(m)}/${R(n)}</sup>`,c:sgn(val),w:uniq(sgn(val),[sgn(-val),sgn(Math.round(-b*m/n)),sgn(r**m*(m%2?1:-1)),sgn(-r*m),sgn(val*r)]),
   walk:[[`(−${b})<sup>${m}/${n}</sup>`,`Bottom ${n} = the root, top ${m} = the power`],[`(${rad(n,"−"+b)})<sup>${m}</sup>`,`Root first. The root is odd, so a negative is fine`],[`(−${r})<sup>${m}</sup>`,`${rad(n,"−"+b)} = −${r}`],[sgn(val),m%2?`Odd power keeps the minus`:`Even power makes it positive`]],
   why:`Root first: ${rad(n,"−"+b)} = −${r}. Then the power: (−${r})<sup>${m}</sup> = ${sgn(val)}. ${m%2?"An odd power keeps the minus.":"An even power makes it positive."}`}},
-mx_solveeven(){const a=ri(2,5),n=pick([2,4]),r=ri(2,n===4?3:6),c=ri(3,40),none=Math.random()<.3,d=none?c-a*r**n:a*r**n+c,xn=n===2?"x²":"x⁴";
-  const opts=[`x = ±${r}`,`x = ${r}`,"No real solution",`x = ±${r*r}`,`x = −${r}`];const cc=none?"No real solution":`x = ±${r}`;
-  return{q:`Solve ${a}${xn} + ${c} = ${sgn(d)}`,ex:`${a}${xn} + ${c} = ${sgn(d)}`,c:cc,w:uniq(cc,opts),
-  walk:[[`${a}${xn} + ${c} = ${sgn(d)}`,"Get the power alone first"],[`${a}${xn} = ${sgn(d-c)}`,`Subtract ${c}`],[`${xn} = ${sgn((d-c)/a)}`,`Divide by ${a}`],none?["No real solution",`An even power can't be negative`]:[`x = ±${r}`,`Take the ${ROOT[n]} root. Even power, so ±`]],
-  why:none?`After subtracting and dividing, ${xn} = ${sgn((d-c)/a)}. An even power is never negative, so there's no real solution.`:`Subtract ${c}, divide by ${a}: ${xn} = ${r**n}. Even power, so both signs work: x = ±${r}.`}},
-mx_shiftfull(){const a=ri(2,4),r=ri(1,4),h=ri(2,9),c=ri(5,40),d=a*r**3+c,cc=sgn(r-h);
-  return{q:`Solve ${a}(x + ${h})<sup>3</sup> + ${c} = ${d}`,ex:`${a}(x + ${h})<sup>${P(3)}</sup> + ${c} = ${d}`,c:"x = "+cc,w:uniq("x = "+cc,["x = "+sgn(r+h),"x = "+sgn(-r-h),"x = "+sgn(r*a-h),"x = "+sgn(r**3-h),"x = ±"+sgn(r-h)]),
-  walk:[[`${a}(x + ${h})<sup>3</sup> = ${d-c}`,`Subtract ${c}`],[`(x + ${h})<sup>3</sup> = ${r**3}`,`Divide by ${a}`],[`x + ${h} = ${r}`,"Cube root (odd: one answer)"],[`x = ${cc}`,`Subtract ${h}`]],
-  why:`Peel from the outside in: subtract ${c}, divide by ${a}, cube root, then subtract ${h}: x = ${r} − ${h} = ${cc}.`}},
-mx_shifteven(){const r=ri(2,7),h=ri(1,9),k=r*r,cc=`x = ${sgn(h+r)} or x = ${sgn(h-r)}`;
-  return{q:`Solve (x − ${h})<sup>2</sup> = ${k}`,ex:`(x − ${h})<sup>${P(2)}</sup> = ${k}`,c:cc,w:uniq(cc,[`x = ${sgn(h+r)}`,`x = ${sgn(r-h)} or x = ${sgn(-r-h)}`,`x = ${sgn(h+k)} or x = ${sgn(h-k)}`,`x = ±${sgn(h+r)}`]),
-  walk:[[`(x − ${h})<sup>2</sup> = ${k}`,"Square root both sides"],[`x − ${h} = ±${r}`,"Even power: ±"],[cc,`Add ${h} to each`]],
-  why:`x − ${h} = ±${r}, so x = ${h} + ${r} = ${sgn(h+r)} or x = ${h} − ${r} = ${sgn(h-r)}.`}},
-mx_calc(){const a=pick([2,3,4,5]),n=pick([3,5]),k=ri(40,900),v=(k/a)**(1/n),c=v.toFixed(2);
-  return{q:`Solve ${a}x<sup>${n}</sup> = ${k}. Round to two decimals.`,ex:`${a}x<sup>${P(n)}</sup> = ${k}`,c:"x ≈ "+c,w:uniq("x ≈ "+c,[(k**(1/n)/a).toFixed(2),(k/a/n).toFixed(2),((k-a)**(1/n)).toFixed(2),(k**(1/n)).toFixed(2)].map(x=>"x ≈ "+x)),
-  walk:[[`x<sup>${n}</sup> = ${k} ÷ ${a}`,`Divide by ${a} first`],[`x = (${k} ÷ ${a}) ^ (1 ÷ ${n})`,`Then the ${ROOT[n]} root, in parentheses`],[`x ≈ ${c}`,"Calculator"]],
-  why:`Divide first, then root: type (${k} ÷ ${a}) ^ (1 ÷ ${n}) ≈ ${c}. Rooting first and dividing after gives ${(k**(1/n)/a).toFixed(2)}, which is wrong.`}},
-mx_notreal(){const e=pick([2,4]),r=ri(2,3),bad=`(−${r**e})<sup>1/${e}</sup>`,ok=[`(−${r**3})<sup>1/3</sup>`,`−${r**e}<sup>1/${e}</sup>`,`(−${r**5})<sup>1/5</sup>`,`(${r**e})<sup>1/${e}</sup>`];
-  return{q:"Which one is NOT a real number?",ex:"Real or not?",c:bad,w:shuffle(ok).slice(0,3),
-  walk:[[bad,`Even root (${e}) of a negative`],["Not real",`No real number to an even power is negative`],[`−${r**e}<sup>1/${e}</sup> = −${r}`,"Careful: here the minus is outside, so it's fine"]],
-  why:`${bad} asks for an even root of a negative, which isn't real. Odd roots of negatives are fine, and −${r**e}<sup>1/${e}</sup> has the minus outside the root.`}},
-mz_rules(){const b=pick([2,3,5,7]),n=pick([3,4,5,6]),p=ri(1,n-1),q=ri(1,n-1),k=pick([2,3]),c=pw(b,frac((p+q)*k,n));
-  return{q:`Simplify (${b}<sup>${p}/${n}</sup> · ${b}<sup>${q}/${n}</sup>)<sup>${k}</sup>`,ex:`(${b}<sup>${p}/${n}</sup> · ${b}<sup>${q}/${n}</sup>)<sup>${k}</sup>`,c,
-  w:uniq(c,[pw(b,frac(p*q*k,n*n)),pw(b,frac(p+q,n*k)),pw(b,frac((p+q)*k,2*n)),pw(b,frac(p+q+k,n)),pw(b,frac((p+q)*k+1,n))]),
-  walk:[[`${b}<sup>${p}/${n}</sup> · ${b}<sup>${q}/${n}</sup> = ${pw(b,frac(p+q,n))}`,"Multiplying: add the exponents"],[`(${pw(b,frac(p+q,n))})<sup>${k}</sup>`,`Power of a power: multiply by ${k}`],[c,"Simplify the fraction"]],
-  why:`Inside: add exponents, ${p}/${n} + ${q}/${n} = ${frac(p+q,n)}. Then times ${k}: ${frac((p+q)*k,n)}.`}},
 mz_negexp(){const r=ri(2,5),b=r*r,m=pick([1,3]),v=r**m,c=`1/${v}`;
   return{q:`Evaluate ${b}<sup>−${m}/2</sup>`,ex:`${b}<sup>−${m}/2</sup>`,c,w:uniq(c,[`−${v}`,String(v),`1/${Math.round(b*m/2)}`,`−1/${v}`,`1/${b**m}`]),
   walk:[[`${b}<sup>−${m}/2</sup> = 1 / ${b}<sup>${m}/2</sup>`,"Negative exponent: flip it"],[`1 / (√${b})<sup>${m}</sup>`,"Bottom 2 = square root"],[`1 / ${r}<sup>${m}</sup> = ${c}`,`√${b} = ${r}`]],
@@ -709,27 +710,19 @@ mz_mulsimp(){const o=pick([[6,12,6,2],[10,15,5,6],[8,6,4,3],[3,15,3,5],[12,10,2,
   return{q:`Multiply, then write in simplest form: √${o[0]} · √${o[1]}`,ex:`√${o[0]} · √${o[1]}`,c,w:uniq(c,[`√${o[0]*o[1]}`,`${o[2]*o[2]}√${o[3]}`,`${o[2]}√${o[3]*2}`,`${o[2]+1}√${o[3]}`]),
   walk:[[`√${o[0]*o[1]}`,"Same index: multiply under one root"],[`√(${o[2]*o[2]} · ${o[3]})`,`Find a pair: ${o[0]*o[1]} = ${o[2]}·${o[2]}·${o[3]}`],[c,`The pair of ${o[2]}s comes out as one ${o[2]}`]],
   why:`√${o[0]} · √${o[1]} = √${o[0]*o[1]}. ${o[0]*o[1]} = ${o[2]}·${o[2]}·${o[3]}, so the pair comes out: ${c}. √${o[0]*o[1]} is equal but not in simplest form.`}},
-mz_likesimp(){const s=pick([2,3,5,6]),p=ri(2,5),q=ri(2,6),t=ri(1,p+q-2),k=p+q-t,c=`${k}√${s}`;
-  return{q:`Simplify √${p*p*s} + ${q}√${s} − √${t*t*s}`,ex:`√${p*p*s} + ${q}√${s} − √${t*t*s}`,c:k===1?`√${s}`:c,w:uniq(k===1?`√${s}`:c,[`${p+q+t}√${s}`,`${k}√${3*s}`,`${q}√${s}`,`${p*p+q-t*t}√${s}`,`${k+1}√${s}`]),
-  walk:[[`${p}√${s} + ${q}√${s} − ${t}√${s}`,`Simplify each first: √${p*p*s} = ${p}√${s}, √${t*t*s} = ${t}√${s}`],[`(${p} + ${q} − ${t})√${s}`,"Now they're like radicals: combine the numbers in front"],[k===1?`√${s}`:c,"Done"]],
-  why:`Simplify first so they match: ${p}√${s} + ${q}√${s} − ${t}√${s}. Then combine: ${p} + ${q} − ${t} = ${k}.`}},
-mz_varsmul(){const o=pick([[2,4,2],[3,9,3],[4,16,4],[2,32,4],[5,25,5]]),cc=ri(2,3),a=ri(1,3*cc-1),b=3*cc-a,c=`${o[2]}x<sup>${cc}</sup>`;
-  return{q:`Simplify ∛(${o[0]}${pw("x",String(a))}) · ∛(${o[1]}${pw("x",String(b))})`,ex:`∛(${o[0]}${pw("x",String(a))}) · ∛(${o[1]}${pw("x",String(b))})`,c,w:uniq(c,[`${o[0]*o[1]}x<sup>${cc}</sup>`,`${o[2]}x<sup>${3*cc}</sup>`,`${o[2]}x<sup>${a*b}</sup>`,`${o[2]+1}x<sup>${cc}</sup>`]),
-  walk:[[`∛(${o[0]*o[1]}x<sup>${3*cc}</sup>)`,"Same index: multiply inside (add the x exponents)"],[`∛${o[0]*o[1]} = ${o[2]}`,`${o[2]}·${o[2]}·${o[2]} = ${o[0]*o[1]}`],[c,`${3*cc} ÷ 3 = ${cc}`]],
-  why:`Multiply under one cube root: ${o[0]*o[1]}x<sup>${3*cc}</sup>. Then ∛${o[0]*o[1]} = ${o[2]} and divide the exponent by 3: x<sup>${cc}</sup>.`}},
 mz_explike(){const s=pick([2,3,5,7]),a=ri(2,6),b=ri(2,6),c=`${a+b}√${s}`;
   return{q:`Simplify ${a} · ${s}<sup>1/2</sup> + ${b}√${s}`,ex:`${a}·${s}<sup>1/2</sup> + ${b}√${s}`,c,w:uniq(c,[`${a+b}√${2*s}`,`${a*b}√${s}`,"Can't be combined",`${a+b}·${s}`]),
   walk:[[`${s}<sup>1/2</sup> = √${s}`,"A 1/2 power is a square root"],[`${a}√${s} + ${b}√${s}`,"Now they're like radicals"],[c,`${a} + ${b} = ${a+b}`]],
   why:`${s}<sup>1/2</sup> is just √${s}, so these are like radicals: ${a}√${s} + ${b}√${s} = ${c}.`}}
 };
-const MIX_DAY={"5.1":["mx_negfrac","mx_solveeven","mx_shiftfull","mx_shifteven","mx_calc","mx_notreal"],"5.2":["mz_rules","mz_negexp","mz_mulsimp","mz_likesimp","mz_varsmul","mz_explike"]};
-const MIX_SK={mx_negfrac:["neg","bottom"],mx_solveeven:["iso","sols"],mx_shiftfull:["order","shift","iso"],mx_shifteven:["shift","sols"],mx_calc:["entry","iso"],mx_notreal:["neg","bottom"],
-  mz_rules:["rules"],mz_negexp:["rules"],mz_mulsimp:["radmul","simp"],mz_likesimp:["like","simp"],mz_varsmul:["vars","radmul"],mz_explike:["like","rules"]};
-const MIX_TAG={mx_negfrac:"Negative base, fraction power",mx_solveeven:"Solve: isolate, then ±",mx_shiftfull:"Solve a shifted equation",mx_shifteven:"Solve a shifted square",mx_calc:"Solve with the calculator",mx_notreal:"Which is real?",
-  mz_rules:"Exponent rules, combined",mz_negexp:"Negative fraction exponent",mz_mulsimp:"Multiply, then simplest form",mz_likesimp:"Simplify, then combine",mz_varsmul:"Multiply roots with variables",mz_explike:"Exponent form + like radicals"};
-Object.assign(GEN,MIX);Object.assign(TAGS,MIX_TAG);
-const QUIZ_PER_SKILL=1; // plain questions per skill in the final quiz, on top of every mixed question for the day
-function quizList(d){const L=[];(LESSONS[d]||[]).forEach(k=>{for(let i=0;i<QUIZ_PER_SKILL;i++)L.push(k)});return shuffle(L.concat(MIX_DAY[d]||[]))}
+const HW_DAY={
+  "5.1":[["hw_entry","entry"],["hw_entry","entry"],["bottom","bottom"],["bottom","bottom"],["neg","neg"],["mx_negfrac","neg"],["sols","sols"],["sols","sols"],
+         ["hw_iso","iso"],["hw_iso","iso"],["hw_shift","shift"],["hw_shift","shift"],["hw_order","order"],["hw_order","order"],["line","line"],["line","line"]],
+  "5.2":[["rules","rules"],["rules","rules"],["mz_negexp","rules"],["radmul","radmul"],["mz_mulsimp","radmul"],["simp","simp"],["simp","simp"],["vars","vars"],["vars","vars"],["like","like"],["mz_explike","like"]]};
+const MIX_SK={};Object.values(HW_DAY).forEach(L=>L.forEach(([g,k])=>{if(!LESSONS["5.1"].includes(g)&&!LESSONS["5.2"].includes(g))MIX_SK[g]=[k]}));
+Object.assign(GEN,HW);Object.keys(HW).forEach(g=>{if(!TAGS[g])TAGS[g]=TAGS[MIX_SK[g]&&MIX_SK[g][0]]||g});
+function quizList(d){const L=(HW_DAY[d]||(LESSONS[d]||[]).flatMap(k=>[[k,k],[k,k]])).map(x=>x[0]);shuffle(L);
+  for(let i=1;i<L.length;i++)if(L[i]===L[i-1]){const j=(i+2)%L.length;[L[i],L[j]]=[L[j],L[i]]}return L}
 
 
 const LT=[
