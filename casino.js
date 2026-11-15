@@ -233,6 +233,7 @@
     ".cz-cb{background:repeating-linear-gradient(45deg,#7a1020 0 5px,#a01c34 5px 10px);border:3px solid #fff}",
     ".cz-cf{transform:rotateY(180deg);background:#fff;color:#1d1d1b;border:1px solid #cfcdc4}",
     ".cz-c.red .cz-cf{color:#c0392b}",
+    ".cz-val{position:absolute;right:4px;top:4px;padding:1px 6px;border-radius:8px;background:#1d1d1b;color:#fff;font-weight:800;font-size:calc(var(--cw)*.2);line-height:1.3;white-space:nowrap}",
     ".cz-cr{position:absolute;left:5px;top:3px;font-weight:800;font-size:calc(var(--cw)*.32);line-height:1}",
     ".cz-cs{position:absolute;left:5px;top:calc(var(--cw)*.36);font-size:calc(var(--cw)*.24);line-height:1}",
     ".cz-cm{position:absolute;right:calc(var(--cw)*.1);bottom:calc(var(--cw)*.06);font-size:calc(var(--cw)*.55);line-height:1}",
@@ -357,6 +358,9 @@
   function faceHtml(c) {
     return '<span class="cz-cr">' + rankLabel(c.r) + '</span><span class="cz-cs">' + c.s + '</span><span class="cz-cm">' + c.s + "</span>";
   }
+  // Higher/Lower: letter cards get their number shown (A = 1, J = 11, Q = 12, K = 13).
+  function hiloVal(c) { return c.r === 1 || c.r > 10 ? '<span class="cz-val">= ' + c.r + "</span>" : ""; }
+  function hiloName(c) { return rankLabel(c.r) + c.s + (c.r === 1 || c.r > 10 ? " (" + c.r + ")" : ""); }
   function cardNode(c, hole) {
     var d = document.createElement("div");
     d.className = "cz-c" + (isRed(c.s) ? " red" : "");
@@ -934,7 +938,7 @@
         cur.classList.remove("slide");
         if (hl.cur) {
           cur.classList.remove("empty");
-          var n = cardNode(hl.cur, false); n.className += " noanim up"; cur.appendChild(n);
+          var n = cardNode(hl.cur, false); n.className += " noanim up"; n.querySelector(".cz-cf").innerHTML += hiloVal(hl.cur); cur.appendChild(n);
           if (anim) { void cur.offsetWidth; cur.classList.add("slide"); }
         } else cur.classList.add("empty");
       }
@@ -957,7 +961,7 @@
           lad.children[i].classList.toggle("now", lit && i === hl.streak && (hl.phase === "play" || hl.phase === "reveal"));
         }
       }
-      setHtml("#hl-pot", hl.phase === "play" || hl.phase === "reveal" ? "Pot: " + hlPot() + " coins" : hl.phase === "bet" ? "Guess if the next card is higher or lower" : "");
+      setHtml("#hl-pot", hl.phase === "play" || hl.phase === "reveal" ? "Pot: " + hlPot() + " coins" : hl.phase === "bet" ? "Guess if the next card is higher or lower. A = 1, J = 11, Q = 12, K = 13" : "");
       setHtml("#hl-msg", msgBox(hl.msg, hl.win));
       var h = "";
       if (hl.phase === "play" || hl.phase === "reveal") {
@@ -982,12 +986,12 @@
       snd("click");
       hl.phase = "reveal"; hlRefresh();
       var slot = $("#hl-next"), card = slot && slot.firstChild;
-      if (card) { card.querySelector(".cz-cf").innerHTML = faceHtml(nx); if (isRed(nx.s)) card.classList.add("red"); card.classList.remove("noanim"); void card.offsetWidth; card.classList.add("up"); }
+      if (card) { card.querySelector(".cz-cf").innerHTML = faceHtml(nx) + hiloVal(nx); if (isRed(nx.s)) card.classList.add("red"); card.classList.remove("noanim"); void card.offsetWidth; card.classList.add("up"); }
       later(function () {
         hl.phase = "play";
         if (res === "push") { hl.cur = nx; hl.msg = "Same rank: push. Drawing again."; hl.win = null; }
         else if (res === "lose") {
-          hl.cur = nx; hl.phase = "done"; hl.msg = "Wrong! It was " + rankLabel(nx.r) + nx.s + ". The pot is gone: you lose " + hl.bet + " coins.";
+          hl.cur = nx; hl.phase = "done"; hl.msg = "Wrong! It was " + hiloName(nx) + ". The pot is gone: you lose " + hl.bet + " coins.";
           hl.win = false; snd("lose");
         } else {
           hl.streak++; hl.cur = nx; hl.win = true;
