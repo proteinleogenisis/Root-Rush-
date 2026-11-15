@@ -6,42 +6,53 @@
   var CATALOG = [
     { id: "cap", slot: "hat", name: "Cap", price: 300, desc: "A red cap, worn straight" },
     { id: "beanie", slot: "hat", name: "Beanie", price: 400, desc: "Warm knit beanie with a pom-pom" },
+    { id: "headphones", slot: "hat", name: "Headphones", price: 700, desc: "Big red cans. Music on." },
     { id: "crown", slot: "hat", name: "Crown", price: 5000, desc: "Solid gold. Obviously." },
+    { id: "nerdglasses", slot: "shades", name: "Nerd glasses", price: 150, desc: "Round frames. Smart look." },
     { id: "sunglasses", slot: "shades", name: "Sunglasses", price: 350, desc: "Dark lenses, no squinting" },
     { id: "goldshades", slot: "shades", name: "Gold shades", price: 1500, desc: "Gold frames, amber lenses" },
     { id: "cleantee", slot: "outfit", name: "Clean tee", price: 100, desc: "A fresh tee. No holes." },
     { id: "hoodie", slot: "outfit", name: "Hoodie", price: 500, desc: "Soft grey hoodie" },
+    { id: "varsity", slot: "outfit", name: "Varsity jacket", price: 900, desc: "Red and white, letter on the chest" },
     { id: "dripjacket", slot: "outfit", name: "Drip jacket", price: 1200, desc: "Orange puffer with a fur collar" },
     { id: "suit", slot: "outfit", name: "Suit", price: 2500, desc: "Sharp suit and a red tie" },
+    { id: "dogtag", slot: "chain", name: "Dog tag", price: 200, desc: "A simple tag on a thin chain" },
     { id: "silverchain", slot: "chain", name: "Silver chain", price: 800, desc: "Clean silver chain" },
     { id: "goldchain", slot: "chain", name: "Gold chain", price: 3000, desc: "Heavy gold chain" },
     { id: "diamondchain", slot: "chain", name: "Diamond chain", price: 8000, desc: "Icy diamond pendant" },
+    { id: "slides", slot: "shoes", name: "Slides", price: 120, desc: "Slides with white socks" },
     { id: "sneakers", slot: "shoes", name: "Sneakers", price: 400, desc: "Fresh white sneakers" },
     { id: "designerkicks", slot: "shoes", name: "Designer kicks", price: 2000, desc: "Black and gold, limited drop" },
+    { id: "skateboard", slot: "ride", name: "Skateboard", price: 250, desc: "Purple deck, yellow wheels" },
     { id: "bike", slot: "ride", name: "Bike", price: 700, desc: "A red road bike" },
     { id: "sportscar", slot: "ride", name: "Sports car", price: 9000, desc: "Low, red and fast" },
     { id: "room", slot: "place", name: "Small room", price: 150, desc: "A tiny room. Off the street." },
     { id: "cityview", slot: "place", name: "City view", price: 1000, desc: "Skyline at dusk" },
     { id: "penthouse", slot: "place", name: "Penthouse", price: 6000, desc: "Marble floors, night skyline" },
-    { id: "yacht", slot: "place", name: "Yacht", price: 12000, desc: "Open water, sun on deck" }
+    { id: "yacht", slot: "place", name: "Yacht", price: 12000, desc: "Open water, sun on deck" },
+    { id: "mansion", slot: "place", name: "Mansion", price: 20000, desc: "Columns, a lawn and a pool" },
+    { id: "cat", slot: "pet", name: "Cat", price: 400, desc: "Orange, judges you quietly" },
+    { id: "dog", slot: "pet", name: "Dog", price: 600, desc: "Good boy, always happy" },
+    { id: "tiger", slot: "pet", name: "Tiger", price: 15000, desc: "The ultimate flex" }
   ];
   var TRY_ON_MS = 2000;                    // how long a try-on preview shows
+  var NEXT_UP = 4;                          // "Can buy" tab: how many cheapest items to show when you can't afford any
   var SLOTS = [
     ["place", "Place", "🏠"], ["ride", "Ride", "🚗"], ["outfit", "Outfit", "👕"],
     ["hat", "Hats", "🧢"], ["shades", "Shades", "😎"], ["chain", "Chains", "⛓️"],
-    ["shoes", "Shoes", "👟"]
+    ["shoes", "Shoes", "👟"], ["pet", "Pets", "🐾"]
   ];
   var ICONS = {
     cap: "🧢", beanie: "🧶", crown: "👑", sunglasses: "🕶️", goldshades: "🕶️",
     hoodie: "🧥", dripjacket: "🧥", suit: "🤵", silverchain: "📿", goldchain: "📿",
     diamondchain: "💎", sneakers: "👟", designerkicks: "👟", bike: "🚲", sportscar: "🏎️",
-    cityview: "🌆", room: "🛏️", cleantee: "👕", penthouse: "🏙️", yacht: "🛥️"
+    cityview: "🌆", headphones: "🎧", nerdglasses: "👓", varsity: "🧥", dogtag: "🏷️", slides: "🩴", skateboard: "🛹", mansion: "🏰", cat: "🐈", dog: "🐕", tiger: "🐅", room: "🛏️", cleantee: "👕", penthouse: "🏙️", yacht: "🛥️"
   };
   // Status by net worth (coins spent on cosmetics). He starts broke, on the road.
   var STATUS = [
     [0, "Broke", "Living on the road"], [100, "Scraping by", "Got something"],
     [1000, "Getting by", "Off the street"], [5000, "Comfortable", "Doing alright"],
-    [15000, "Rich", "Money talks"], [35000, "Rolling in it", "Top of the city"]
+    [15000, "Rich", "Money talks"], [35000, "Rolling in it", "Top of the city"], [75000, "Legend", "Owns the whole city"]
   ];
   function status(owned) {
     var w = netWorth(owned), i = 0;
@@ -120,6 +131,16 @@
       o.push('<path d="M224 140 L238 122 L246 132 L252 124 L258 140Z" fill="#1D9E75"/><rect x="222" y="150" width="36" height="3" fill="#b5ad98"/><rect x="222" y="157" width="24" height="3" fill="#b5ad98"/>');
       o.push('<rect y="250" width="300" height="50" fill="#363c58"/><rect y="250" width="300" height="4" fill="#2b3048"/>');
       o.push('<ellipse cx="60" cy="278" rx="48" ry="9" fill="#7F77DD" opacity=".55"/>');
+    } else if (p === "mansion") {
+      o.push('<defs><linearGradient id="' + id + 'msky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff9a76"/><stop offset="1" stop-color="#ffd9a8"/></linearGradient></defs>');
+      o.push('<rect width="300" height="300" fill="url(#' + id + 'msky)"/>');
+      o.push('<rect x="22" y="104" width="256" height="136" fill="#f6f1e7"/><path d="M12 106 L150 52 L288 106Z" fill="#8a5a44"/><path d="M110 106 L150 80 L190 106Z" fill="#f6f1e7"/>');
+      [118, 140, 160, 182].forEach(function (x) { o.push('<rect x="' + x + '" y="106" width="9" height="134" fill="#ffffff" stroke="#d8d0c0"/>'); });
+      [[34, 120], [74, 120], [210, 120], [250, 120], [34, 178], [74, 178], [210, 178], [250, 178]].forEach(function (w) { o.push('<rect x="' + w[0] + '" y="' + w[1] + '" width="20" height="28" fill="#ffd36b" stroke="#8a5a44" stroke-width="2"/>'); });
+      o.push('<rect x="138" y="190" width="24" height="50" fill="#5b3a29"/><circle cx="157" cy="216" r="2" fill="#ffd36b"/>');
+      o.push('<rect y="240" width="300" height="60" fill="#4caf50"/><rect y="240" width="300" height="6" fill="#3d8b40"/>');
+      o.push('<ellipse cx="236" cy="282" rx="56" ry="12" fill="#4fc3f7" stroke="#e0f7ff" stroke-width="3"/><path d="M206 282 q8 -4 16 0 M236 286 q8 -4 16 0" stroke="#e0f7ff" stroke-width="2" fill="none"/>');
+      o.push('<circle cx="16" cy="230" r="16" fill="#2e7d32"/><circle cx="286" cy="226" r="18" fill="#2e7d32"/>' + spark(262, 40, 7, "#fffbe0"));
     } else { // the road: where he starts, broke
       o.push('<defs><linearGradient id="' + id + 'dusk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#232842"/><stop offset="1" stop-color="#6a5878"/></linearGradient></defs>');
       o.push('<rect width="300" height="300" fill="url(#' + id + 'dusk)"/>');
@@ -142,7 +163,12 @@
 
   function rideSVG(r) {
     var o = [];
-    if (r === "bike") {
+    if (r === "skateboard") {
+      o.push('<ellipse cx="236" cy="286" rx="50" ry="4" fill="#000" opacity=".25"/>');
+      o.push('<path d="M188 270 Q186 262 196 264 L276 264 Q286 262 284 270 Q282 276 272 276 L200 276 Q190 276 188 270Z" fill="#7b3fe4" stroke="#4b1fa0" stroke-width="2"/>');
+      o.push('<path d="M206 268 L262 268" stroke="#c8b2ff" stroke-width="2" stroke-dasharray="6 4"/>');
+      o.push('<circle cx="204" cy="281" r="6" fill="#f5c518"/><circle cx="268" cy="281" r="6" fill="#f5c518"/>');
+    } else if (r === "bike") {
       o.push('<ellipse cx="238" cy="281" rx="52" ry="5" fill="#000" opacity=".25"/>');
       o.push('<g fill="none" stroke="#161616" stroke-width="4">');
       o.push('<circle cx="198" cy="258" r="21"/><circle cx="268" cy="258" r="21"/></g>');
@@ -174,9 +200,17 @@
     return o.join("");
   }
 
+  function petSVG(k) {
+    if (k === "cat") return '<g class="pf-L-pet"><ellipse cx="38" cy="286" rx="22" ry="3" fill="#000" opacity=".25"/><path d="M20 276 Q6 262 16 252" stroke="#f4a261" stroke-width="5" fill="none" stroke-linecap="round"/><ellipse cx="36" cy="274" rx="17" ry="11" fill="#f4a261"/><circle cx="54" cy="260" r="10" fill="#f4a261"/><path d="M46 254 L47 243 L54 251Z M56 251 L62 243 L63 255Z" fill="#e07b39"/><circle cx="51" cy="259" r="1.6" fill="#222"/><circle cx="58" cy="259" r="1.6" fill="#222"/><path d="M53 264 q1.5 1.5 3 0" stroke="#222" stroke-width="1.2" fill="none"/><path d="M28 268 l4 6 M36 266 l3 7" stroke="#e07b39" stroke-width="2"/></g>';
+    if (k === "dog") return '<g class="pf-L-pet"><ellipse cx="38" cy="287" rx="24" ry="3" fill="#000" opacity=".25"/><path d="M16 268 Q8 258 14 252" stroke="#a0703f" stroke-width="5" fill="none" stroke-linecap="round"/><ellipse cx="36" cy="272" rx="19" ry="12" fill="#c68b52"/><rect x="22" y="278" width="6" height="9" rx="2" fill="#a0703f"/><rect x="44" y="278" width="6" height="9" rx="2" fill="#a0703f"/><circle cx="56" cy="256" r="11" fill="#c68b52"/><ellipse cx="47" cy="258" rx="4" ry="8" fill="#7a5230"/><ellipse cx="64" cy="261" rx="5" ry="4" fill="#e3b98a"/><circle cx="67" cy="259" r="2" fill="#222"/><circle cx="57" cy="253" r="1.7" fill="#222"/><path d="M62 266 q2 4 4 0" fill="#e85d75"/></g>';
+    if (k === "tiger") return '<g class="pf-L-pet"><ellipse cx="44" cy="288" rx="34" ry="4" fill="#000" opacity=".3"/><path d="M12 268 Q0 250 10 240" stroke="#f08a24" stroke-width="6" fill="none" stroke-linecap="round"/><ellipse cx="38" cy="268" rx="28" ry="16" fill="#f08a24"/><path d="M24 254 l4 12 M34 252 l3 13 M44 253 l2 12 M54 256 l0 10" stroke="#1d1d1b" stroke-width="3" stroke-linecap="round"/><rect x="18" y="276" width="8" height="12" rx="3" fill="#f08a24"/><rect x="50" y="276" width="8" height="12" rx="3" fill="#f08a24"/><circle cx="66" cy="250" r="15" fill="#f08a24"/><circle cx="56" cy="238" r="5" fill="#f08a24"/><circle cx="76" cy="238" r="5" fill="#f08a24"/><ellipse cx="68" cy="256" rx="8" ry="6" fill="#fff3e0"/><circle cx="61" cy="247" r="2" fill="#222"/><circle cx="72" cy="247" r="2" fill="#222"/><circle cx="67" cy="253" r="2" fill="#222"/><path d="M58 240 l3 4 M66 237 l0 5 M74 240 l-3 4" stroke="#1d1d1b" stroke-width="2"/>' + spark(84, 232, 6) + '</g>';
+    return "";
+  }
+
   function shoeSVG(s) {
     var c = { body: "#5a4636", sole: "#2e231b" }, extra = '<circle cx="73" cy="270" r="3.2" fill="#f1c27d"/><path d="M120 266 L126 270 M98 268 L102 266" stroke="#2e231b" stroke-width="1.5"/>';
     if (s === "sneakers") { c = { body: "#fafafa", sole: "#d5d5d5" }; extra = '<path d="M76 270 L96 270 M118 270 L132 270" stroke="#3b82f6" stroke-width="3" stroke-linecap="round"/><path d="M84 264 L90 268 M86 262 L92 266 M110 264 L116 268 M112 262 L118 266" stroke="#999" stroke-width="1.4"/>'; }
+    if (s === "slides") { c = { body: "#f4f4f4", sole: "#1d1d1d" }; extra = '<rect x="72" y="263" width="28" height="8" rx="3" fill="#1d1d1d"/><rect x="100" y="263" width="28" height="8" rx="3" fill="#1d1d1d"/><path d="M80 267 h12 M108 267 h12" stroke="#fff" stroke-width="1.6"/>'; }
     if (s === "designerkicks") { c = { body: "#15151a", sole: "#ffd54f" }; extra = '<path d="M74 272 Q88 262 100 270 M116 270 Q128 262 136 272" stroke="#ffd54f" stroke-width="3" fill="none" stroke-linecap="round"/>' + spark(72, 262, 6) + spark(134, 262, 7); }
     return '<ellipse cx="86" cy="271" rx="17" ry="9" fill="' + c.body + '"/><ellipse cx="114" cy="271" rx="17" ry="9" fill="' + c.body + '"/>' +
       '<rect x="69" y="276" width="34" height="5" rx="2.5" fill="' + c.sole + '"/><rect x="97" y="276" width="34" height="5" rx="2.5" fill="' + c.sole + '"/>' + extra;
@@ -195,7 +229,7 @@
     var s = [];
     s.push('<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + (crop ? "66 34 88 88" : "0 0 300 300") + '" width="' + size + '" height="' + size + '" role="img" aria-label="Your guy">');
     s.push('<g class="pf-L-place">' + placeSVG(eq.place, id) + "</g>");
-    if (eq.ride === "bike" || eq.ride === "sportscar") s.push('<g class="pf-L-ride">' + rideSVG(eq.ride) + "</g>");
+    if (eq.ride === "bike" || eq.ride === "sportscar" || eq.ride === "skateboard") s.push('<g class="pf-L-ride">' + rideSVG(eq.ride) + "</g>");
     s.push('<g transform="translate(10,0)">');
     s.push('<ellipse cx="100" cy="281" rx="42" ry="6" fill="#000" opacity=".28"/>');
     // legs
@@ -205,8 +239,8 @@
     if (outfit === "hoodie") s.push('<ellipse cx="100" cy="118" rx="29" ry="14" fill="#6b7280"/>');
     s.push('<rect x="91" y="98" width="18" height="24" fill="' + skinD + '"/>');
     // arms
-    var longSleeve = outfit === "hoodie" || outfit === "dripjacket" || outfit === "suit";
-    var sleeve = outfit === "hoodie" ? "#8a919e" : outfit === "dripjacket" ? "#ff7b00" : outfit === "suit" ? "#2b2f3a" : broke ? "#7b8794" : "#3b9ae1";
+    var longSleeve = outfit === "varsity" || outfit === "hoodie" || outfit === "dripjacket" || outfit === "suit";
+    var sleeve = outfit === "varsity" ? "#f2f2f2" : outfit === "hoodie" ? "#8a919e" : outfit === "dripjacket" ? "#ff7b00" : outfit === "suit" ? "#2b2f3a" : broke ? "#7b8794" : "#3b9ae1";
     s.push('<g class="pf-L-arms" stroke-linecap="round" fill="none">');
     s.push('<path d="M72 132 L62 190" stroke="' + skin + '" stroke-width="13"/><path d="M128 132 L138 190" stroke="' + skin + '" stroke-width="13"/>');
     if (longSleeve) s.push('<path d="M72 132 L63 182" stroke="' + sleeve + '" stroke-width="17"/><path d="M128 132 L137 182" stroke="' + sleeve + '" stroke-width="17"/>');
@@ -219,6 +253,11 @@
       s.push('<path d="M82 117 Q100 134 118 117 L112 112 Q100 122 88 112Z" fill="#6b7280"/>');
       s.push('<path d="M92 124 L90 150 M108 124 L110 150" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>');
       s.push('<path d="M82 170 L118 170 L124 200 L76 200Z" fill="#737a88"/>');
+    } else if (outfit === "varsity") {
+      s.push('<path d="M70 130 Q70 118 84 117 L116 117 Q130 118 130 130 L128 205 L72 205Z" fill="#b3202a"/>');
+      s.push('<path d="M84 117 Q100 130 116 117" stroke="#f2f2f2" stroke-width="5" fill="none"/><rect x="72" y="198" width="56" height="7" fill="#f2f2f2"/>');
+      [140, 154, 168, 182].forEach(function (y) { s.push('<circle cx="100" cy="' + y + '" r="2" fill="#f2f2f2"/>'); });
+      s.push('<text x="84" y="160" text-anchor="middle" font-family="Georgia,serif" font-weight="700" font-size="20" fill="#ffd54f" stroke="#f2f2f2" stroke-width=".8">R</text>');
     } else if (outfit === "dripjacket") {
       s.push('<path d="M68 132 Q68 118 84 117 L116 117 Q132 118 132 132 L130 207 L70 207Z" fill="#ff7b00"/>');
       [140, 158, 176, 194].forEach(function (y) { s.push('<path d="M70 ' + y + ' Q100 ' + (y + 5) + ' 130 ' + y + '" stroke="#b34f00" stroke-width="2" fill="none"/>'); });
@@ -243,7 +282,9 @@
     }
     s.push("</g>");
     // chain
-    if (chain) {
+    if (chain === "dogtag") {
+      s.push('<g class="pf-L-chain"><path d="M86 121 Q100 150 114 121" fill="none" stroke="#9aa5ad" stroke-width="1.6"/><rect x="95" y="141" width="11" height="15" rx="3" fill="#c9d1d6" stroke="#8a949b" stroke-width="1"/><path d="M98 147 h5 M98 151 h4" stroke="#8a949b" stroke-width="1"/></g>');
+    } else if (chain) {
       var cc = chain === "silverchain" ? "#d3dae0" : chain === "goldchain" ? "#f5c518" : "#e7f7ff";
       var cw = chain === "silverchain" ? 3 : 4.5;
       s.push('<g class="pf-L-chain"><path d="M84 121 Q100 156 116 121" fill="none" stroke="' + cc + '" stroke-width="' + cw + '" stroke-linecap="round"' + (chain === "diamondchain" ? ' stroke-dasharray="5 2"' : "") + "/>");
@@ -275,7 +316,9 @@
     // mouth
     s.push(broke && !eq.place ? '<path d="M92 102 Q100 99 108 102" stroke="#7a3b2b" stroke-width="2.5" fill="none" stroke-linecap="round"/>' : '<path d="M91 100 Q100 108 109 100" stroke="#7a3b2b" stroke-width="2.5" fill="none" stroke-linecap="round"/>');
     // glasses / shades
-    if (shades === "sunglasses") {
+    if (shades === "nerdglasses") {
+      s.push('<g class="pf-L-shades"><circle cx="87" cy="85" r="10" fill="#cfe8ff" fill-opacity=".25" stroke="#222" stroke-width="2.6"/><circle cx="113" cy="85" r="10" fill="#cfe8ff" fill-opacity=".25" stroke="#222" stroke-width="2.6"/><path d="M97 84 Q100 81 103 84 M77 83 L67 80 M123 83 L133 80" stroke="#222" stroke-width="2.4" fill="none" stroke-linecap="round"/></g>');
+    } else if (shades === "sunglasses") {
       s.push('<g class="pf-L-shades"><rect x="75" y="76" width="22" height="16" rx="6" fill="#111"/><rect x="103" y="76" width="22" height="16" rx="6" fill="#111"/><path d="M97 82 L103 82 M75 80 L66 78 M125 80 L134 78" stroke="#111" stroke-width="3" stroke-linecap="round"/><path d="M79 79 L85 79 M107 79 L113 79" stroke="#fff" stroke-opacity=".6" stroke-width="2" stroke-linecap="round"/></g>');
     } else if (shades === "goldshades") {
       s.push('<defs><linearGradient id="' + id + 'gl" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd54a"/><stop offset="1" stop-color="#a86b00"/></linearGradient></defs>');
@@ -283,7 +326,9 @@
     }
     s.push("</g>");
     // hats
-    if (hat === "cap") {
+    if (hat === "headphones") {
+      s.push('<g class="pf-L-hat"><path d="M66 84 Q62 36 100 36 Q138 36 134 84" stroke="#222" stroke-width="7" fill="none" stroke-linecap="round"/><rect x="56" y="72" width="17" height="27" rx="7" fill="#e63946" stroke="#a8212d" stroke-width="2"/><rect x="127" y="72" width="17" height="27" rx="7" fill="#e63946" stroke="#a8212d" stroke-width="2"/></g>');
+    } else if (hat === "cap") {
       s.push('<g class="pf-L-hat"><path d="M64 64 Q64 34 100 34 Q136 34 136 64Z" fill="#e63946"/><path d="M58 63 Q100 82 142 63 Q100 70 58 63Z" fill="#a8212d"/><circle cx="100" cy="34" r="4" fill="#a8212d"/><path d="M100 36 L100 62" stroke="#a8212d" stroke-width="2"/></g>');
     } else if (hat === "beanie") {
       s.push('<g class="pf-L-hat"><path d="M64 66 Q62 30 100 28 Q138 30 136 66Z" fill="#2a9d8f"/><rect x="62" y="56" width="76" height="15" rx="7" fill="#1f7a70"/><path d="M72 58 L72 69 M84 58 L84 69 M96 58 L96 69 M108 58 L108 69 M120 58 L120 69 M130 58 L130 69" stroke="#2a9d8f" stroke-width="2"/><circle cx="100" cy="24" r="9" fill="#f1faee"/><circle cx="96" cy="21" r="2" fill="#d6e4dc"/><circle cx="104" cy="26" r="2" fill="#d6e4dc"/></g>');
@@ -291,6 +336,7 @@
       s.push('<g class="pf-L-hat"><path d="M68 52 L68 22 L85 38 L100 14 L115 38 L132 22 L132 52Z" fill="#ffc400" stroke="#b8860b" stroke-width="2.5" stroke-linejoin="round"/><rect x="68" y="44" width="64" height="9" rx="2" fill="#e6a800" stroke="#b8860b" stroke-width="2"/><circle cx="100" cy="30" r="4.5" fill="#e63946"/><circle cx="82" cy="48" r="3" fill="#4fc3f7"/><circle cx="100" cy="48" r="3" fill="#e63946"/><circle cx="118" cy="48" r="3" fill="#66bb6a"/><circle cx="68" cy="20" r="3" fill="#fff6b0"/><circle cx="132" cy="20" r="3" fill="#fff6b0"/><circle cx="100" cy="12" r="3" fill="#fff6b0"/>' + spark(112, 24, 8) + spark(86, 30, 5) + "</g>");
     }
     s.push("</g>"); // translate group
+    if (eq.pet) s.push(petSVG(eq.pet));
     s.push("</svg>");
     return s.join("");
   }
@@ -317,8 +363,20 @@
     ".pf-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}",
     ".pf-card{display:flex;flex-direction:column;gap:4px;background:var(--card,#1f1f1d);border:1px solid var(--line,#33332f);border-radius:14px;padding:10px;min-width:0;cursor:pointer;transition:border-color .2s,transform .2s}",
     ".pf-card.own{cursor:default}",
+    ".pf-top{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;align-items:stretch;margin:4px 0 6px}",
+    ".pf-top .pf-av{width:100%}",
+    ".pf-side{display:flex;flex-direction:column;gap:3px;min-width:0;padding:10px 12px;border:1px solid var(--line);border-radius:16px;background:var(--card)}",
+    ".pf-sline{font-size:12px;color:var(--mute)}",
+    ".pf-money{display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin-top:2px}",
+    ".pf-money small{font-size:11px;color:var(--mute)}",
+    ".pf-money b{font-size:15px;font-family:\"JetBrains Mono\",ui-monospace,monospace}",
+    ".pf-tabs{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 10px}",
+    ".pf-tab{min-height:40px;padding:6px 11px;border-radius:20px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:14px;font-weight:700;cursor:pointer}",
+    ".pf-tab small{font-weight:400;color:var(--mute);font-size:11px}",
+    ".pf-tab.on{border-color:var(--pow);background:color-mix(in srgb,var(--pow) 18%,transparent);color:var(--pow)}",
+    ".pf-note{font-size:13px;color:var(--mute);margin:0 2px 8px}",
     ".pf-status{margin:10px 0 4px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:var(--card)}",
-    ".pf-sname{font-size:20px;font-weight:700;color:var(--pow);display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}",
+    ".pf-sname{font-size:19px;font-weight:700;color:var(--pow);line-height:1.1}",
     ".pf-sname small{font-size:13px;font-weight:400;color:var(--mute)}",
     ".pf-sbar{height:8px;border-radius:6px;background:var(--line);margin:8px 0 6px;overflow:hidden}",
     ".pf-sbar i{display:block;height:100%;background:var(--pow);border-radius:6px;transition:width .6s}",
@@ -347,6 +405,9 @@
       document.head.appendChild(st);
     }
     var preview = null, timer = null, msg = null, pop = false;
+    var tab = "deals";
+    try { tab = localStorage.getItem("rootrush_pfTab") || "deals"; } catch (e) { /* ignore */ }
+    if (tab !== "deals" && !SLOTS.some(function (x) { return x[0] === tab; })) tab = "deals";
 
     function render() {
       var owned = api.owned() || [], eq = api.equipped() || {}, coins = api.coins();
@@ -355,16 +416,34 @@
       if (preview) shown[preview.slot] = preview.id;
       var h = [];
       h.push('<div class="pf-wrap">');
-      h.push('<div class="pf-stage"><div class="pf-av' + (pop ? " pf-pop" : "") + '">' + avatarSVG({ equipped: shown, size: 260 }) + "</div></div>");
-      pop = false;
       var stt = status(owned);
-      h.push('<div class="pf-status"><div class="pf-sname">' + stt.name + '<small>' + stt.line + '</small></div>' +
-        (stt.next ? '<div class="pf-sbar"><i style="width:' + Math.round(stt.frac * 100) + '%"></i></div><div class="pf-snext">' + fmt(stt.toNext) + ' 🪙 more in cosmetics to reach <b>' + stt.next + '</b></div>' : '<div class="pf-snext">Top status. Nothing left to climb.</div>') + '</div>');
-      h.push('<div class="pf-stats"><div class="pf-stat"><small>net worth</small><b>' + fmt(netWorth(owned)) + ' 🪙</b></div><div class="pf-stat"><small>coins now</small><b>' + fmt(coins) + ' 🪙</b></div></div>');
+      // top: the guy on the left, status + money on the right (no scrolling to see it)
+      h.push('<div class="pf-top"><div class="pf-av' + (pop ? " pf-pop" : "") + '">' + avatarSVG({ equipped: shown, size: 200 }) + "</div>");
+      h.push('<div class="pf-side"><div class="pf-sname">' + stt.name + '</div><div class="pf-sline">' + stt.line + '</div>' +
+        (stt.next ? '<div class="pf-sbar"><i style="width:' + Math.round(stt.frac * 100) + '%"></i></div><div class="pf-snext">' + fmt(stt.toNext) + ' 🪙 to <b>' + stt.next + '</b></div>' : '<div class="pf-snext">Top status.</div>') +
+        '<div class="pf-money"><small>coins</small><b>' + fmt(coins) + ' 🪙</b></div><div class="pf-money"><small>net worth</small><b>' + fmt(netWorth(owned)) + ' 🪙</b></div></div></div>');
+      pop = false;
       h.push('<div class="pf-msg' + (msg ? " " + msg.kind : "") + '">' + (msg ? msg.text : (preview ? "Trying it on... buy it to keep it." : "Tap an item to try it on.")) + "</div>");
-      SLOTS.forEach(function (sl) {
-        h.push('<div class="pf-h"><span>' + sl[2] + "</span>" + sl[1] + '</div><div class="pf-grid">');
-        CATALOG.filter(function (c) { return c.slot === sl[0]; }).forEach(function (c) {
+      // tabs: "Can buy" first, then one tab per slot
+      var canBuy = CATALOG.filter(function (c) { return owned.indexOf(c.id) < 0 && c.price <= coins; });
+      var tabs = [["deals", "Can buy", "⭐"]].concat(SLOTS);
+      h.push('<div class="pf-tabs">');
+      tabs.forEach(function (tb) {
+        var n = tb[0] === "deals" ? canBuy.length : CATALOG.filter(function (c) { return c.slot === tb[0] && owned.indexOf(c.id) >= 0; }).length + "/" + CATALOG.filter(function (c) { return c.slot === tb[0]; }).length;
+        h.push('<button class="pf-tab' + (tab === tb[0] ? " on" : "") + '" data-act="tab" data-tab="' + tb[0] + '">' + tb[2] + " " + tb[1] + " <small>" + n + "</small></button>");
+      });
+      h.push("</div>");
+      var list;
+      if (tab === "deals") {
+        list = canBuy.slice().sort(function (a, b) { return a.price - b.price; });
+        if (!list.length) {
+          list = CATALOG.filter(function (c) { return owned.indexOf(c.id) < 0; }).sort(function (a, b) { return a.price - b.price; }).slice(0, NEXT_UP);
+          h.push('<div class="pf-note">' + (list.length ? "Nothing you can afford yet. Cheapest next:" : "You own everything!") + "</div>");
+        }
+      } else list = CATALOG.filter(function (c) { return c.slot === tab; });
+      [list].forEach(function () {
+        h.push('<div class="pf-grid">');
+        list.forEach(function (c) {
           var has = owned.indexOf(c.id) >= 0, wearing = eq[c.slot] === c.id;
           var cls = "pf-card" + (has ? " own" : "") + (wearing ? " on" : "") + (preview && preview.id === c.id ? " try" : "");
           h.push('<div class="' + cls + '"' + (has ? "" : ' data-act="try" data-id="' + c.id + '"') + ">");
@@ -387,6 +466,11 @@
     el.onclick = function (e) {
       var t = e.target && e.target.closest ? e.target.closest("[data-act]") : null;
       if (!t || !el.contains(t)) return;
+      if (t.getAttribute("data-act") === "tab") {
+        tab = t.getAttribute("data-tab");
+        try { localStorage.setItem("rootrush_pfTab", tab); } catch (e2) { /* ignore */ }
+        snd("click"); render(); return;
+      }
       var item = BY_ID[t.getAttribute("data-id")];
       if (!item) return; // never pass an unknown id to the api
       var act = t.getAttribute("data-act");

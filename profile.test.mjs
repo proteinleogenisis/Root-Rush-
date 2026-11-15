@@ -19,11 +19,11 @@ const EXPECT = {
   silverchain: ["chain", 800], goldchain: ["chain", 3000], diamondchain: ["chain", 8000],
   sneakers: ["shoes", 400], designerkicks: ["shoes", 2000],
   bike: ["ride", 700], sportscar: ["ride", 9000],
-  room: ["place", 150], cleantee: ["outfit", 100], cityview: ["place", 1000], penthouse: ["place", 6000], yacht: ["place", 12000]
+  room: ["place", 150], headphones: ["hat", 700], nerdglasses: ["shades", 150], varsity: ["outfit", 900], dogtag: ["chain", 200], slides: ["shoes", 120], skateboard: ["ride", 250], mansion: ["place", 20000], cat: ["pet", 400], dog: ["pet", 600], tiger: ["pet", 15000], cleantee: ["outfit", 100], cityview: ["place", 1000], penthouse: ["place", 6000], yacht: ["place", 12000]
 };
 
 function catalogCheck(RR) {
-  eq(RR.CATALOG.length, 20, "catalog size");
+  eq(RR.CATALOG.length, 30, "catalog size");
   for (const c of RR.CATALOG) {
     truthy(EXPECT[c.id], "unexpected id " + c.id);
     eq([c.slot, c.price], EXPECT[c.id], c.id);
@@ -45,7 +45,7 @@ function oneItem(id) { const c = P.CATALOG.find(x => x.id === id); return { [c.s
 function allEquipped() {
   const e = {};
   // one item per slot, the richest of each
-  for (const id of ["crown", "goldshades", "suit", "diamondchain", "designerkicks", "sportscar", "yacht"]) Object.assign(e, oneItem(id));
+  for (const id of ["crown", "goldshades", "suit", "diamondchain", "designerkicks", "sportscar", "yacht", "tiger"]) Object.assign(e, oneItem(id));
   return e;
 }
 function validate(svg, label) {
@@ -59,14 +59,14 @@ function validate(svg, label) {
 
 check("avatarSVG valid for every single item and plain", () => {
   let n = 0;
-  eq(ids.length, 20, "setup: 20 items");
+  eq(ids.length, 30, "setup: 30 items");
   validate(P.avatarSVG({ equipped: {} }), "plain"); n++;
   for (const id of ids) { validate(P.avatarSVG({ equipped: oneItem(id), size: 220 }), id); n++; }
-  eq(n, 21, "count of renders");
+  eq(n, 31, "count of renders");
 });
 check("avatarSVG valid with everything equipped and crop head", () => {
   const e = allEquipped();
-  eq(Object.keys(e).length, 7, "setup: 7 slots");
+  eq(Object.keys(e).length, 8, "setup: 8 slots");
   validate(P.avatarSVG({ equipped: e }), "all");
   validate(P.avatarSVG({ equipped: e, crop: "head", size: 34 }), "crop");
 });
@@ -130,7 +130,8 @@ check("status: starts Broke on the road, climbs with net worth", () => {
   eq(P.status(["cityview"]).name, "Getting by", "1000");
   eq(P.status(["suit", "goldchain"]).name, "Comfortable", "5500");
   eq(P.status(["yacht", "sportscar"]).name, "Rich", "21000");
-  eq(P.status(P.CATALOG.map(c => c.id)).name, "Rolling in it", "everything");
+  eq(P.status(P.CATALOG.map(c => c.id)).name, "Legend", "everything");
+  eq(P.status(["mansion", "tiger", "yacht"]).name, "Rolling in it", "47000");
   eq(P.status(P.CATALOG.map(c => c.id)).next, null, "no next at top");
   const s = P.status(["cleantee"]); eq(s.toNext, 900, "900 to Getting by");
 });
