@@ -236,6 +236,9 @@ body.fok{background:var(--goodbg)}body.fbad{background:var(--badbg)}
 .wrap{padding-bottom:84px}
 body.calc-open .wrap{padding-bottom:420px}body.calc-open.tape-on .wrap{padding-bottom:600px}
 body.calc-open .calc-fab{display:none}
+.opt.sel,.seg.sel{border-color:var(--root);box-shadow:0 0 0 2px var(--root);background:color-mix(in srgb,var(--root) 14%,transparent)}
+.qconf{margin-top:12px;padding:12px;border:1px solid var(--root);border-radius:14px;background:color-mix(in srgb,var(--root) 10%,var(--card));animation:paneIn .2s ease both}
+.qconf-t{font-size:15px;margin-bottom:10px}.qconf-r{display:flex;gap:8px}.qconf-yes{flex:1;margin:0}.qconf-no{flex:none;padding:0 14px}
 body.paper-only .cdisp,body.paper-only .ckeys,body.paper-only .c-tip{display:none}
 body.paper-only #tpList{max-height:min(45vh,360px)}
 body.calc-open.paper-only .wrap{padding-bottom:440px}
@@ -1514,11 +1517,24 @@ function next(){
     const opts=shuffle([p.c,...p.w.slice(0,3)]);st.cur.opts=opts;
     opts.forEach((o,i)=>box.appendChild(mkBtn("opt "+(p.words?"words":"mono"),`<kbd>${i+1}</kbd><span>${o}</span>`,()=>pickIdx(i))));
   }
-  st.locked=false;st.qStart=performance.now();if(calcOpen)tpRender();$("idk").classList.remove("hidden");
+  st.locked=false;st.sel=null;st.qStart=performance.now();if(calcOpen)tpRender();$("idk").classList.remove("hidden");
 }
-function pickIdx(i){
+// Final quiz: a tap only selects an answer; "Lock it in" confirms it, so a mis-tap can be fixed.
+const QUIZ_CONFIRM=true;
+function quizSelect(i){
+  const p=st.cur,bs=[...$("opts").querySelectorAll(p.type==="line"?".seg":".opt")];
+  if(i!=="idk"&&!bs[i])return;st.sel=i;bs.forEach((b,j)=>b.classList.toggle("sel",j===i));
+  let c=$("qConfirm");if(!c){c=document.createElement("div");c.id="qConfirm";c.className="qconf";$("opts").appendChild(c)}
+  const text=i==="idk"?"":p.type==="spot"?p.lines[i]:p.type==="line"?`${p.segs[i]}–${p.segs[i]+1}`:p.opts[i];
+  c.innerHTML=`<div class="qconf-t">${i==="idk"?"Skip this one? It counts as wrong.":`Lock in <b class="mono">${text}</b>?`}</div>`;
+  const row=document.createElement("div");row.className="qconf-r";
+  row.appendChild(mkBtn("big qconf-yes",i==="idk"?"Yes, show me":"Yes, lock it in",()=>{const k=st.sel;st.sel=null;c.remove();if(k==="idk")idk(true);else pickIdx(k,true)}));
+  row.appendChild(mkBtn("qconf-no","Pick again",()=>{st.sel=null;bs.forEach(b=>b.classList.remove("sel"));c.remove()}));
+  c.appendChild(row);beep(600,.04,"sine",.05);setTimeout(()=>c.scrollIntoView({behavior:"smooth",block:"nearest"}),30)}
+function pickIdx(i,sure){
   if(st.locked||st.done||st.paused||st.mode!=="main")return;
   const p=st.cur,bs=[...$("opts").querySelectorAll(p.type==="line"?".seg":".opt")];if(!bs[i])return;
+  if(st.quiz&&QUIZ_CONFIRM&&!sure)return quizSelect(i);
   let ci;
   if(p.type==="spot")ci=p.bad;else if(p.type==="line")ci=p.segs.indexOf(p.ans);else ci=p.opts.indexOf(p.c);
   bs[ci].classList.add("ok");if(i!==ci)bs[i].classList.add("no");
@@ -1539,12 +1555,13 @@ function tapTile(t,el){
   }
 }
 // "I don't know": counts as a miss (same as a wrong answer) and goes straight to the step-by-step, no guessing
-function idk(){
+function idk(sure){
   if(st.locked||st.done||st.paused||st.mode!=="main"||!st.cur)return;const p=st.cur;
+  if(st.quiz&&QUIZ_CONFIRM&&sure!==true&&p.type!=="order")return quizSelect("idk");
   if(p.type==="order"){const slots=[...$("slots").children];p.steps.forEach((x,i)=>{if(i>=st.seq.length){slots[i].textContent=x;slots[i].classList.add("fix")}});st.pk={idk:true,pos:st.seq.length}}
   else{const bs=[...$("opts").querySelectorAll(p.type==="line"?".seg":".opt")],ci=p.type==="line"?p.segs.indexOf(p.ans):p.type==="spot"?p.bad:p.opts.indexOf(p.c);if(bs[ci])bs[ci].classList.add("ok");st.pk={idk:true}}
   resolve(false)}
-$("idk").onclick=idk;
+$("idk").onclick=()=>idk();
 function showWalk(){
   const p=st.cur,pk=st.pk||{};let steps,here=-1;
   if(p.type==="spot"){steps=p.lines.slice(0,p.bad+1).map((l,i)=>[l,i<p.bad?"✓ This line is fine":"✗ The first mistake happens here"]).concat(p.lines.slice(p.bad+1).map(l=>[`<s>${l}</s>`,"✗ Wrong too, because it builds on the mistake above"])).concat((p.fix||[]).map((l,i,A)=>[l,i===0?"✓ Fixed: what it should be":i===A.length-1?"✓ Correct answer":"✓ Keep going"]));here=p.bad}
@@ -1738,6 +1755,7 @@ document.addEventListener("keydown",e=>{
     if(/^[0-9.+()^]$/.test(k)||["×","÷","−","=","⌫","C"].includes(k)){e.preventDefault();if(e.key==="Escape")toggleCalc(false);else cKey(k);return}}
   if(!$("game").classList.contains("hidden")){
     if(st.mode==="lt"){if(e.key==="1"||e.key==="ArrowLeft"||e.key==="t")ltAnswer(true);else if(e.key==="2"||e.key==="ArrowRight"||e.key==="f")ltAnswer(false);return}
+    if(e.key==="Enter"&&$("qConfirm")){$("qConfirm").querySelector(".qconf-yes").click();return}
     if(e.key==="0"||e.key==="?"){idk();return}
     if(e.key>="1"&&e.key<="5"){const i=+e.key-1;if(st.cur&&st.cur.type==="order"){const t=[...document.querySelectorAll(".tile")][i];if(t)t.click()}else pickIdx(i)}
     else if(e.key==="Enter"&&!$("go").classList.contains("hidden")){if(!wkNext())$("go").click()}
