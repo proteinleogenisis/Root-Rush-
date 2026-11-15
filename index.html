@@ -883,7 +883,22 @@ $("musBtn").onclick=musToggle;
 $("setBtn").onclick=()=>{$("setSheet").classList.remove("hidden");renderMusic();};$("setClose").onclick=()=>$("setSheet").classList.add("hidden");
 document.addEventListener("pointerdown",e=>{if(musicOn&&!musReady&&!(e.target.closest&&e.target.closest("#musBtn,#musTog")))  {musUnlock();musUpdate()}},{passive:true});
 document.addEventListener("keydown",()=>{if(musicOn&&!musReady){musUnlock();musUpdate()}});
-document.addEventListener("visibilitychange",()=>{if(document.hidden)musStopAll();else musUpdate()});
+// Coming back to the app: iPhone pauses ("interrupted"/"suspended") the audio engine when you swipe away.
+// Wake it on return and on every tap until it runs; if a wake attempt didn't work, the next tap rebuilds it.
+const AUDIO_WAKE_CHECK_MS=700;let acStuck=false;
+function audioRebuild(){const old=ac;musActive=[];musCur=null;if(musTimer){clearInterval(musTimer);musTimer=null}musBus=null;NB=null;musReady=false;ac=null;acStuck=false;
+  try{old&&old.close()}catch(e){}
+  try{ac=new(window.AudioContext||window.webkitAudioContext)();ac.resume()}catch(e){ac=null;return}
+  if(musicOn){musUnlock();musUpdate()}}
+function audioWake(gesture){if(!ac||document.hidden)return;
+  if(ac.state==="running"){acStuck=false;musUpdate();return}
+  if(gesture&&acStuck)return audioRebuild();
+  try{const pr=ac.resume();if(pr&&pr.then)pr.then(()=>{if(ac&&ac.state==="running"){acStuck=false;musUpdate()}}).catch(()=>{})}catch(e){}
+  const me=ac;setTimeout(()=>{if(ac===me&&ac.state!=="running"&&!document.hidden)acStuck=true},AUDIO_WAKE_CHECK_MS)}
+document.addEventListener("pointerdown",()=>{if(musReady||ac)audioWake(true)},{passive:true,capture:true});
+document.addEventListener("touchend",()=>{if(ac)audioWake(true)},{passive:true,capture:true});
+document.addEventListener("visibilitychange",()=>{if(document.hidden)musStopAll();else{audioWake(false);musUpdate()}});
+window.addEventListener("pageshow",()=>audioWake(false));
 musLabel();
 
 function rank(s){return s>=18000?"Radical legend":s>=12000?"Exponent ace":s>=6000?"Root apprentice":"Square one"}
