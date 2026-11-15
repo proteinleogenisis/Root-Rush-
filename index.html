@@ -50,7 +50,7 @@ button:active{transform:scale(.97)}
 .why{margin-top:12px;font-size:16px;line-height:1.6;border-left:3px solid var(--bad);padding-left:12px}
 .why .mono{display:block;margin:6px 0;font-size:15px}
 .combo{font-weight:700;color:var(--hot)}
-.pop{position:fixed;left:50%;top:38%;transform:translate(-50%,-50%);font-size:34px;font-weight:700;color:var(--hot);pointer-events:none;opacity:0;transition:opacity .2s,transform .5s}
+.pop{white-space:nowrap;text-align:center;position:fixed;left:50%;top:38%;transform:translate(-50%,-50%);font-size:34px;font-weight:700;color:var(--hot);pointer-events:none;opacity:0;transition:opacity .2s,transform .5s}
 .pop.on{opacity:1;transform:translate(-50%,-90%)}
 .row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line)}
 .row:last-child{border:0}
@@ -233,6 +233,9 @@ body.fok{background:var(--goodbg)}body.fbad{background:var(--badbg)}
 .wrap{padding-bottom:84px}
 body.calc-open .wrap{padding-bottom:420px}body.calc-open.tape-on .wrap{padding-bottom:600px}
 body.calc-open .calc-fab{display:none}
+body.paper-only .cdisp,body.paper-only .ckeys,body.paper-only .c-tip{display:none}
+body.paper-only #tpList{max-height:min(45vh,360px)}
+body.calc-open.paper-only .wrap{padding-bottom:440px}
 .dnote{font-size:13px;color:var(--mute);margin:-4px 2px 10px}
 .dsw button.lock{opacity:.5}
 .mrow{display:flex;align-items:center;gap:10px;margin:14px 0 8px;font-size:13px}
@@ -436,11 +439,12 @@ body.calc-open .calc-fab{display:none}
 </div>
 <div class="fabs"><button id="calcBtn" class="calc-fab hidden">Calculator</button></div>
 <div id="calc" class="calc hidden">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b style="font-size:15px">Calculator</b><span style="display:flex;gap:6px"><button class="small" id="tpBtn">📄 Paper</button><button class="small" id="cClose">Close</button></span></div>
-  <div id="tape" class="tape hidden"><div class="tape-h"><span class="mute">Your answers save here. Tap one to use it again.</span><button class="small" id="tpClear">Clear</button></div><div id="tpList"></div></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b style="font-size:15px" id="cTitle">Calculator</b><span style="display:flex;gap:6px"><button class="small" id="tpBtn">📄 Paper</button><button class="small" id="pOnly">Paper only</button><button class="small" id="cClose">Close</button></span></div>
+  <div id="tape" class="tape hidden"><div class="tape-h"><span class="mute" id="tpHint">Your answers save here. Tap one to use it again.</span><button class="small" id="tpClear">Clear</button></div><div id="tpList"></div></div>
+  <div id="tpEmpty" class="mute hidden" style="font-size:13px;padding:6px 2px">Nothing saved for this question yet. Tap <b>Calculator</b>, work it out, and every "=" answer lands here.</div>
   <div class="cdisp"><div class="mono" id="cExpr"> </div><div class="mono" id="cRes"> </div></div>
   <div class="ckeys" id="cKeys"></div>
-  <div class="mute" style="font-size:12px;margin-top:8px">For 8<sup>2/3</sup> type 8 ^ ( 2 ÷ 3 ). Without the ( ) it works like a real calculator and gives the wrong answer.</div>
+  <div class="mute c-tip" style="font-size:12px;margin-top:8px">For 8<sup>2/3</sup> type 8 ^ ( 2 ÷ 3 ). Without the ( ) it works like a real calculator and gives the wrong answer.</div>
 </div>
 <div class="pop" id="pop"></div>
 <div class="cd hidden" id="cd"></div>
@@ -1562,7 +1566,7 @@ function ltAnswer(v){
 }
 function endLightning(){
   st.mode="main";$("qc").classList.remove("ltcard");$("tg").classList.remove("rm");
-  popup(st.ltWrong?`Wrong: lightning over<div style="font-size:16px">+${st.ltScore}</div>`:`Lightning +${st.ltScore}`,st.ltWrong?"var(--bad)":"var(--root)");st.ltWrong=false;$("why").classList.add("hidden");beep(1047,.2);
+  popup(st.ltWrong?`Lightning over<div style="font-size:16px">wrong answer · +${st.ltScore}</div>`:`Lightning +${st.ltScore}`,st.ltWrong?"var(--bad)":"var(--root)");st.ltWrong=false;$("why").classList.add("hidden");beep(1047,.2);
   st.qStart=performance.now();next();
 }
 
@@ -1693,16 +1697,20 @@ function cKey(k){
 const TAPE_MAX=40;
 let tape=[],tapeOpen=LS.get("tapeOpen",true),tpFlash=null;
 function tpKey(){return curScreen==="game"?"g"+st.qn:curScreen==="learn"?"l"+selDay+"|"+li:"x"}
-function tpAdd(expr,v){const last=tape[0];if(last&&last.e===expr&&last.v===v)return;tape.unshift({e:expr,v,k:tpKey(),id:Date.now()+Math.random()});tape=tape.slice(0,TAPE_MAX);tpFlash=tape[0].id;if(!tapeOpen){tapeOpen=true;LS.set("tapeOpen",true)}tpRender()}
+function tpAdd(expr,v){tpPrune();const last=tape[0];if(last&&last.e===expr&&last.v===v)return;tape.unshift({e:expr,v,k:tpKey(),id:Date.now()+Math.random()});tape=tape.slice(0,TAPE_MAX);tpFlash=tape[0].id;if(!tapeOpen){tapeOpen=true;LS.set("tapeOpen",true)}tpRender()}
 function tpUse(v){const t=String(Math.round(v*1e6)/1e6).replace("-","−");if(calcDone){calcDone=false;calcExpr=""}calcExpr+=(v<0&&calcExpr&&!/[(]$/.test(calcExpr)?"("+t+")":t);cRender();beep(700,.04,"sine",.05)}
-function tpRender(){$("tape").classList.toggle("hidden",!tapeOpen||!tape.length);document.body.classList.toggle("tape-on",tapeOpen&&!!tape.length);$("tpBtn").textContent=`📄 Paper${tape.length?" ("+tape.length+")":""}`;$("tpBtn").classList.toggle("on",tapeOpen&&!!tape.length);
-  const box=$("tpList"),k=tpKey();box.innerHTML="";let sep=false;
-  tape.forEach(t=>{const old=t.k!==k;if(old&&!sep){sep=true;const d=document.createElement("div");d.className="tp-sep";d.textContent="Earlier";box.appendChild(d)}
-    const r=document.createElement("div");r.className="tp-row"+(old?" old":"")+(t.id===tpFlash?" tp-new":"");
+// Answers from earlier questions are removed on their own: only this question's work stays on the paper.
+function tpPrune(){const k=tpKey();tape=tape.filter(t=>t.k===k)}
+let paperOnly=LS.get("paperOnly",false);
+function pOnlyRender(){document.body.classList.toggle("paper-only",paperOnly);$("pOnly").textContent=paperOnly?"Calculator":"Paper only";$("cTitle").textContent=paperOnly?"Paper":"Calculator";$("tpBtn").classList.toggle("hidden",paperOnly)}
+function tpRender(){tpPrune();pOnlyRender();const showT=paperOnly||(tapeOpen&&!!tape.length);$("tpEmpty").classList.toggle("hidden",!(paperOnly&&!tape.length));$("tape").classList.toggle("hidden",!showT||!tape.length);document.body.classList.toggle("tape-on",showT&&!!tape.length);$("tpBtn").textContent=`📄 Paper${tape.length?" ("+tape.length+")":""}`;$("tpBtn").classList.toggle("on",tapeOpen&&!!tape.length);
+  const box=$("tpList");box.innerHTML="";
+  tape.forEach(t=>{const r=document.createElement("div");r.className="tp-row"+(t.id===tpFlash?" tp-new":"");
     const u=mkBtn("tp-use",`<span class="mono">${t.e}</span><b class="mono">= ${cFmt(t.v)}</b>`,()=>tpUse(t.v));const x=mkBtn("tp-x","×",()=>{tape=tape.filter(y=>y!==t);tpRender()});x.setAttribute("aria-label","Remove");
     r.appendChild(u);r.appendChild(x);box.appendChild(r)});tpFlash=null}
 $("tpBtn").onclick=()=>{if(!tape.length){$("cRes").textContent="Answers you get will save here";return}tapeOpen=!tapeOpen;LS.set("tapeOpen",tapeOpen);tpRender()};
 $("tpClear").onclick=()=>{tape=[];tpRender()};
+$("pOnly").onclick=()=>{paperOnly=!paperOnly;LS.set("paperOnly",paperOnly);tpRender()};
 function toggleCalc(on){calcOpen=on===undefined?!calcOpen:on;$("calc").classList.toggle("hidden",!calcOpen);document.body.classList.toggle("calc-open",calcOpen);$("calcBtn").textContent=calcOpen?"Close calc":"Calculator";if(calcOpen){cRender();tpRender()}}
 (function(){const keys=["C","⌫","(",")","÷","7","8","9","×","^","4","5","6","−","√","1","2","3","+","∛","0",".","ans","="];
   const box=$("cKeys");keys.forEach(k=>{const b=mkBtn(k==="="?"eq":"+−×÷^√∛()".includes(k)?"op":k==="C"||k==="⌫"||k==="ans"?"fn":"",k,()=>cKey(k));if(k==="0")b.style.gridColumn="span 2";box.appendChild(b)});
