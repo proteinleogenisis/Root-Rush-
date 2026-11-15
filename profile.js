@@ -9,6 +9,7 @@
     { id: "crown", slot: "hat", name: "Crown", price: 5000, desc: "Solid gold. Obviously." },
     { id: "sunglasses", slot: "shades", name: "Sunglasses", price: 350, desc: "Dark lenses, no squinting" },
     { id: "goldshades", slot: "shades", name: "Gold shades", price: 1500, desc: "Gold frames, amber lenses" },
+    { id: "cleantee", slot: "outfit", name: "Clean tee", price: 100, desc: "A fresh tee. No holes." },
     { id: "hoodie", slot: "outfit", name: "Hoodie", price: 500, desc: "Soft grey hoodie" },
     { id: "dripjacket", slot: "outfit", name: "Drip jacket", price: 1200, desc: "Orange puffer with a fur collar" },
     { id: "suit", slot: "outfit", name: "Suit", price: 2500, desc: "Sharp suit and a red tie" },
@@ -19,6 +20,7 @@
     { id: "designerkicks", slot: "shoes", name: "Designer kicks", price: 2000, desc: "Black and gold, limited drop" },
     { id: "bike", slot: "ride", name: "Bike", price: 700, desc: "A red road bike" },
     { id: "sportscar", slot: "ride", name: "Sports car", price: 9000, desc: "Low, red and fast" },
+    { id: "room", slot: "place", name: "Small room", price: 150, desc: "A tiny room. Off the street." },
     { id: "cityview", slot: "place", name: "City view", price: 1000, desc: "Skyline at dusk" },
     { id: "penthouse", slot: "place", name: "Penthouse", price: 6000, desc: "Marble floors, night skyline" },
     { id: "yacht", slot: "place", name: "Yacht", price: 12000, desc: "Open water, sun on deck" }
@@ -33,8 +35,21 @@
     cap: "🧢", beanie: "🧶", crown: "👑", sunglasses: "🕶️", goldshades: "🕶️",
     hoodie: "🧥", dripjacket: "🧥", suit: "🤵", silverchain: "📿", goldchain: "📿",
     diamondchain: "💎", sneakers: "👟", designerkicks: "👟", bike: "🚲", sportscar: "🏎️",
-    cityview: "🌆", penthouse: "🏙️", yacht: "🛥️"
+    cityview: "🌆", room: "🛏️", cleantee: "👕", penthouse: "🏙️", yacht: "🛥️"
   };
+  // Status by net worth (coins spent on cosmetics). He starts broke, on the road.
+  var STATUS = [
+    [0, "Broke", "Living on the road"], [100, "Scraping by", "Got something"],
+    [1000, "Getting by", "Off the street"], [5000, "Comfortable", "Doing alright"],
+    [15000, "Rich", "Money talks"], [35000, "Rolling in it", "Top of the city"]
+  ];
+  function status(owned) {
+    var w = netWorth(owned), i = 0;
+    while (i + 1 < STATUS.length && w >= STATUS[i + 1][0]) i++;
+    var nx = STATUS[i + 1];
+    return { name: STATUS[i][1], line: STATUS[i][2], level: i, next: nx ? nx[1] : null,
+      toNext: nx ? nx[0] - w : 0, frac: nx ? (w - STATUS[i][0]) / (nx[0] - STATUS[i][0]) : 1 };
+  }
   var BY_ID = {};
   CATALOG.forEach(function (c) { BY_ID[c.id] = c; });
 
@@ -95,7 +110,7 @@
       o.push('<rect y="244" width="300" height="7" fill="#f3f3f3"/>');
       for (var x2 = 6; x2 < 300; x2 += 40) o.push('<rect x="' + x2 + '" y="206" width="5" height="40" fill="#f3f3f3"/>');
       o.push('<rect y="206" width="300" height="5" fill="#f3f3f3"/><rect y="222" width="300" height="3" fill="#dcdcdc"/>');
-    } else { // bedroom
+    } else if (p === "room") {
       o.push('<rect width="300" height="300" fill="#4a5578"/>');
       o.push('<rect y="0" width="300" height="12" fill="#3d4766"/>');
       o.push('<rect x="14" y="64" width="64" height="74" rx="3" fill="#2a3150"/><rect x="19" y="69" width="54" height="64" fill="#8ec9ff"/>');
@@ -105,6 +120,22 @@
       o.push('<path d="M224 140 L238 122 L246 132 L252 124 L258 140Z" fill="#1D9E75"/><rect x="222" y="150" width="36" height="3" fill="#b5ad98"/><rect x="222" y="157" width="24" height="3" fill="#b5ad98"/>');
       o.push('<rect y="250" width="300" height="50" fill="#363c58"/><rect y="250" width="300" height="4" fill="#2b3048"/>');
       o.push('<ellipse cx="60" cy="278" rx="48" ry="9" fill="#7F77DD" opacity=".55"/>');
+    } else { // the road: where he starts, broke
+      o.push('<defs><linearGradient id="' + id + 'dusk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#232842"/><stop offset="1" stop-color="#6a5878"/></linearGradient></defs>');
+      o.push('<rect width="300" height="300" fill="url(#' + id + 'dusk)"/>');
+      o.push('<circle cx="250" cy="44" r="1.5" fill="#fff" opacity=".6"/><circle cx="200" cy="26" r="1.2" fill="#fff" opacity=".5"/><circle cx="150" cy="56" r="1" fill="#fff" opacity=".5"/>');
+      o.push('<path d="M0 236 L0 196 L30 196 L30 178 L64 178 L64 204 L96 204 L96 188 L140 188 L140 210 L176 210 L176 182 L214 182 L214 200 L252 200 L252 172 L300 172 L300 236Z" fill="#2a2d44"/>');
+      o.push('<rect x="20" y="70" width="6" height="168" fill="#4a4f63"/><path d="M23 72 Q23 58 44 58" stroke="#4a4f63" stroke-width="5" fill="none"/>');
+      o.push('<circle cx="46" cy="64" r="22" fill="#ffd98a" opacity=".18"/><rect x="38" y="58" width="16" height="7" rx="3" fill="#ffe7a8"/>');
+      o.push('<rect y="232" width="300" height="20" fill="#5d5964"/><rect y="250" width="300" height="6" fill="#8a8590"/>');
+      o.push('<rect y="256" width="300" height="44" fill="#2e2e34"/>');
+      for (var dx = 6; dx < 300; dx += 48) o.push('<rect x="' + dx + '" y="279" width="26" height="4" fill="#d9b44a" opacity=".8"/>');
+      o.push('<path d="M60 240 L76 236 L70 244Z" fill="#7d7a86"/><path d="M150 246 l10 -3 l2 4z" fill="#9b8f7a"/>');
+      o.push('<g class="pf-box"><rect x="196" y="196" width="72" height="54" fill="#b98a55"/><path d="M196 196 L184 182 L250 182 L268 196Z" fill="#cfa06a"/><path d="M232 196 L232 250" stroke="#8c6438" stroke-width="2"/>');
+      o.push('<rect x="204" y="204" width="56" height="30" fill="#e8d3a8" transform="rotate(-4 232 219)"/>');
+      o.push('<text x="232" y="216" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="7.5" fill="#3a2a18" transform="rotate(-4 232 219)">WILL DO MATH</text>');
+      o.push('<text x="232" y="228" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="7.5" fill="#3a2a18" transform="rotate(-4 232 219)">FOR COINS</text></g>');
+      o.push('<path d="M172 236 L186 236 L184 252 L174 252Z" fill="#9aa3ad"/><path d="M172 240 L186 240" stroke="#6c757d" stroke-width="1.5"/><circle cx="179" cy="235" r="2.5" fill="#f5c518"/>');
     }
     return o.join("");
   }
@@ -144,7 +175,7 @@
   }
 
   function shoeSVG(s) {
-    var c = { body: "#6d4c41", sole: "#3e2723" }, extra = "";
+    var c = { body: "#5a4636", sole: "#2e231b" }, extra = '<circle cx="73" cy="270" r="3.2" fill="#f1c27d"/><path d="M120 266 L126 270 M98 268 L102 266" stroke="#2e231b" stroke-width="1.5"/>';
     if (s === "sneakers") { c = { body: "#fafafa", sole: "#d5d5d5" }; extra = '<path d="M76 270 L96 270 M118 270 L132 270" stroke="#3b82f6" stroke-width="3" stroke-linecap="round"/><path d="M84 264 L90 268 M86 262 L92 266 M110 264 L116 268 M112 262 L118 266" stroke="#999" stroke-width="1.4"/>'; }
     if (s === "designerkicks") { c = { body: "#15151a", sole: "#ffd54f" }; extra = '<path d="M74 272 Q88 262 100 270 M116 270 Q128 262 136 272" stroke="#ffd54f" stroke-width="3" fill="none" stroke-linecap="round"/>' + spark(72, 262, 6) + spark(134, 262, 7); }
     return '<ellipse cx="86" cy="271" rx="17" ry="9" fill="' + c.body + '"/><ellipse cx="114" cy="271" rx="17" ry="9" fill="' + c.body + '"/>' +
@@ -159,6 +190,7 @@
     var id = "pf" + (++uid) + "-";
     var skin = "#f1c27d", skinD = "#d9a55f", hair = "#3b2a20";
     var outfit = eq.outfit, hat = eq.hat, shades = eq.shades, chain = eq.chain;
+    var broke = !outfit;
     var pants = outfit === "suit" ? "#23252d" : "#3d5a99";
     var s = [];
     s.push('<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + (crop ? "66 34 88 88" : "0 0 300 300") + '" width="' + size + '" height="' + size + '" role="img" aria-label="Your guy">');
@@ -167,14 +199,14 @@
     s.push('<g transform="translate(10,0)">');
     s.push('<ellipse cx="100" cy="281" rx="42" ry="6" fill="#000" opacity=".28"/>');
     // legs
-    s.push('<g class="pf-L-legs"><rect x="82" y="192" width="17" height="80" rx="7" fill="' + pants + '"/><rect x="101" y="192" width="17" height="80" rx="7" fill="' + pants + '"/><line x1="100" y1="205" x2="100" y2="262" stroke="#000" stroke-opacity=".25" stroke-width="1.5"/></g>');
+    s.push('<g class="pf-L-legs"><rect x="82" y="192" width="17" height="80" rx="7" fill="' + pants + '"/><rect x="101" y="192" width="17" height="80" rx="7" fill="' + pants + '"/><line x1="100" y1="205" x2="100" y2="262" stroke="#000" stroke-opacity=".25" stroke-width="1.5"/>' + (broke ? '<rect x="85" y="232" width="11" height="10" fill="#7a5c42"/><path d="M85 232 h11 M85 242 h11" stroke="#d9c7a6" stroke-width="1" stroke-dasharray="2 2"/>' : "") + '</g>');
     s.push('<g class="pf-L-shoes">' + shoeSVG(eq.shoes) + "</g>");
     // neck + hood behind
     if (outfit === "hoodie") s.push('<ellipse cx="100" cy="118" rx="29" ry="14" fill="#6b7280"/>');
     s.push('<rect x="91" y="98" width="18" height="24" fill="' + skinD + '"/>');
     // arms
     var longSleeve = outfit === "hoodie" || outfit === "dripjacket" || outfit === "suit";
-    var sleeve = outfit === "hoodie" ? "#8a919e" : outfit === "dripjacket" ? "#ff7b00" : outfit === "suit" ? "#2b2f3a" : "#3b9ae1";
+    var sleeve = outfit === "hoodie" ? "#8a919e" : outfit === "dripjacket" ? "#ff7b00" : outfit === "suit" ? "#2b2f3a" : broke ? "#7b8794" : "#3b9ae1";
     s.push('<g class="pf-L-arms" stroke-linecap="round" fill="none">');
     s.push('<path d="M72 132 L62 190" stroke="' + skin + '" stroke-width="13"/><path d="M128 132 L138 190" stroke="' + skin + '" stroke-width="13"/>');
     if (longSleeve) s.push('<path d="M72 132 L63 182" stroke="' + sleeve + '" stroke-width="17"/><path d="M128 132 L137 182" stroke="' + sleeve + '" stroke-width="17"/>');
@@ -199,10 +231,15 @@
       s.push('<path d="M88 117 L100 152 L80 170 L78 125Z" fill="#1f2230"/><path d="M112 117 L100 152 L120 170 L122 125Z" fill="#1f2230"/>');
       s.push('<path d="M95 121 L105 121 L108 128 L100 134 L92 128Z" fill="#c1272d"/><path d="M96 132 L104 132 L108 176 L100 184 L92 176Z" fill="#d7323a"/>');
       s.push('<circle cx="100" cy="196" r="2.5" fill="#c9a227"/><rect x="108" y="150" width="12" height="3" fill="#fff"/>');
-    } else {
+    } else if (outfit === "cleantee") {
       s.push('<path d="M70 130 Q70 118 84 117 L116 117 Q130 118 130 130 L128 205 L72 205Z" fill="#3b9ae1"/>');
       s.push('<path d="M86 117 Q100 130 114 117 L110 115 Q100 124 90 115Z" fill="#2c7bb8"/>');
       s.push('<text x="100" y="168" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="22" fill="#fff" fill-opacity=".9">√</text>');
+    } else { // ragged tee: faded, patched, torn hem
+      s.push('<path d="M70 130 Q70 118 84 117 L116 117 Q130 118 130 130 L128 198 L122 205 L116 198 L110 205 L104 198 L98 205 L92 198 L86 205 L80 198 L72 204Z" fill="#7b8794"/>');
+      s.push('<path d="M86 117 Q100 128 114 117" stroke="#5f6a76" stroke-width="3" fill="none"/>');
+      s.push('<rect x="106" y="150" width="15" height="14" fill="#8d6e52" transform="rotate(8 113 157)"/><path d="M106 150 l15 2 M106 164 l15 2" stroke="#e8d9c0" stroke-width="1" stroke-dasharray="2 2" transform="rotate(8 113 157)"/>');
+      s.push('<ellipse cx="86" cy="178" rx="4" ry="3" fill="#f1c27d"/><path d="M80 138 q6 4 4 10" stroke="#66717d" stroke-width="1.5" fill="none"/>');
     }
     s.push("</g>");
     // chain
@@ -236,7 +273,7 @@
     s.push('<path d="M80 74 Q88 70 96 74 M104 74 Q112 70 120 74" stroke="' + hair + '" stroke-width="3" stroke-linecap="round" fill="none"/>');
     s.push('<path d="M99 90 Q101 96 97 97" stroke="' + skinD + '" stroke-width="2" fill="none" stroke-linecap="round"/>');
     // mouth
-    s.push('<path d="M91 100 Q100 108 109 100" stroke="#7a3b2b" stroke-width="2.5" fill="none" stroke-linecap="round"/>');
+    s.push(broke && !eq.place ? '<path d="M92 102 Q100 99 108 102" stroke="#7a3b2b" stroke-width="2.5" fill="none" stroke-linecap="round"/>' : '<path d="M91 100 Q100 108 109 100" stroke="#7a3b2b" stroke-width="2.5" fill="none" stroke-linecap="round"/>');
     // glasses / shades
     if (shades === "sunglasses") {
       s.push('<g class="pf-L-shades"><rect x="75" y="76" width="22" height="16" rx="6" fill="#111"/><rect x="103" y="76" width="22" height="16" rx="6" fill="#111"/><path d="M97 82 L103 82 M75 80 L66 78 M125 80 L134 78" stroke="#111" stroke-width="3" stroke-linecap="round"/><path d="M79 79 L85 79 M107 79 L113 79" stroke="#fff" stroke-opacity=".6" stroke-width="2" stroke-linecap="round"/></g>');
@@ -280,6 +317,12 @@
     ".pf-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}",
     ".pf-card{display:flex;flex-direction:column;gap:4px;background:var(--card,#1f1f1d);border:1px solid var(--line,#33332f);border-radius:14px;padding:10px;min-width:0;cursor:pointer;transition:border-color .2s,transform .2s}",
     ".pf-card.own{cursor:default}",
+    ".pf-status{margin:10px 0 4px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:var(--card)}",
+    ".pf-sname{font-size:20px;font-weight:700;color:var(--pow);display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}",
+    ".pf-sname small{font-size:13px;font-weight:400;color:var(--mute)}",
+    ".pf-sbar{height:8px;border-radius:6px;background:var(--line);margin:8px 0 6px;overflow:hidden}",
+    ".pf-sbar i{display:block;height:100%;background:var(--pow);border-radius:6px;transition:width .6s}",
+    ".pf-snext{font-size:13px;color:var(--mute)}",
     ".pf-card.on{border-color:var(--good,#97C459);box-shadow:0 0 0 1px var(--good,#97C459)}",
     ".pf-card.try{border-color:var(--root,#7F77DD);box-shadow:0 0 0 2px var(--root,#7F77DD)}",
     ".pf-ico{font-size:30px;line-height:1.1}",
@@ -314,6 +357,9 @@
       h.push('<div class="pf-wrap">');
       h.push('<div class="pf-stage"><div class="pf-av' + (pop ? " pf-pop" : "") + '">' + avatarSVG({ equipped: shown, size: 260 }) + "</div></div>");
       pop = false;
+      var stt = status(owned);
+      h.push('<div class="pf-status"><div class="pf-sname">' + stt.name + '<small>' + stt.line + '</small></div>' +
+        (stt.next ? '<div class="pf-sbar"><i style="width:' + Math.round(stt.frac * 100) + '%"></i></div><div class="pf-snext">' + fmt(stt.toNext) + ' 🪙 more in cosmetics to reach <b>' + stt.next + '</b></div>' : '<div class="pf-snext">Top status. Nothing left to climb.</div>') + '</div>');
       h.push('<div class="pf-stats"><div class="pf-stat"><small>net worth</small><b>' + fmt(netWorth(owned)) + ' 🪙</b></div><div class="pf-stat"><small>coins now</small><b>' + fmt(coins) + ' 🪙</b></div></div>');
       h.push('<div class="pf-msg' + (msg ? " " + msg.kind : "") + '">' + (msg ? msg.text : (preview ? "Trying it on... buy it to keep it." : "Tap an item to try it on.")) + "</div>");
       SLOTS.forEach(function (sl) {
@@ -383,6 +429,8 @@
   globalThis.RRProfile = {
     CATALOG: CATALOG,
     netWorth: netWorth,
+    status: status,
+    STATUS: STATUS,
     avatarSVG: avatarSVG,
     mount: mount
   };

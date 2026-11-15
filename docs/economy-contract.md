@@ -65,10 +65,12 @@ RRProfile.mount(el, api)
 ```
 
 Catalog (prices are fixed):
+place: small room 150 · outfit: clean tee 100 ·
 hat: cap 300, beanie 400, crown 5000 · shades: sunglasses 350, gold shades 1500 ·
 outfit: hoodie 500, drip jacket 1200, suit 2500 · chain: silver chain 800, gold chain 3000, diamond chain 8000 ·
 shoes: sneakers 400, designer kicks 2000 · ride: bike 700, sports car 9000 ·
-place: city view 1000, penthouse 6000, yacht 12000 (default place = bedroom, free).
+place: city view 1000, penthouse 6000, yacht 12000 (default = broke on the road: road scene, ragged tee, worn shoes, free).
+`RRProfile.status(ownedIds)` -> {name, line, level, next, toNext, frac}: Broke 0, Scraping by 100, Getting by 1000, Comfortable 5000, Rich 15000, Rolling in it 35000 (net worth).
 
 The avatar does NOT change with study progress any more: only cosmetics change him.
 

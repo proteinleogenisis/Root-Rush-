@@ -19,11 +19,11 @@ const EXPECT = {
   silverchain: ["chain", 800], goldchain: ["chain", 3000], diamondchain: ["chain", 8000],
   sneakers: ["shoes", 400], designerkicks: ["shoes", 2000],
   bike: ["ride", 700], sportscar: ["ride", 9000],
-  cityview: ["place", 1000], penthouse: ["place", 6000], yacht: ["place", 12000]
+  room: ["place", 150], cleantee: ["outfit", 100], cityview: ["place", 1000], penthouse: ["place", 6000], yacht: ["place", 12000]
 };
 
 function catalogCheck(RR) {
-  eq(RR.CATALOG.length, 18, "catalog size");
+  eq(RR.CATALOG.length, 20, "catalog size");
   for (const c of RR.CATALOG) {
     truthy(EXPECT[c.id], "unexpected id " + c.id);
     eq([c.slot, c.price], EXPECT[c.id], c.id);
@@ -59,10 +59,10 @@ function validate(svg, label) {
 
 check("avatarSVG valid for every single item and plain", () => {
   let n = 0;
-  eq(ids.length, 18, "setup: 18 items");
+  eq(ids.length, 20, "setup: 20 items");
   validate(P.avatarSVG({ equipped: {} }), "plain"); n++;
   for (const id of ids) { validate(P.avatarSVG({ equipped: oneItem(id), size: 220 }), id); n++; }
-  eq(n, 19, "count of renders");
+  eq(n, 21, "count of renders");
 });
 check("avatarSVG valid with everything equipped and crop head", () => {
   const e = allEquipped();
@@ -121,6 +121,18 @@ check("mutation: wrong price is caught by the catalog check", () => {
   let caught = false;
   try { catalogCheck(ctx.RRProfile); } catch (e) { caught = true; }
   truthy(caught, "mutant survived");
+});
+
+check("status: starts Broke on the road, climbs with net worth", () => {
+  eq(P.status([]).name, "Broke", "nothing owned");
+  truthy(/road/.test(P.avatarSVG({ equipped: {} })) || /WILL DO MATH/.test(P.avatarSVG({ equipped: {} })), "default scene is the road sign");
+  eq(P.status(["cleantee"]).name, "Scraping by", "100");
+  eq(P.status(["cityview"]).name, "Getting by", "1000");
+  eq(P.status(["suit", "goldchain"]).name, "Comfortable", "5500");
+  eq(P.status(["yacht", "sportscar"]).name, "Rich", "21000");
+  eq(P.status(P.CATALOG.map(c => c.id)).name, "Rolling in it", "everything");
+  eq(P.status(P.CATALOG.map(c => c.id)).next, null, "no next at top");
+  const s = P.status(["cleantee"]); eq(s.toNext, 900, "900 to Getting by");
 });
 
 console.log(pass + " passed, " + fail + " failed");
