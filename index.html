@@ -832,10 +832,15 @@ let st={done:true},lastKey=null,raf=null,runSeq=0;
 const $=id=>document.getElementById(id);
 const LS={get(k,d){try{const v=localStorage.getItem("rootrush_"+k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem("rootrush_"+k,JSON.stringify(v))}catch(e){}}};
 // ---- Economy: coins are earned only by studying. Tune the numbers here. ----
+// Daily bonus: paid once per real-life day, after your first finished Rush (needs DAILY_MIN_ANSWERS answers).
+// Grows with your day streak: DAILY_BONUS + DAILY_STREAK_STEP per extra streak day, up to DAILY_BONUS_MAX.
+const DAILY_BONUS=100,DAILY_STREAK_STEP=20,DAILY_BONUS_MAX=300,DAILY_MIN_ANSWERS=5;
+function dailyAmount(streak){return Math.min(DAILY_BONUS_MAX,DAILY_BONUS+DAILY_STREAK_STEP*Math.max(0,(streak||1)-1))}
+function dailyReady(){return econ.daily!==dayKey(new Date())}
 const QUIZ_PASS_FRAC=1,QUIZ_MISS_XP=60; // QUIZ_MISS_XP: mastery a skill drops to when you miss it on the final quiz // share of final-quiz answers needed to pass (1 = must ace it)
 const COIN_PER_RIGHT=2,COIN_PER_LT=1,COIN_PER_MASTERY=1,COIN_MASTERED=50,COIN_QUIZ_PASS=500,TRAINING_MULT=1.5;
 let econ=LS.get("econ",{coins:0,owned:[],equipped:{},t:0});
-function normEcon(){if(!econ||typeof econ!=="object")econ={};econ.coins=Math.max(0,Math.floor(+econ.coins||0));delete econ.inv;econ.owned=Array.isArray(econ.owned)?econ.owned:[];econ.equipped=econ.equipped&&typeof econ.equipped==="object"?econ.equipped:{};econ.t=+econ.t||0}
+function normEcon(){if(!econ||typeof econ!=="object")econ={};econ.coins=Math.max(0,Math.floor(+econ.coins||0));delete econ.inv;econ.owned=Array.isArray(econ.owned)?econ.owned:[];econ.equipped=econ.equipped&&typeof econ.equipped==="object"?econ.equipped:{};econ.t=+econ.t||0;if(typeof econ.daily!=="string")econ.daily=""}
 normEcon();
 function saveEcon(){econ.t=Date.now();LS.set("econ",econ);persist()}
 let runs=LS.get("runs",0);
@@ -1246,7 +1251,9 @@ function home(){
   $("hBest").textContent=b.toLocaleString();$("hRank").textContent=rank(b);$("hRuns").textContent=runs;
   $("hDay").textContent=liveStreak();$("hFrz").textContent=day.freezes+" / 2";
   const done=day.last===dayKey(new Date());$("goal").classList.toggle("done",done);$("goalBox").textContent=done?"✓":"";
-  $("goalTxt").textContent=done?"Daily goal done. Your streak is safe today":"Daily goal: finish 1 run";
+  const dr=dailyReady(),nextStreak=done?day.streak:(day.last&&daysBetween(day.last,dayKey(new Date()))===1?day.streak+1:1);
+  $("goalTxt").innerHTML=dr?`Daily bonus: finish a Rush for <b>+${dailyAmount(nextStreak)} 🪙</b>`+(done?" (streak is safe)":""):`Daily bonus collected. Streak safe today. Tomorrow: +${dailyAmount(day.streak+1)} 🪙`;
+  $("goal").classList.toggle("done",!dr);$("goalBox").textContent=!dr?"✓":"";
   ensureDue();renderReview();renderSkills();renderSpark();renderRoad();renderReal();setTab(hTab);{const ks=LESSONS[selDay],rk=ks.filter(k=>REAL[k]);$("tbReal").textContent=`${rk.filter(k=>lvl(k)===3||dayPassed(selDay)).length}/${rk.length}`;$("tbSk").textContent=`${masteredCount(selDay)}/${ks.length}`}
   const L=LRN(),ld=LD();
   $("learnTxt").textContent=`${ld.length} of ${L.length} lessons done`;$("learnBar").style.width=(ld.length/L.length*100)+"%";
@@ -1729,6 +1736,8 @@ function finish(){
   hist.push({id:Date.now(),score:st.score,focus:st.focus||null,d:dayKey(new Date()),day:st.day});hist=hist.slice(-30);LS.set("hist",hist);
   const nb=!st.focus&&st.score>st.gBest;if(nb){bestBy[st.day]={best:st.score,dur:Math.max(30,st.elapsed)}}
   const dm=updateDay();
+  // Daily bonus: first real Rush of the day (not training, review or the quiz)
+  let dailyGot=0;if(!st.focus&&!st.reviewOnly&&!st.training&&st.total>=DAILY_MIN_ANSWERS&&dailyReady()){dailyGot=dailyAmount(day.streak);econ.daily=dayKey(new Date());econ.coins+=dailyGot;saveEcon()}
   const newM=!st.wasM&&dayMastered(st.day),nx=DAY_ORDER[DAY_ORDER.indexOf(st.day)+1];
   $("eBest").closest(".card").classList.remove("hidden");$("again").textContent="Run it back";$("again").onclick=()=>start(st.lastFocus||null);
   $("eHead").textContent=newM?`Every Day ${DAYS[st.day].n} skill mastered! Final quiz unlocked`:st.label?st.label:nb?"New personal best":"Run over";
@@ -1737,7 +1746,8 @@ function finish(){
   $("eScore").textContent=st.score.toLocaleString();$("eRank").textContent=rank(st.score);
   $("eBest").textContent=bestOf(st.day).toLocaleString();
   $("eAcc").textContent=st.total?Math.round(st.right/st.total*100)+"% ("+st.right+"/"+st.total+")":"—";
-  $("eStreak").textContent=st.maxStreak;$("eCoins").textContent=`+${st.coinsRun} 🪙 · total ${econ.coins.toLocaleString()}`;
+  $("eStreak").textContent=st.maxStreak;$("eCoins").innerHTML=`+${st.coinsRun} 🪙`+(dailyGot?` <span style="color:var(--pow)">+ ${dailyGot} daily bonus</span>`:"")+` · total ${econ.coins.toLocaleString()}`;
+  if(dailyGot){popup(`Daily bonus<div style="font-size:18px">+${dailyGot} 🪙 · ${day.streak}-day streak</div>`,"var(--pow)",2200);[660,880,1100].forEach((f,i)=>beep(f,.12,"triangle",.1,i*.1))}
   $("eDay").textContent=day.streak+(day.streak===1?" day":" days")+dm;
   const w=Object.entries(st.miss).sort((a,b)=>b[1]-a[1])[0];
   $("eWeak").textContent=w?TAGS[w[0]]:"None";
