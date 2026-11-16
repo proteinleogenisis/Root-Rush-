@@ -864,11 +864,33 @@ const QUIZ_PASS_FRAC=1,QUIZ_MISS_XP=60; // QUIZ_MISS_XP: mastery a skill drops t
 const COIN_RL_UNLOCK=30,COIN_RL_VIEW=20;
 const COIN_PER_RIGHT=2,COIN_PER_LT=1,COIN_PER_MASTERY=1,COIN_MASTERED=50,COIN_QUIZ_PASS=500,TRAINING_MULT=1.5;
 let econ=LS.get("econ",{coins:0,owned:[],equipped:{},t:0});
-function normEcon(){if(!econ||typeof econ!=="object")econ={};econ.coins=Math.max(0,Math.floor(+econ.coins||0));delete econ.inv;econ.owned=Array.isArray(econ.owned)?econ.owned:[];econ.equipped=econ.equipped&&typeof econ.equipped==="object"?econ.equipped:{};econ.t=+econ.t||0;if(typeof econ.daily!=="string")econ.daily="";if(!econ.rl||typeof econ.rl!=="object")econ.rl={}}
+function normEcon(){if(!econ||typeof econ!=="object")econ={};econ.coins=Math.max(0,Math.floor(+econ.coins||0));delete econ.inv;econ.owned=Array.isArray(econ.owned)?econ.owned:[];econ.equipped=econ.equipped&&typeof econ.equipped==="object"?econ.equipped:{};econ.t=+econ.t||0;if(typeof econ.daily!=="string")econ.daily="";if(!econ.rl||typeof econ.rl!=="object")econ.rl={};
+  // Coin ledger (Nov 16): coins = base + every device's (earned - spent). Each device only adds to its own counters,
+  // so two devices merging never lose each other's coins. Old saves migrate: base = their coins, bt = when they were saved.
+  if(!econ.led||typeof econ.led!=="object"){econ.led={};econ.base=econ.coins;econ.bt=econ.t||0}
+  econ.base=Math.floor(+econ.base||0);econ.bt=+econ.bt||0;
+  for(const d in econ.led){const x=econ.led[d]||{};econ.led[d]={e:Math.max(0,+x.e||0),s:Math.max(0,+x.s||0)}}
+  econ.coins=econDerived();if(econ.coins<0)econSettle()}
+const DEV=LS.get("dev",null)||(()=>{const d="d"+Date.now().toString(36)+Math.random().toString(36).slice(2,8);LS.set("dev",d);return d})();
+function econDerived(){let n=econ.base;for(const d in econ.led)n+=econ.led[d].e-econ.led[d].s;return n}
+// Book any change to econ.coins since the last settle into this device's counters (a negative total is floored to 0 as a small gift).
+function econSettle(){if(!econ.led)return;const me=econ.led[DEV]||(econ.led[DEV]={e:0,s:0});let c=Math.floor(+econ.coins||0);if(c<0)c=0;const d=c-econDerived();if(d>0)me.e+=d;else if(d<0)me.s+=-d;econ.coins=econDerived()}
+// Merge another device's econ into ours without losing either side's coins
+function econMerge(o){
+  if(!o||typeof o!=="object")return;econSettle();
+  if(!o.led||typeof o.led!=="object"){if((+o.t||0)>(econ.t||0)){econ=JSON.parse(JSON.stringify(o));normEcon();LS.set("econ",econ)}return}
+  if((+o.bt||0)>econ.bt){econ.base=Math.floor(+o.base||0);econ.bt=+o.bt||0}
+  for(const d in o.led){const x=o.led[d]||{},m=econ.led[d]||(econ.led[d]={e:0,s:0});m.e=Math.max(m.e,+x.e||0);m.s=Math.max(m.s,+x.s||0)}
+  econ.owned=[...new Set([...econ.owned,...(Array.isArray(o.owned)?o.owned:[])])];
+  if((+o.t||0)>(econ.t||0)&&o.equipped&&typeof o.equipped==="object")econ.equipped={...o.equipped};
+  const dv=k=>{if(!k)return 0;const [y,mo,da]=String(k).split("-").map(Number);return new Date(y,mo-1,da).getTime()||0};
+  if(typeof o.daily==="string"&&dv(o.daily)>dv(econ.daily))econ.daily=o.daily;
+  if(o.rl&&typeof o.rl==="object")for(const k in o.rl)if(o.rl[k])econ.rl[k]=1;
+  econ.t=Math.max(econ.t||0,+o.t||0);econ.coins=econDerived();if(econ.coins<0)econSettle();LS.set("econ",econ)}
 normEcon();
 // Pay a real-life card reward once (kind "u" unlock, "v" view). Returns coins paid.
 function rlPay(key,kind){const id=kind+":"+key;if(econ.rl[id])return 0;econ.rl[id]=1;const n=kind==="u"?COIN_RL_UNLOCK:COIN_RL_VIEW;econ.coins+=n;saveEcon();try{$("hCoins").textContent=econ.coins.toLocaleString();$("casinoBtn").textContent=`🎰 Casino · ${econ.coins.toLocaleString()} coins`}catch(e){}return n}
-function saveEcon(){econ.t=Date.now();LS.set("econ",econ);persist()}
+function saveEcon(){econSettle();econ.t=Date.now();LS.set("econ",econ);persist()}
 let runs=LS.get("runs",0);
 let bestBy=LS.get("bestBy",null);if(!bestBy){bestBy={"5.1":{best:LS.get("best",0),dur:LS.get("bestDur",60)}};LS.set("bestBy",bestBy)}
 let selDay=LS.get("selDay","5.2");
@@ -1266,6 +1288,7 @@ let hTab=LS.get("hTab","today");
 function setTab(t){hTab=t;LS.set("hTab",t);if(t==="real"){const tb=document.querySelector('#htabs [data-t="real"]');if(tb)tb.classList.remove("newdot")}document.querySelectorAll("#htabs button").forEach(b=>b.classList.toggle("on",b.dataset.t===t));document.querySelectorAll("#home .hpane").forEach(p=>p.classList.toggle("on",p.dataset.p===t))}
 document.querySelectorAll("#htabs button").forEach(b=>b.onclick=()=>{setTab(b.dataset.t);const h=$("htabs");if(h.getBoundingClientRect().top<0||window.scrollY>h.offsetTop)window.scrollTo({top:h.offsetTop,behavior:"smooth"})});
 function home(){
+  if(acct)acPull();
   if(!dayUnlocked(selDay)){selDay=[...DAY_ORDER].reverse().find(dayUnlocked)||"5.1";LS.set("selDay",selDay)}
   const D=DAYS[selDay],b=bestOf(selDay);$("dnote").textContent="";
   $("dsw").innerHTML="";DAY_ORDER.forEach(d=>{const u=dayUnlocked(d),m=dayMastered(d);$("dsw").appendChild(mkBtn(d===selDay?"on":u?"":"lock",`Day ${DAYS[d].n} · ${d}`+(dayPassed(d)?" ✓":u?"":" · locked"),()=>setDay(d)))});
@@ -1400,13 +1423,14 @@ function mergeSave(c){
   hist.sort((a,b)=>(a.id||0)-(b.id||0));hist=hist.slice(-30);
   for(const d in (c.passed||{}))if(c.passed[d])passed[d]=true;
   for(const d in (c.learnedBy||{}))learnedBy[d]=[...new Set([...(learnedBy[d]||[]),...(c.learnedBy[d]||[])])];
-  if(c.econ&&typeof c.econ==="object"&&(+c.econ.t||0)>(econ.t||0)){econ=JSON.parse(JSON.stringify(c.econ));normEcon();LS.set("econ",econ)}
+  if(c.econ&&typeof c.econ==="object")econMerge(c.econ);
   saveLocal();
 }
 function persist(){saveLocal();if(!cloud)return;clearTimeout(cloudT);cloudT=setTimeout(pushCloud,800)}
 async function pushCloud(){
   if(!cloud)return;if(cloudBusy){cloudAgain=true;return}cloudBusy=true;
-  try{await cloud.set(packSave());setSync("cloud")}catch(e){setSync(e&&e.code==="revoked"?"local":"retry")}
+  try{if(acct){const before=syncSig();await acMergeRemote();if(syncSig()!==before)syncRedraw()}
+    await cloud.set(packSave());setSync("cloud")}catch(e){setSync(e&&e.code==="revoked"?"local":"retry")}
   cloudBusy=false;if(cloudAgain){cloudAgain=false;pushCloud()}
 }
 function setSync(x){syncState=x;const el=$("sync");if(!el)return;
@@ -1418,6 +1442,10 @@ const ACCT_URL="https://root-rush-accounts.netlify.app/api/account";
 let acct=LS.get("acct",null),acMode="in",acBusy=false;
 async function acApi(body){const r=await fetch(ACCT_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});let j={};try{j=await r.json()}catch(e){}return{status:r.status,...j}}
 function acAdapter(){return{set:async save=>{const r=await acApi({action:"put",token:acct.token,save});if(r.status===401){acSignedOut();const e=new Error("revoked");e.code="revoked";throw e}if(!r.ok)throw new Error(r.error||"fail")}}}
+// Read the account's save and merge it in before every upload, so one device never overwrites another's progress
+async function acMergeRemote(){const r=await acApi({action:"get",token:acct.token});if(r.status===401){acSignedOut();const e=new Error("revoked");e.code="revoked";throw e}if(!r.ok)throw new Error(r.error||"fail");if(r.save)mergeSave(r.save)}
+function syncSig(){const s=packSave();delete s.updated;return JSON.stringify(s)}
+function syncRedraw(){try{if(curScreen==="home")home();else{const c=econ.coins.toLocaleString();$("hCoins").textContent=c}}catch(e){}}
 function acSignedOut(){acct=null;LS.set("acct",null);cloud=null;setSync("revoked")}
 function renderAcct(){const b=$("acctBtn");if(!b)return;b.textContent=acct?"✓ "+acct.user:"Sign in";b.classList.toggle("on",!!acct);
   $("acOut").classList.toggle("hidden",!!acct);$("acIn").classList.toggle("hidden",!acct);if(acct)$("acName").textContent=acct.user;
@@ -1425,7 +1453,9 @@ function renderAcct(){const b=$("acctBtn");if(!b)return;b.textContent=acct?"✓ 
   $("acPass").autocomplete=acMode==="in"?"current-password":"new-password";
   $("acHint").innerHTML=acMode==="new"?"Your progress on this device goes into the new account. Make it on the device with your best progress, then sign in on the others.":"Signing in adds your account's progress to this device and keeps them in sync."}
 function acOpen(on){$("acPass").type="password";$("acShow").textContent="Show";$("acctSheet").classList.toggle("hidden",!on);if(on){$("acErr").textContent="";renderAcct()}}
-async function acPull(){if(!acct)return;try{const r=await acApi({action:"get",token:acct.token});if(r.status===401)return acSignedOut();if(r.ok){if(r.save)mergeSave(r.save);cloud=acAdapter();await pushCloud();if(curScreen==="home")home()}else setSync("retry")}catch(e){setSync("retry")}}
+// Pull = merge the account in and upload the result (pushCloud does both). Throttled so Home doesn't spam the server.
+const AC_PULL_GAP_MS=4000;let acLastPull=0;
+async function acPull(force){if(!acct)return;if(!force&&Date.now()-acLastPull<AC_PULL_GAP_MS)return;acLastPull=Date.now();cloud=cloud||acAdapter();await pushCloud()}
 async function acSubmit(e){e&&e.preventDefault();if(acBusy)return;
   const user=$("acUser").value.trim(),pass=$("acPass").value;if(!user||!pass){$("acErr").textContent="Type a username and a password";return}
   acBusy=true;$("acGo").disabled=true;$("acErr").textContent="";
@@ -1439,9 +1469,9 @@ async function acSubmit(e){e&&e.preventDefault();if(acBusy)return;
   $("acShow").onclick=()=>{const i=$("acPass"),show=i.type==="password";i.type=show?"text":"password";$("acShow").textContent=show?"Hide":"Show";$("acShow").setAttribute("aria-label",show?"Hide password":"Show password");i.focus()};
   $("acTabIn").onclick=()=>{acMode="in";renderAcct()};$("acTabNew").onclick=()=>{acMode="new";renderAcct()};
   $("acOutBtn").onclick=async()=>{const t=acct&&acct.token;acSignedOut();setSync("local");acOpen(false);try{await acApi({action:"logout",token:t})}catch(e){}};
-  document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&acct&&(curScreen==="home"||curScreen==="end"))acPull()})})();
+  document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&acct)acPull(true)});window.addEventListener("pageshow",e=>{if(e.persisted&&acct)acPull(true)})})();
 async function initCloud(){
-  if(acct){setSync("loading");return acPull()}
+  if(acct){setSync("loading");return acPull(true)}
   if(!window.claude||typeof window.claude.use!=="function"){setSync("local");return}
   setSync("loading");const timer=setTimeout(()=>{if(syncState==="loading")setSync("retry")},10000);
   try{
