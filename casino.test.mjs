@@ -186,6 +186,9 @@ check("hiloResult win / lose, and the same rank LOSES (cards and plain ranks)", 
   eq(L.hiloResult(7, 7, "higher"), "lose"); eq(L.hiloResult(7, 7, "lower"), "lose");
   eq(L.hiloResult(5, 9, "higher"), "win");
   eq(L.hiloResult(A, K, "higher"), "win", "ace is low");
+  eq(L.hiloResult(five, five2, "same"), "win", "Same wins on a tie");
+  eq(L.hiloResult(five, nine, "same"), "lose", "Same loses otherwise");
+  eq(L.hiloOdds(7).same.toFixed(2), "11.96", "Same pays x11.96");
 });
 check("hiloOdds: exact multipliers, impossible guesses are 0", () => {
   const near = (x, y) => Math.abs(x - y) < 1e-9;
@@ -200,7 +203,7 @@ check("hiloOdds: exact multipliers, impossible guesses are 0", () => {
 check("hi/lo house edge: expected value of any single guess is <= HILO_EDGE", () => {
   for (let a = 1; a <= 13; a++) {
     const o = L.hiloOdds(a);
-    for (const g of ["higher", "lower"]) {
+    for (const g of ["higher", "lower", "same"]) {
       let wins = 0;
       for (let b = 1; b <= 13; b++) if (L.hiloResult(a, b, g) === "win") wins++;
       const ev = (wins / 13) * o[g];

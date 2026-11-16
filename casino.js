@@ -126,11 +126,13 @@
     var a = rankOf(rank);
     return {
       higher: a < 13 ? HILO_EDGE * 13 / (13 - a) : 0,
-      lower: a > 1 ? HILO_EDGE * 13 / (a - 1) : 0
+      lower: a > 1 ? HILO_EDGE * 13 / (a - 1) : 0,
+      same: HILO_EDGE * 13          // 1 in 13 chance, same house edge: ×11.96
     };
   }
   function hiloResult(cur, next, guess) {
     var a = rankOf(cur), b = rankOf(next);
+    if (guess === "same") return a === b ? "win" : "lose";
     if (a === b) return "lose";
     if (guess === "higher") return b > a ? "win" : "lose";
     return b < a ? "win" : "lose";
@@ -440,6 +442,7 @@
     ".cz-pile i:nth-child(1){transform:translate(-3px,3px)}.cz-pile i:nth-child(2){transform:translate(-1.5px,1.5px)}",
     ".cz-hlmult{text-align:center;font-weight:900;font-size:28px;line-height:1.1;color:#ffe08a;text-shadow:0 2px 0 rgba(0,0,0,.45);margin:10px 0 2px;min-height:32px}",
     ".cz-hlhint{text-align:center;font-size:11px;font-weight:700;color:#cfeaf0;min-height:15px}",
+    ".cz-hlsame{display:block;width:100%;margin-top:8px;padding:10px;border-radius:14px;border:2px solid #e9c25a;background:linear-gradient(#3a2a10,#24190a);color:#ffd66b;font:inherit;font-size:17px;font-weight:800}.cz-hlsame:disabled{opacity:.45}",
     ".cz-hlbtn small{display:block;font-size:13px;font-weight:800;opacity:.95;margin-top:1px}",
     // video poker
     ".cz-vpm{background:linear-gradient(180deg,#2c49a8,#101c4a);border:3px solid #e8c05a;border-radius:16px;padding:10px 8px 8px;box-shadow:0 0 0 3px #7a5513,0 8px 20px rgba(0,0,0,.5)}",
@@ -1179,13 +1182,14 @@
       var inPlay = hl.phase === "play" || hl.phase === "reveal";
       setHtml("#hl-mult", inPlay ? "Pot " + x2(hl.mult) : "");
       setHtml("#hl-pot", inPlay ? hlPot() + " coins" : "");
-      setHtml("#hl-hint", hl.phase === "done" ? "" : "Same rank loses · A = 1, J = 11, Q = 12, K = 13");
+      setHtml("#hl-hint", hl.phase === "done" ? "" : "Tie loses unless you pick Same · A=1 J=11 Q=12 K=13");
       setHtml("#hl-msg", msgBox(hl.msg, hl.win));
       var h = "";
       if (inPlay) {
         var dis = hl.phase === "reveal" ? " disabled" : "", o = hiloOdds(hl.cur);
         h = '<div class="cz-row"><button class="cz-stand cz-hlbtn" data-a="hl-higher"' + (!o.higher || dis ? " disabled" : "") + '>▲ Higher<small>' + (o.higher ? x2(o.higher) : "impossible") + '</small></button>' +
           '<button class="cz-dbl cz-hlbtn" data-a="hl-lower"' + (!o.lower || dis ? " disabled" : "") + ">▼ Lower<small>" + (o.lower ? x2(o.lower) : "impossible") + "</small></button></div>";
+        h += '<button class="cz-hlbtn cz-hlsame" data-a="hl-same"' + dis + '>= Same rank<small>' + x2(o.same) + "</small></button>";
         h += '<button class="cz-go" style="margin-top:8px" data-a="hl-cash"' + (hl.streak < 1 || dis ? " disabled" : "") + ">Cash out " + (hl.streak < 1 ? "" : "(" + hlPot() + ")") + "</button>";
       } else {
         h = canBet() ? betPicker() + '<button class="cz-go" data-a="hl-start"' + goDis() + '>' + (hl.phase === "done" ? "Play again" : "Start") + " (" + curBet() + ")</button>" : broke();
@@ -1523,6 +1527,7 @@
         case "hl-start": return hlStart();
         case "hl-higher": return hlGuess("higher");
         case "hl-lower": return hlGuess("lower");
+        case "hl-same": return hlGuess("same");
         case "hl-cash": return hlCash();
         case "vp-deal": return vpDeal();
         case "vp-draw": return vpDraw();
