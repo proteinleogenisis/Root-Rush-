@@ -584,6 +584,8 @@
   var LOBBY_H = 640;
   var FULL_MAX_W = 520;        // screens this narrow or narrower get the floor edge to edge (phones); wider ones (iPad) keep the framed floor
   var FULL_TOP_SHARE = 0.45;   // of the extra height on a tall phone, this share goes above the scene (ceiling), the rest below (floor)
+  var HERO_Z = 0.3, HERO_X = 25;  // the two featured machines in the left view: distance and how far from the middle
+  var AISLE_X = 64;              // the rows of machines further back along the sides
   var LOOK = 1;               // which way you're looking: 0 left, 1 straight, 2 right (kept while the app is open)  // lobby drawing height (it is 360 wide)
   // the back of the room (crowd, far machines) is blurred this much and covered by a haze this strong
   var DOF_FAR_BLUR = 3, DOF_HAZE = 0.45;
@@ -748,7 +750,7 @@
       // ---- an aisle of machines: slots on the left, video poker on the right ----
       var SLOTC = ["#ff2e63", "#9b30ff", "#ffb800", "#00c2b8", "#ff6a00", "#ff3fd2"];
       var VPC = ["#1d4fff", "#7a2bff", "#0aa0ff", "#2c2cc8", "#0fb5a8", "#5a3dff"];
-      var ROWZ = [1.6, 1.1, 0.76, 0.52, 0.36, 0.26], MW = 32, MH = 64;
+      var ROWZ = [1.6, 1.1, 0.76, 0.52], MW = 32, MH = 64;
       var SYMS = [["7", "7", "7"], ["🍒", "🍒", "🍋"], ["🔔", "💎", "🔔"], ["BAR", "BAR", "7"], ["💎", "💎", "💎"]];
       var slot = function (c, n) {
         var sy3 = SYMS[n % SYMS.length], u = '<ellipse class="cz-top" style="animation-delay:-' + (n * 0.4).toFixed(1) + 's" cx="13" cy="0" rx="11" ry="5" fill="' + SLOTC[(n + 3) % SLOTC.length] + '"/>' +
@@ -781,13 +783,21 @@
         });
       };
       // stools in front of the machines, then the machines
-      [-50, 50].forEach(function (X) { ROWZ.forEach(function (z) { var x = sx(X + (X < 0 ? 12 : -12), z * 0.92), y = sy(EYE, z * 0.92); s.push('<ellipse cx="' + x + '" cy="' + r1(y - 9 / z) + '" rx="' + r1(6 / z) + '" ry="' + r1(2.4 / z) + '" fill="#7a0f2a" stroke="#e8c05a" stroke-width="' + r1(0.7 / z) + '"/><rect x="' + r1(x - 0.8 / z) + '" y="' + r1(y - 9 / z) + '" width="' + r1(1.6 / z) + '" height="' + r1(9 / z) + '" fill="#c9a24a"/>'); }); });
-      rowOf(-50, slot, SLOTC); rowOf(50, vpm, VPC);
-      var zn = ROWZ[ROWZ.length - 1];
-      LBL.push(plate(78, 140, "SLOTS", "#ff2e93", 20, 1.1), plate(284, 140, "VIDEO POKER", "#00d5ff", 15, 3.3));
+      [-AISLE_X, AISLE_X].forEach(function (X) { ROWZ.forEach(function (z) { var x = sx(X + (X < 0 ? 12 : -12), z * 0.92), y = sy(EYE, z * 0.92); s.push('<ellipse cx="' + x + '" cy="' + r1(y - 9 / z) + '" rx="' + r1(6 / z) + '" ry="' + r1(2.4 / z) + '" fill="#7a0f2a" stroke="#e8c05a" stroke-width="' + r1(0.7 / z) + '"/><rect x="' + r1(x - 0.8 / z) + '" y="' + r1(y - 9 / z) + '" width="' + r1(1.6 / z) + '" height="' + r1(9 / z) + '" fill="#c9a24a"/>'); }); });
+      rowOf(-AISLE_X, slot, SLOTC); rowOf(AISLE_X, vpm, VPC);
+      // one big featured machine of each kind right in front of you, lit from behind
+      var hero = function (X, unit, col, n, glow) {
+        var z = HERO_Z, w = MW / z, h = MH / z, x = sx(X, z) - w / 2, y = sy(EYE, z) - h;
+        s.push('<ellipse class="cz-top" cx="' + sx(X, z) + '" cy="' + r1(y + h * 0.45) + '" rx="' + r1(w * 0.72) + '" ry="' + r1(h * 0.56) + '" fill="' + glow + '" opacity=".22" filter="url(#czl-dof2)"/>',
+          '<ellipse cx="' + sx(X, z) + '" cy="' + r1(y + h) + '" rx="' + r1(w * 0.62) + '" ry="' + r1(w * 0.12) + '" fill="#000" opacity=".45"/>',
+          '<g transform="translate(' + r1(x) + " " + r1(y) + ") scale(" + (MW / 26 / z).toFixed(3) + " " + (MH / 44 / z).toFixed(3) + ')">' + unit(col, n) + "</g>");
+        return { x: sx(X, z), top: r1(y) };
+      };
+      var hs = hero(-HERO_X, slot, "#ff2e63", 0, "#ff2e93"), hv = hero(HERO_X, vpm, "#1d4fff", 2, "#00d5ff");
+      LBL.push(plate(hs.x, r1(hs.top - 16), "SLOTS", "#ff2e93", 21, 1.1), plate(hv.x, r1(hv.top - 16), "VIDEO POKER", "#00d5ff", 16, 3.3));
       s.push(neon(180, 70, "MACHINES", "#ffd23f", 22, 2), '<text x="180" y="92" text-anchor="middle" font-size="10" font-weight="800" letter-spacing="3" fill="#fff" opacity=".75" font-family="inherit">PULL · HOLD · WIN</text>');
       ZONES.push(["sl", 0, 120, 172, H - 170], ["vp", 188, 120, 172, H - 170]);
-      s.push(burst(sx(-50, ROWZ[3]), r1(sy(EYE, ROWZ[3]) - MH / ROWZ[3] + 8), 1, 0.5, "#ff2e93"));
+      s.push(burst(hs.x, r1(hs.top + 40), 1.1, 0.5, "#ff2e93"));
     }
 
     if (dir === "r") {
