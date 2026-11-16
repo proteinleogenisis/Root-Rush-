@@ -296,6 +296,12 @@
     ".cz-inl{animation:cz-inl .4s ease-out both}@keyframes cz-inl{from{transform:scale(1.25);opacity:0}to{transform:none;opacity:1}}",
     // lobby
     ".cz-room{position:relative;overflow:hidden;margin:0 auto;border-radius:14px;box-shadow:0 0 0 2px #7a5513,0 6px 24px rgba(0,0,0,.5);touch-action:pan-y}",
+    "body.cz-fs{overflow:hidden}",
+    "body.cz-fs .cz-room{position:fixed;inset:0;width:100vw!important;height:100dvh;margin:0;border-radius:0;box-shadow:none;z-index:6}",
+    "body.cz-fs .cz-roomsvg{width:100vw!important;height:100dvh!important}",
+    "body.cz-fs .cz-head{position:fixed;top:10px;right:10px;left:auto;z-index:8;margin:0;min-height:0}",
+    "body.cz-fs #cz-left{display:none}",
+    "body.cz-fs .cz-look{bottom:calc(16px + env(safe-area-inset-bottom))}",
     ".cz-pano{display:flex;width:300%;transition:transform " + TURN_MS + "ms cubic-bezier(.2,.8,.2,1)}",
     ".cz-pv{width:33.3334%;flex:none}",
     ".cz-pv .cz-roomsvg{box-shadow:none;border-radius:0}",
@@ -576,6 +582,8 @@
   // ---------- the casino room (lobby) ----------
   var SPOT_NAMES = { bj: "Blackjack", sl: "Slots", ro: "Roulette", hl: "Higher / Lower", ba: "Baccarat", vp: "Video Poker", cr: "Craps" };
   var LOBBY_H = 640;
+  var FULL_MAX_W = 520;        // screens this narrow or narrower get the floor edge to edge (phones); wider ones (iPad) keep the framed floor
+  var FULL_TOP_SHARE = 0.45;   // of the extra height on a tall phone, this share goes above the scene (ceiling), the rest below (floor)
   var LOOK = 1;               // which way you're looking: 0 left, 1 straight, 2 right (kept while the app is open)  // lobby drawing height (it is 360 wide)
   // the back of the room (crowd, far machines) is blurred this much and covered by a haze this strong
   var DOF_FAR_BLUR = 3, DOF_HAZE = 0.45;
@@ -592,8 +600,8 @@
   // People only stand in the blurred back of the room; the games in focus are left clear.
   var SCENE_DIRS = ["l", "c", "r"];
   var SCENE_NAMES = { l: "Slots · Video poker", c: "Blackjack · Higher/Lower", r: "Roulette · Craps · Baccarat" };
-  function sceneSvg(dir, can) {
-    var s = [], i, k, BACK = [], H = LOBBY_H;
+  function sceneSvg(dir, can, tall) {
+    var s = [], i, k, BACK = [], H = LOBBY_H, TH = Math.max(LOBBY_H, tall || LOBBY_H), PAD = Math.round((TH - LOBBY_H) * FULL_TOP_SHARE);
     var VX = 180, VY = 250, EYE = 40;
     function r1(n) { return Math.round(n * 10) / 10; }
     function sx(X, z) { return r1(VX + X / z); }
@@ -631,7 +639,7 @@
       return b + "</g>";
     }
 
-    s.push('<svg class="cz-roomsvg" viewBox="0 0 360 ' + H + '" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Casino floor, looking ' + (dir === "l" ? "left" : dir === "r" ? "right" : "straight ahead") + '">');
+    s.push('<svg class="cz-roomsvg" viewBox="0 ' + (-PAD) + " 360 " + TH + '" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Casino floor, looking ' + (dir === "l" ? "left" : dir === "r" ? "right" : "straight ahead") + '">');
     s.push("<defs>",
       '<radialGradient id="czl-vig" cx="50%" cy="45%" r="75%"><stop offset="60%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#000" stop-opacity=".55"/></radialGradient>',
       '<linearGradient id="czl-ceil" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#14031f"/><stop offset=".7" stop-color="#3c0b48"/><stop offset="1" stop-color="#6a1550"/></linearGradient>',
@@ -647,7 +655,7 @@
       wheelDefs(), "</defs>");
 
     // ---- room shell: ceiling with light rows, floor with carpet lines ----
-    s.push('<rect width="360" height="' + VY + '" fill="url(#czl-ceil)"/><rect y="' + VY + '" width="360" height="' + (H - VY) + '" fill="url(#czl-floor)"/>');
+    s.push('<rect y="' + (-PAD) + '" width="360" height="' + (VY + PAD) + '" fill="#14031f"/><rect width="360" height="' + VY + '" fill="url(#czl-ceil)"/><rect y="' + VY + '" width="360" height="' + (TH - PAD - VY) + '" fill="url(#czl-floor)"/>');
     for (i = -6; i <= 12; i++) s.push('<line x1="' + (i * 30) + '" y1="0" x2="' + r1(VX + (i * 30 - VX) * 0.18) + '" y2="' + r1(VY * 0.82) + '" stroke="#ff9be0" stroke-opacity=".10"/>');
     [0.32, 0.45, 0.65, 0.95, 1.4].forEach(function (z, row) {
       for (var X = -165; X <= 165; X += 55) {
@@ -656,7 +664,7 @@
         s.push('<circle class="cz-bulb2" style="animation-delay:' + ((row * 0.3 + X / 300 + 4) % 2).toFixed(2) + 's" cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="#ffe7a8"/><circle cx="' + cx + '" cy="' + cy + '" r="' + r1(r * 3.2) + '" fill="url(#czl-glow)" opacity=".45"/>');
       }
     });
-    for (i = -14; i <= 14; i++) s.push('<line x1="' + VX + '" y1="' + VY + '" x2="' + r1(VX + i * 60) + '" y2="' + H + '" stroke="#ffcf6a" stroke-opacity=".09"/>');
+    for (i = -14; i <= 14; i++) s.push('<line x1="' + VX + '" y1="' + VY + '" x2="' + r1(VX + i * 60 * (TH - PAD - VY) / (H - VY)) + '" y2="' + (TH - PAD) + '" stroke="#ffcf6a" stroke-opacity=".09"/>');
     [0.1, 0.13, 0.17, 0.22, 0.29, 0.38, 0.5, 0.68, 0.95, 1.4].forEach(function (z) { var y = sy(EYE, z); if (y < H) s.push('<line x1="0" y1="' + y + '" x2="360" y2="' + y + '" stroke="#ffcf6a" stroke-opacity=".08"/>'); });
 
     // ---- the blurred back of the room: machine lights, distant tables, and the crowd ----
@@ -826,7 +834,7 @@
     var CONF = ["#ff2e93", "#ffd23f", "#3ff0ff", "#9b5cff", "#4dff88", "#ff7a2f", "#fff"];
     for (i = 0; i < CONFETTI_N; i++) s.push('<rect class="cz-conf" style="animation-delay:-' + ((i * 0.71 + seed) % 9).toFixed(2) + "s;animation-duration:" + (7 + (i % 5)) + 's" x="' + r1((i * 47.3 + 11 + seed * 31) % 360) + '" y="-12" width="' + (3 + (i % 3)) + '" height="' + (5 + (i % 2) * 2) + '" rx="1" fill="' + CONF[i % CONF.length] + '"/>');
     [[30, 150, 0], [330, 160, 2.6]].forEach(function (p) { s.push('<g transform="translate(' + p[0] + " " + p[1] + ')"><path class="cz-sp" style="animation-delay:' + p[2] + 's" d="M0-7 L1.6-1.6 7 0 1.6 1.6 0 7-1.6 1.6-7 0-1.6-1.6Z" fill="#fff6c8"/></g>'); });
-    s.push('<rect width="360" height="' + H + '" fill="url(#czl-vig)" pointer-events="none"/>');
+    s.push('<rect y="' + (-PAD) + '" width="360" height="' + TH + '" fill="url(#czl-vig)" pointer-events="none"/>');
     s.push(LBL.join(""));
     ZONES.forEach(function (zn2) { s.push(spotOpen(zn2[0]) + '<rect x="' + zn2[1] + '" y="' + zn2[2] + '" width="' + zn2[3] + '" height="' + zn2[4] + '" fill="#000" fill-opacity="0.001"/></g>'); });
     s.push("</svg>");
@@ -931,10 +939,14 @@
     function lobbyHtml() {
       var can = canBet();
       return '<div class="cz-room"><div class="cz-pano" style="transform:translateX(-' + (LOOK * 100 / 3) + '%)">' +
-        SCENE_DIRS.map(function (d) { return '<div class="cz-pv">' + sceneSvg(d, can) + "</div>"; }).join("") + "</div>" +
+        SCENE_DIRS.map(function (d) { return '<div class="cz-pv">' + sceneSvg(d, can, fullTall()) + "</div>"; }).join("") + "</div>" +
         '<button class="cz-turn l" data-a="turn" data-v="-1" aria-label="Look left"><span style="display:flex"><svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M15 4 L7 12 L15 20" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button><button class="cz-turn r" data-a="turn" data-v="1" aria-label="Look right"><span style="display:flex;transform:scaleX(-1)"><svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M15 4 L7 12 L15 20" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>' +
         '<div class="cz-look" aria-live="polite"></div></div>';
     }
+    // phones: the floor fills the whole screen; returns the drawing height that matches the screen's shape (0 = not full screen)
+    function isFull() { return !!(globalThis.innerWidth && globalThis.innerWidth <= FULL_MAX_W); }
+    function fullTall() { return isFull() ? Math.round(360 * globalThis.innerHeight / globalThis.innerWidth) : 0; }
+    var drawnTall = 0;
     function lookUpdate() {
       var pano = stage.querySelector(".cz-pano"); if (!pano) return;
       pano.style.transform = "translateX(-" + (LOOK * 100 / 3) + "%)";
@@ -1643,12 +1655,14 @@
       else if (view === "cr") { stage.innerHTML = crSkel(); crRestore(); }
       else { stage.innerHTML = hlSkel(); hlRestore(); }
       // While a game is open, the casino floor keeps living behind it, blurred
-      if (view === "lobby") { bgEl.classList.remove("on"); bgEl.innerHTML = ""; fitLobby(); lookUpdate(); }
+      try { document.body.classList.toggle("cz-fs", view === "lobby" && isFull()); } catch (e) { /* ignore */ }
+      if (view === "lobby") { drawnTall = fullTall(); bgEl.classList.remove("on"); bgEl.innerHTML = ""; fitLobby(); lookUpdate(); }
       else if (!bgEl.innerHTML) { bgEl.innerHTML = lobbySvg(false).replace('class="cz-roomsvg"', 'preserveAspectRatio="xMidYMid slice"').replace(/ data-a="open"/g, ""); bgEl.classList.add("on"); }
     }
     // Shrink the floor so the whole thing fits on screen without scrolling (LOBBY_FIT_GAP px left below it)
     function fitLobby() {
       var room = stage.querySelector(".cz-room"), svgs = stage.querySelectorAll(".cz-roomsvg"); if (!room || !globalThis.innerHeight) return;
+      if (isFull()) { room.style.width = ""; svgs.forEach(function (sv) { sv.style.width = ""; sv.style.height = ""; }); return; }
       // measure from the header and the stage's layout width: the stage itself may be mid zoom-animation (transformed)
       var head = rootEl.querySelector(".cz-head"), mt = parseFloat(getComputedStyle(stage).marginTop) || 0;
       var top = head.getBoundingClientRect().bottom + (globalThis.scrollY || 0) + mt, space = globalThis.innerHeight - top - LOBBY_FIT_GAP;
@@ -1662,7 +1676,7 @@
       jp += 1 + Math.floor(Math.random() * 37);
       var t = el.querySelector("#czl-jp"); if (t) t.textContent = jp.toLocaleString("en-US");
     }, JACKPOT_TICK_MS);
-    try { globalThis.addEventListener("resize", function () { if (live() && view === "lobby") fitLobby(); }); } catch (e) { /* ignore */ }
+    try { globalThis.addEventListener("resize", function () { if (!live() || view !== "lobby") return; if (Math.abs(fullTall() - drawnTall) > 8) render(); else fitLobby(); }); } catch (e) { /* ignore */ }
     function go(v, from) {
       if (navBusy || !live() || v === view) return;
       if (v === "lobby" && locked()) return;
@@ -1680,6 +1694,8 @@
         stage.style.transformOrigin = "";
         stage.className = "cz-stage " + (v === "lobby" ? "cz-inl" : "cz-ing");
         render();
+        // drop the zoom class when it's done: a finished transform animation would still pin the full-screen floor inside the stage
+        later(function () { if (live() && view === v) stage.className = "cz-stage"; }, ms(ZOOM_MS) + 60);
       }, ms(ZOOM_MS));
     }
 

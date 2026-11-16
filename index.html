@@ -246,6 +246,7 @@ body.fok{background:var(--goodbg)}body.fbad{background:var(--badbg)}
 .tp-new{animation:tpIn .35s ease}@keyframes tpIn{from{background:color-mix(in srgb,var(--hot) 25%,transparent)}to{background:transparent}}
 .wrap{padding-bottom:84px}
 .wrap:has(#casino:not(.hidden)){padding-bottom:0}
+body.cz-fs #cHome{position:fixed;top:10px;left:10px;z-index:8;background:rgba(10,0,20,.62);color:#fff;border-color:rgba(255,214,107,.6)}
 body.calc-open .wrap{padding-bottom:420px}body.calc-open.tape-on .wrap{padding-bottom:600px}
 body.calc-open .calc-fab{display:none}
 .opt.sel,.seg.sel{border-color:var(--root);box-shadow:0 0 0 2px var(--root);background:color-mix(in srgb,var(--root) 14%,transparent)}
@@ -1484,7 +1485,7 @@ async function initCloud(){
     if(!$("home").classList.contains("hidden"))home();
   }catch(e){clearTimeout(timer);setSync("retry")}
 }
-function show(id){curScreen=id;["home","learn","game","end","train","casino","profile","check"].forEach(s=>$(s).classList.toggle("hidden",s!==id));setTimeout(musUpdate,0);const cv=id==="game"||id==="learn";$("calcBtn").classList.toggle("hidden",!cv);if(!cv&&calcOpen)toggleCalc(false);}
+function show(id){curScreen=id;if(id!=="casino")document.body.classList.remove("cz-fs");["home","learn","game","end","train","casino","profile","check"].forEach(s=>$(s).classList.toggle("hidden",s!==id));setTimeout(musUpdate,0);const cv=id==="game"||id==="learn";$("calcBtn").classList.toggle("hidden",!cv);if(!cv&&calcOpen)toggleCalc(false);}
 
 function start(f){
   let focus=null,pool=null,label=null;
