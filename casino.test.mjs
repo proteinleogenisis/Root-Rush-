@@ -493,5 +493,28 @@ check("RRCasino exposes mount and logic; loads without document", () => {
   eq(typeof globalThis.document, "undefined", "no document in node");
 });
 
+// ---------- salon drinks ----------
+check("salon: 10 drinks, prices 1,000 to 50,000, unique ids, servings > 0", () => {
+  eq(L.DRINKS.length, 10);
+  eq(new Set(L.DRINKS.map(d => d.id)).size, 10, "unique ids");
+  eq(Math.min(...L.DRINKS.map(d => d.price)), 1000); eq(Math.max(...L.DRINKS.map(d => d.price)), 50000);
+  L.DRINKS.forEach(d => { truthy(d.serv > 0 && /^#[0-9a-f]{6}$/i.test(d.tint) && d.name && d.icon, "drink " + d.id); });
+});
+check("salon: a serving wears off in DRINK_FADE_MS, drinks stack, cap at BUZZ_MAX", () => {
+  const F = L.DRINK_FADE_MS, beer = L.DRINKS[0], vintage = L.DRINKS[9];
+  eq(L.buzzAt(null, 0), 0, "nothing drunk"); eq(L.buzzAt({ lvl: 0, t: 0 }, 5), 0);
+  let st = L.drinkAdd(null, beer, 1000);
+  eq(st.lvl, 1); eq(st.tint, beer.tint);
+  eq(L.buzzAt(st, 1000 + F / 2), 0.5, "half worn off");
+  eq(L.buzzAt(st, 1000 + F), 0, "fully worn off"); eq(L.buzzAt(st, 1000 + 3 * F), 0, "never negative");
+  st = L.drinkAdd(st, beer, 1000 + F / 2);
+  eq(st.lvl, 1.5, "stacks on what is left");
+  st = L.drinkAdd(st, vintage, 1000 + F / 2); st = L.drinkAdd(st, vintage, 1000 + F / 2);
+  eq(st.lvl, L.BUZZ_MAX, "capped"); eq(st.tint, vintage.tint, "last drink tints");
+});
+check("salon: names and minutes to sober", () => {
+  eq(L.buzzName(0), "Sober"); eq(L.buzzName(1), "Tipsy"); eq(L.buzzName(2), "Buzzed"); eq(L.buzzName(4), "Drunk"); eq(L.buzzName(6), "Wasted");
+  eq(L.soberMinutes(1), Math.ceil(L.DRINK_FADE_MS / 60000)); eq(L.soberMinutes(0), 0);
+});
 console.log(passed + " passed, " + failed + " failed");
 process.exit(failed ? 1 : 0);

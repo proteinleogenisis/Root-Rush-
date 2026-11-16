@@ -15,6 +15,19 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@500&family=Cinzel:wght@600;700&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#f6f5f1;--card:#fff;--ink:#1d1d1b;--mute:#6b6a64;--line:#e2e0d8;--root:#7F77DD;--pow:#1D9E75;--hot:#D85A30;--good:#3B6D11;--goodbg:#EAF3DE;--bad:#A32D2D;--badbg:#FCEBEB;--ghost:#B4B2A9}
+/* Salon drinks: pretend drunk look. Edges blur and sway, the screen takes the drink's color, text sees double. Center stays clear. */
+#drunk{position:fixed;inset:0;pointer-events:none;z-index:60;display:none;overflow:hidden}
+body.drunk #drunk{display:block}
+#drunk i{position:absolute;inset:-12%;display:block}
+.dk-blur{-webkit-backdrop-filter:blur(var(--dk-blur,0px));backdrop-filter:blur(var(--dk-blur,0px));-webkit-mask:radial-gradient(ellipse 50% 42% at 50% 50%,transparent 40%,#000 100%);mask:radial-gradient(ellipse 50% 42% at 50% 50%,transparent 40%,#000 100%);animation:dk-swirl 6.5s ease-in-out infinite}
+@keyframes dk-swirl{0%,100%{transform:translate(-4%,1.5%) rotate(-3deg)}50%{transform:translate(4%,-1.5%) rotate(3deg)}}
+.dk-tint{background:radial-gradient(circle at 50% 50%,transparent 35%,var(--dk-tint,#f5c542) 125%);opacity:calc(var(--dk,0) * .6);mix-blend-mode:screen;animation:dk-hue 10s linear infinite}
+@keyframes dk-hue{to{filter:hue-rotate(360deg)}}
+body.drunk{animation:dk-dv 3.4s ease-in-out infinite}
+@keyframes dk-dv{0%,100%{text-shadow:calc(var(--dk-dv,0px) * -1) 0 0 rgba(255,90,170,.38)}50%{text-shadow:var(--dk-dv,0px) 1px 0 rgba(90,200,255,.38)}}
+body.drunk .cz-pv svg,body.drunk .cz-bg svg{animation:dk-sway 5.5s ease-in-out infinite;transform-origin:50% 60%}
+@keyframes dk-sway{0%,100%{transform:rotate(calc(var(--dk-sway,0deg) * -1)) translateX(calc(var(--dk-sway,0deg) / 1deg * -2px))}50%{transform:rotate(var(--dk-sway,0deg)) translateX(calc(var(--dk-sway,0deg) / 1deg * 2px))}}
+@media (prefers-reduced-motion:reduce){.dk-blur,.dk-tint,body.drunk,body.drunk .cz-pv svg{animation:none}}
 .hk-link{display:block;margin:10px auto 0;background:none;border:0;color:var(--mute);font:inherit;font-size:14px;text-decoration:underline;text-underline-offset:3px;padding:6px}
 .hk-top{margin-bottom:18px}.hk-lab{display:block;font-size:13px;color:var(--mute);margin-bottom:6px}
 .hk-in{width:100%;font:inherit;font-size:20px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);outline:none}
@@ -1485,7 +1498,7 @@ async function initCloud(){
     if(!$("home").classList.contains("hidden"))home();
   }catch(e){clearTimeout(timer);setSync("retry")}
 }
-function show(id){curScreen=id;if(id!=="casino")document.body.classList.remove("cz-fs");["home","learn","game","end","train","casino","profile","check"].forEach(s=>$(s).classList.toggle("hidden",s!==id));setTimeout(musUpdate,0);const cv=id==="game"||id==="learn";$("calcBtn").classList.toggle("hidden",!cv);if(!cv&&calcOpen)toggleCalc(false);}
+function show(id){curScreen=id;setTimeout(()=>{try{drunkApply()}catch(e){}},0);if(id!=="casino")document.body.classList.remove("cz-fs");["home","learn","game","end","train","casino","profile","check"].forEach(s=>$(s).classList.toggle("hidden",s!==id));setTimeout(musUpdate,0);const cv=id==="game"||id==="learn";$("calcBtn").classList.toggle("hidden",!cv);if(!cv&&calcOpen)toggleCalc(false);}
 
 function start(f){
   let focus=null,pool=null,label=null;
@@ -1893,7 +1906,25 @@ function toggleCalc(on){calcOpen=on===undefined?!calcOpen:on;$("calc").classList
   const box=$("cKeys");keys.forEach(k=>{const b=mkBtn(k==="="?"eq":"+−×÷^√∛()".includes(k)?"op":k==="C"||k==="⌫"||k==="ans"?"fn":"",k,()=>cKey(k));if(k==="0")b.style.gridColumn="span 2";box.appendChild(b)});
   $("calcBtn").onclick=()=>toggleCalc();$("cClose").onclick=()=>toggleCalc(false)})();
 
+// ---- Salon drinks (casino.js holds the drink list and the math): pretend drunk look, screen effects only ----
+const DRUNK_FULL=5;         // servings in you for the full effect
+const DRUNK_BLUR_MAX=7;     // px of blur at the screen edges at full effect
+const DRUNK_DV_MAX=4;       // px the text "sees double" at full effect
+const DRUNK_RUSH_TEXT=0.35; // in a Rush the double text is this much of normal, so questions stay readable
+const DRUNK_SWAY_MAX=2.2;   // degrees the casino floor sways at full effect
+const DRUNK_TICK_MS=4000;   // how often the effect updates as it wears off
+let drunkSt=LS.get("drunk",null);
+function drunkLvl(){try{return RRCasino.logic.buzzAt(drunkSt,Date.now())}catch(e){return 0}}
+function drunkApply(){const l=drunkLvl(),k=Math.min(1,l/DRUNK_FULL),rush=curScreen==="game",r=document.documentElement.style;
+  if(!$("drunk")){const d=document.createElement("div");d.id="drunk";d.setAttribute("aria-hidden","true");d.innerHTML='<i class="dk-blur"></i><i class="dk-tint"></i>';document.body.appendChild(d)}
+  document.body.classList.toggle("drunk",k>0.02);
+  r.setProperty("--dk",k.toFixed(3));r.setProperty("--dk-blur",(k*DRUNK_BLUR_MAX).toFixed(1)+"px");
+  r.setProperty("--dk-dv",((rush?DRUNK_RUSH_TEXT:1)*k*DRUNK_DV_MAX).toFixed(2)+"px");r.setProperty("--dk-sway",(k*DRUNK_SWAY_MAX).toFixed(2)+"deg");
+  r.setProperty("--dk-tint",(drunkSt&&drunkSt.tint)||"#f5c542")}
+setInterval(drunkApply,DRUNK_TICK_MS);setTimeout(drunkApply,0);
 const api={
+  drink(d){drunkSt=RRCasino.logic.drinkAdd(drunkSt,d,Date.now());LS.set("drunk",drunkSt);drunkApply()},
+  buzz:()=>drunkLvl(),
   coins:()=>econ.coins,
   spend(n,why){n=Math.floor(+n);if(!(n>=0)||econ.coins<n)return false;econ.coins-=n;saveEcon();return true},
   earn(n,why){n=Math.floor(+n);if(!(n>0))return;econ.coins+=n;saveEcon()},

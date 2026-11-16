@@ -267,7 +267,34 @@
     return '<svg viewBox="-114 -114 228 228" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>' + wheelDefs() + "</defs>" + wheelInner() + "</svg>";
   }
 
+  // ---------- the High-Limit Salon bar (pretend drinks: they only change how the screen looks) ----------
+  var DRINK_FADE_MS = 8 * 60 * 1000; // one serving wears off in this long (real time)
+  var BUZZ_MAX = 8;                  // servings stop stacking here
+  var DRINKS = [
+    { id: "lager", name: "Imported Lager", icon: "🍺", serv: 1, price: 1000, tint: "#f5c542", note: "Ice cold, from Munich" },
+    { id: "mojito", name: "Mint Mojito", icon: "🍹", serv: 1.5, price: 2500, tint: "#5be37d", note: "Fresh mint and white rum" },
+    { id: "wine", name: "Grand Cru Red", icon: "🍷", serv: 1.5, price: 4000, tint: "#c0213f", note: "A glass from a famous vineyard" },
+    { id: "martini", name: "Dry Martini", icon: "🍸", serv: 2, price: 6000, tint: "#9fd8ff", note: "Shaken, with an olive" },
+    { id: "sake", name: "Junmai Daiginjo Sake", icon: "🍶", serv: 2, price: 8000, tint: "#f3eedc", note: "Polished rice, served chilled" },
+    { id: "scotch", name: "18-Year Single Malt", icon: "🥃", serv: 2, price: 12000, tint: "#d98b2b", note: "Smoky, aged in oak" },
+    { id: "absinthe", name: "Green Fairy Absinthe", icon: "🧪", serv: 3, price: 18000, tint: "#7dff4a", note: "Strong. Everything turns green" },
+    { id: "tower", name: "Champagne Tower", icon: "🥂", serv: 4, price: 25000, tint: "#ffe08a", note: "A pyramid of glasses, poured from the top" },
+    { id: "cognac", name: "Royal Reserve Cognac", icon: "🥃", serv: 3, price: 35000, tint: "#b5651d", note: "From a cellar older than the casino" },
+    { id: "vintage", name: "1961 Vintage Champagne", icon: "🍾", serv: 5, price: 50000, tint: "#fff3b0", note: "One of the last bottles left" }
+  ];
+  // how many servings are still "in you" right now
+  function buzzAt(st, now) {
+    if (!st || !(+st.lvl > 0)) return 0;
+    var left = +st.lvl - Math.max(0, now - (+st.t || 0)) / DRINK_FADE_MS;
+    return left > 0 ? left : 0;
+  }
+  // a new drink stacks on top of what's left, up to BUZZ_MAX; its color tints the effect
+  function drinkAdd(st, d, now) { return { lvl: Math.min(BUZZ_MAX, buzzAt(st, now) + d.serv), t: now, tint: d.tint }; }
+  function buzzName(lvl) { return lvl < 0.3 ? "Sober" : lvl < 1.5 ? "Tipsy" : lvl < 3 ? "Buzzed" : lvl < 5 ? "Drunk" : "Wasted"; }
+  function soberMinutes(lvl) { return Math.ceil(lvl * DRINK_FADE_MS / 60000); }
+
   var logic = {
+    DRINKS: DRINKS, DRINK_FADE_MS: DRINK_FADE_MS, BUZZ_MAX: BUZZ_MAX, buzzAt: buzzAt, drinkAdd: drinkAdd, buzzName: buzzName, soberMinutes: soberMinutes,
     makeDeck: makeDeck, handValue: handValue, isBlackjack: isBlackjack,
     dealerShouldHit: dealerShouldHit, settleBlackjack: settleBlackjack,
     SLOT_SYMBOLS: SLOT_SYMBOLS, spinReels: spinReels, slotPayout: slotPayout,
@@ -302,8 +329,20 @@
     "body.cz-fs .cz-head{position:fixed;top:10px;right:10px;left:auto;z-index:8;margin:0;min-height:0}",
     "body.cz-fs #cz-left{display:none}",
     "body.cz-fs .cz-look{bottom:calc(16px + env(safe-area-inset-bottom))}",
-    ".cz-pano{display:flex;width:300%;transition:transform " + TURN_MS + "ms cubic-bezier(.2,.8,.2,1)}",
-    ".cz-pv{width:33.3334%;flex:none}",
+    ".cz-bar{background:linear-gradient(180deg,#1a0a10,#0b0408);border:1.5px solid #c9a24a;border-radius:16px;padding:16px 12px 14px;color:#f3e6c4}",
+    ".cz-bar-h{text-align:center;margin-bottom:12px}.cz-bar-t{font-family:Cinzel,Georgia,serif;font-weight:700;font-size:22px;letter-spacing:.16em;text-transform:uppercase}",
+    ".cz-bar-s{font-family:Cinzel,Georgia,serif;font-size:10px;letter-spacing:.32em;color:#d9b86a;text-transform:uppercase;margin-top:4px}",
+    ".cz-buzz{margin:0 4px 14px}.cz-buzz-r{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px}.cz-buzz-r span{font-family:Cinzel,Georgia,serif;font-weight:700;letter-spacing:.1em;color:#d9b86a}",
+    ".cz-buzz-m{height:6px;border-radius:3px;background:rgba(255,255,255,.12);overflow:hidden}.cz-buzz-m i{display:block;height:100%;background:linear-gradient(90deg,#d9b86a,#c0213f);border-radius:3px;transition:width .4s}",
+    ".cz-drinks{display:flex;flex-direction:column;gap:8px}",
+    ".cz-drink{display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(217,184,106,.25);box-shadow:inset 3px 0 0 var(--tint)}",
+    ".cz-dk-i{font-size:28px;width:36px;text-align:center}.cz-dk-b{flex:1;min-width:0}.cz-dk-n{font-family:Cinzel,Georgia,serif;font-weight:700;font-size:14px;letter-spacing:.04em}",
+    ".cz-dk-d{font-size:12px;opacity:.7;margin-top:1px}.cz-dk-s{font-size:11px;color:#d9b86a;margin-top:3px;letter-spacing:.05em}",
+    ".cz-dk-o{border:1px solid #d9b86a;background:linear-gradient(180deg,#3a2a10,#24190a);color:#ffe08a;border-radius:10px;padding:9px 10px;font:inherit;font-weight:800;font-size:13px;white-space:nowrap}",
+    ".cz-dk-o:disabled{opacity:.35}",
+    ".cz-bar-n{font-size:11px;opacity:.6;text-align:center;margin-top:12px;line-height:1.4}",
+    ".cz-pano{display:flex;width:400%;transition:transform " + TURN_MS + "ms cubic-bezier(.2,.8,.2,1)}",
+    ".cz-pv{width:25%;flex:none}",
     ".cz-pv .cz-roomsvg{box-shadow:none;border-radius:0}",
     ".cz-turn{position:absolute;top:50%;transform:translateY(-50%);width:40px;height:64px;border:0;border-radius:12px;background:rgba(10,0,20,.55);color:#fff;font:inherit;font-size:28px;font-weight:900;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 1.5px rgba(255,214,107,.6);z-index:2}",
     ".cz-turn.l{left:6px}.cz-turn.r{right:6px}.cz-turn:disabled{opacity:0;pointer-events:none}",
@@ -580,14 +619,14 @@
   }
 
   // ---------- the casino room (lobby) ----------
-  var SPOT_NAMES = { bj: "Blackjack", sl: "Slots", ro: "Roulette", hl: "Higher / Lower", ba: "Baccarat", vp: "Video Poker", cr: "Craps" };
-  var LOBBY_H = 640;
+  var SPOT_NAMES = { bar: "The Salon bar", bj: "Blackjack", sl: "Slots", ro: "Roulette", hl: "Higher / Lower", ba: "Baccarat", vp: "Video Poker", cr: "Craps" };
+  var LOBBY_H = 640;           // lobby drawing height (it is 360 wide)
   var FULL_MAX_W = 520;        // screens this narrow or narrower get the floor edge to edge (phones); wider ones (iPad) keep the framed floor
   var FULL_TOP_SHARE = 0.45;   // of the extra height on a tall phone, this share goes above the scene (ceiling), the rest below (floor)
   var HERO_Z = 0.3, HERO_X = 25;  // the two featured machines in the left view: distance and how far from the middle
   var AISLE_X = 64;              // the rows of machines further back along the sides
   var TITLE_SCALE = 0.82, TITLE_BACK = 0.6; // game title size (x the old neon size) and how dark the panel behind it is
-  var LOOK = 1;               // which way you're looking: 0 left, 1 straight, 2 right (kept while the app is open)  // lobby drawing height (it is 360 wide)
+  var LOOK = 1;               // which way you're looking: 0 left, 1 straight, 2 right, 3 the salon (kept while the app is open)
   // the back of the room (crowd, far machines) is blurred this much and covered by a haze this strong
   var DOF_FAR_BLUR = 3, DOF_HAZE = 0.45;
   var TURN_MS = 450;          // turning your head between the left / straight / right views
@@ -601,8 +640,8 @@
   // straight (blackjack + higher/lower) and right (roulette, craps, baccarat).
   // Simple perspective: a world point (X, Y, z) lands at (VX + X / z, VY + Y / z); the floor is Y = EYE.
   // People only stand in the blurred back of the room; the games in focus are left clear.
-  var SCENE_DIRS = ["l", "c", "r"];
-  var SCENE_NAMES = { l: "Slots · Video poker", c: "Blackjack · Higher/Lower", r: "Roulette · Craps · Baccarat" };
+  var SCENE_DIRS = ["l", "c", "r", "v"];
+  var SCENE_NAMES = { l: "Slots · Video poker", c: "Blackjack · Higher/Lower", r: "Roulette · Craps · Baccarat", v: "High-Limit Salon" };
   function sceneSvg(dir, can, tall) {
     var s = [], i, k, BACK = [], H = LOBBY_H, TH = Math.max(LOBBY_H, tall || LOBBY_H), PAD = Math.round((TH - LOBBY_H) * FULL_TOP_SHARE);
     var VX = 180, VY = 250, EYE = 40;
@@ -855,6 +894,51 @@
       s.push(burst(sx(XC, zC), r1(sy(EYE, zC) - 24 / zC), 0.6, 2.2, "#3dff7a"));
     }
 
+
+    if (dir === "v") {
+      // ---- the High-Limit Salon: dark wood, gold, a lit back bar full of bottles, a marble bar with empty stools ----
+      s.push('<rect y="' + (-PAD) + '" width="360" height="' + TH + '" fill="#0b0408" opacity=".55"/>');
+      s.push(heading(64, "HIGH-LIMIT SALON", "FINE SPIRITS · RARE VINTAGES"));
+      // chandelier
+      s.push('<g opacity=".95"><line x1="180" y1="' + (-PAD) + '" x2="180" y2="96" stroke="#c9a24a" stroke-width="1.2"/><path d="M140 104 Q180 128 220 104" fill="none" stroke="#d9b86a" stroke-width="1.6"/><path d="M152 112 Q180 132 208 112" fill="none" stroke="#d9b86a" stroke-width="1.2"/>');
+      for (i = 0; i < 9; i++) s.push('<circle class="cz-bulb2" style="animation-delay:' + (i * 0.27).toFixed(2) + 's" cx="' + (144 + i * 9) + '" cy="' + (106 + Math.round(Math.sin(i / 8 * Math.PI) * 12)) + '" r="2" fill="#fff4cf"/><circle cx="' + (144 + i * 9) + '" cy="' + (106 + Math.round(Math.sin(i / 8 * Math.PI) * 12)) + '" r="7" fill="url(#czl-glow)" opacity=".5"/>');
+      s.push("</g>");
+      // back bar: wood wall, warm backlight, mirror, three shelves of bottles
+      s.push('<defs><linearGradient id="czl-wood2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a1d0e"/><stop offset="1" stop-color="#1c0c05"/></linearGradient>' +
+        '<radialGradient id="czl-amber" cx="50%" cy="55%" r="60%"><stop offset="0" stop-color="#ffb347" stop-opacity=".75"/><stop offset="1" stop-color="#ffb347" stop-opacity="0"/></radialGradient>' +
+        '<linearGradient id="czl-marble" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4efe6"/><stop offset=".6" stop-color="#d9d1c3"/><stop offset="1" stop-color="#b8ad9a"/></linearGradient></defs>');
+      s.push('<rect x="22" y="150" width="316" height="196" rx="6" fill="url(#czl-wood2)" stroke="#c9a24a" stroke-width="1.6"/>',
+        '<rect x="34" y="162" width="292" height="172" rx="3" fill="#120706"/><rect x="34" y="162" width="292" height="172" fill="url(#czl-amber)"/>');
+      var BOT = ["#2e8b57", "#8b1a1a", "#d98b2b", "#f2e6b8", "#5a3d8a", "#1f5f8b", "#c0213f", "#7dff4a", "#b5651d", "#ffe08a"];
+      [196, 254, 312].forEach(function (shy, row) {
+        s.push('<rect x="34" y="' + shy + '" width="292" height="3" fill="#c9a24a"/>');
+        for (var b = 0; b < 15; b++) {
+          var bx = 42 + b * 19 + (row % 2) * 6, bh = 24 + ((b * 7 + row * 5) % 13), bc = BOT[(b + row * 3) % BOT.length];
+          if (bx > 318) continue;
+          s.push('<rect x="' + bx + '" y="' + (shy - bh) + '" width="9" height="' + bh + '" rx="2.5" fill="' + bc + '" opacity=".92"/><rect x="' + (bx + 2.5) + '" y="' + (shy - bh - 7) + '" width="4" height="8" rx="1" fill="' + bc + '"/>' +
+            '<rect x="' + (bx + 1) + '" y="' + (shy - bh * 0.62) + '" width="7" height="7" fill="#f6ecd2" opacity=".85"/><rect x="' + (bx + 1.5) + '" y="' + (shy - bh + 2) + '" width="1.6" height="' + (bh - 6) + '" fill="#fff" opacity=".25"/>');
+        }
+      });
+      // the bar counter: marble top, dark wood front with gold rail and panels
+      s.push('<path d="M-10 392 L370 392 L370 408 L-10 408 Z" fill="url(#czl-marble)"/><rect x="-10" y="406" width="380" height="3" fill="#8f7a55"/>',
+        '<rect x="-10" y="409" width="380" height="118" fill="url(#czl-wood2)"/><rect x="-10" y="452" width="380" height="5" rx="2" fill="#d9b86a"/>');
+      for (i = 0; i < 6; i++) s.push('<rect x="' + (6 + i * 60) + '" y="418" width="48" height="28" rx="3" fill="none" stroke="#c9a24a" stroke-opacity=".55"/><rect x="' + (6 + i * 60) + '" y="466" width="48" height="50" rx="3" fill="none" stroke="#c9a24a" stroke-opacity=".55"/>');
+      // drinks waiting on the bar
+      s.push('<g transform="translate(70 392)"><path d="M-9 -26 L9 -26 L1 -12 L1 -2 L6 0 L-6 0 L-1 -2 L-1 -12 Z" fill="#9fd8ff" fill-opacity=".55" stroke="#fff" stroke-width=".8"/><circle cx="2" cy="-21" r="2.2" fill="#6b8e23"/></g>',
+        '<g transform="translate(150 392)"><path d="M-4 -34 L4 -34 L3 -12 L1 -10 L1 -2 L5 0 L-5 0 L-1 -2 L-1 -10 L-3 -12 Z" fill="#ffe08a" fill-opacity=".75" stroke="#fff" stroke-width=".8"/><circle cx="0" cy="-26" r=".9" fill="#fff"/><circle cx="1" cy="-20" r=".7" fill="#fff"/></g>',
+        '<g transform="translate(232 392)"><rect x="-9" y="-16" width="18" height="16" rx="2" fill="#d98b2b" fill-opacity=".6" stroke="#fff" stroke-width=".8"/><rect x="-6" y="-14" width="7" height="6" rx="1" fill="#e8f6ff" opacity=".8"/></g>',
+        '<g transform="translate(300 392)"><rect x="-6" y="-52" width="12" height="40" rx="5" fill="#0f3d20"/><rect x="-3" y="-64" width="6" height="14" rx="1.5" fill="#0f3d20"/><rect x="-3.2" y="-66" width="6.4" height="6" rx="1" fill="#d9b86a"/><rect x="-6" y="-36" width="12" height="11" fill="#f2e6b8"/><rect x="-7" y="-12" width="14" height="12" rx="2" fill="#c9a24a" opacity=".85"/></g>');
+      // empty stools in front of the bar
+      [40, 130, 230, 320].forEach(function (x) {
+        s.push('<rect x="' + (x - 2) + '" y="540" width="4" height="70" fill="#c9a24a"/><ellipse cx="' + x + '" cy="610" rx="16" ry="4" fill="#8f7a55"/>',
+          '<ellipse cx="' + x + '" cy="538" rx="26" ry="9" fill="#5a0d1e"/><ellipse cx="' + x + '" cy="534" rx="24" ry="7" fill="#8e1530"/><ellipse cx="' + (x - 6) + '" cy="532" rx="9" ry="2.4" fill="#fff" opacity=".18"/>');
+      });
+      // velvet ropes on brass posts
+      s.push('<path d="M-6 600 Q20 618 46 600" fill="none" stroke="#8e1530" stroke-width="4"/><path d="M314 600 Q340 618 366 600" fill="none" stroke="#8e1530" stroke-width="4"/>');
+      [46, 314].forEach(function (x) { s.push('<rect x="' + (x - 2.5) + '" y="596" width="5" height="44" fill="#d9b86a"/><circle cx="' + x + '" cy="594" r="5" fill="#f3e6c4"/>'); });
+      LBL.push(plate(180, 382, "THE BAR · ORDER A DRINK", "#d9b86a", 13, 0));
+      ZONES.push(["bar", 0, 140, 360, 420]);
+    }
     // confetti, a couple of sparkles, the vignette, the labels, and the tap zones on top
     var CONF = ["#ff2e93", "#ffd23f", "#3ff0ff", "#9b5cff", "#4dff88", "#ff7a2f", "#fff"];
     for (i = 0; i < CONFETTI_N; i++) s.push('<rect class="cz-conf" style="animation-delay:-' + ((i * 0.71 + seed) % 9).toFixed(2) + "s;animation-duration:" + (7 + (i % 5)) + 's" x="' + r1((i * 47.3 + 11 + seed * 31) % 360) + '" y="-12" width="' + (3 + (i % 3)) + '" height="' + (5 + (i % 2) * 2) + '" rx="1" fill="' + CONF[i % CONF.length] + '"/>');
@@ -963,7 +1047,7 @@
     // ===== lobby =====
     function lobbyHtml() {
       var can = canBet();
-      return '<div class="cz-room"><div class="cz-pano" style="transform:translateX(-' + (LOOK * 100 / 3) + '%)">' +
+      return '<div class="cz-room"><div class="cz-pano" style="transform:translateX(-' + (LOOK * 100 / SCENE_DIRS.length) + '%)">' +
         SCENE_DIRS.map(function (d) { return '<div class="cz-pv">' + sceneSvg(d, can, fullTall()) + "</div>"; }).join("") + "</div>" +
         '<button class="cz-turn l" data-a="turn" data-v="-1" aria-label="Look left"><span style="display:flex"><svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M15 4 L7 12 L15 20" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button><button class="cz-turn r" data-a="turn" data-v="1" aria-label="Look right"><span style="display:flex;transform:scaleX(-1)"><svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M15 4 L7 12 L15 20" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>' +
         '<div class="cz-look" aria-live="polite"></div></div>';
@@ -972,16 +1056,41 @@
     function isFull() { return !!(globalThis.innerWidth && globalThis.innerWidth <= FULL_MAX_W); }
     function fullTall() { return isFull() ? Math.round(360 * globalThis.innerHeight / globalThis.innerWidth) : 0; }
     var drawnTall = 0;
+    // ===== the salon bar =====
+    function buzzNow() { try { return api.buzz ? api.buzz() : 0; } catch (e) { return 0; } }
+    function barSkel() {
+      return '<div class="cz-bar"><div class="cz-bar-h"><div class="cz-bar-t">The Salon Bar</div><div class="cz-bar-s">Fine spirits · rare vintages</div></div>' +
+        '<div class="cz-buzz" id="bar-buzz"></div><div class="cz-drinks" id="bar-list"></div>' +
+        '<div class="cz-bar-n">Pretend drinks: they only change how your screen looks for a while. Every serving wears off in about ' + Math.round(DRINK_FADE_MS / 60000) + ' minutes.</div></div>';
+    }
+    function barRefresh() {
+      var lv = buzzNow(), k = Math.min(1, lv / 5), coins = api.coins();
+      setHtml("#bar-buzz", '<div class="cz-buzz-r"><span>' + buzzName(lv) + "</span><b>" + (lv < 0.3 ? "Clear-headed" : "Sober in about " + soberMinutes(lv) + " min") + "</b></div>" +
+        '<div class="cz-buzz-m"><i style="width:' + Math.round(k * 100) + '%"></i></div>');
+      setHtml("#bar-list", DRINKS.map(function (d) {
+        var dots = ""; for (var j = 0; j < Math.ceil(d.serv); j++) dots += j + 1 <= d.serv ? "●" : "◐";
+        return '<div class="cz-drink" style="--tint:' + d.tint + '"><div class="cz-dk-i">' + d.icon + '</div><div class="cz-dk-b"><div class="cz-dk-n">' + d.name + '</div><div class="cz-dk-d">' + d.note + '</div>' +
+          '<div class="cz-dk-s" title="servings">' + dots + " " + d.serv + (d.serv === 1 ? " serving" : " servings") + '</div></div>' +
+          '<button class="cz-dk-o" data-a="drink" data-v="' + d.id + '"' + (coins < d.price ? " disabled" : "") + ">🪙 " + d.price.toLocaleString("en-US") + "</button></div>";
+      }).join(""));
+    }
+    function barOrder(id) {
+      var d = null; DRINKS.forEach(function (x) { if (x.id === id) d = x; });
+      if (!d || !api.spend(d.price, "salon " + d.id)) return;
+      try { if (api.drink) api.drink(d); } catch (e) { /* ignore */ }
+      updCoins(); snd("buy"); toast(d.icon + " Cheers!");
+      barRefresh();
+    }
     function lookUpdate() {
       var pano = stage.querySelector(".cz-pano"); if (!pano) return;
-      pano.style.transform = "translateX(-" + (LOOK * 100 / 3) + "%)";
+      pano.style.transform = "translateX(-" + (LOOK * 100 / SCENE_DIRS.length) + "%)";
       stage.querySelector(".cz-turn.l").disabled = LOOK === 0;
-      stage.querySelector(".cz-turn.r").disabled = LOOK === 2;
-      stage.querySelector(".cz-look").innerHTML = [0, 1, 2].map(function (j) { return '<i class="' + (j === LOOK ? "on" : "") + '"></i>'; }).join("") + " " + SCENE_NAMES[SCENE_DIRS[LOOK]];
+      stage.querySelector(".cz-turn.r").disabled = LOOK === SCENE_DIRS.length - 1;
+      stage.querySelector(".cz-look").innerHTML = SCENE_DIRS.map(function (_, j) { return '<i class="' + (j === LOOK ? "on" : "") + '"></i>'; }).join("") + " " + SCENE_NAMES[SCENE_DIRS[LOOK]];
       // only the view you're looking at can be tabbed to / tapped
       stage.querySelectorAll(".cz-pv").forEach(function (pv, j) { pv.setAttribute("aria-hidden", j === LOOK ? "false" : "true"); pv.querySelectorAll(".cz-spot").forEach(function (g) { g.setAttribute("tabindex", j === LOOK ? "0" : "-1"); }); });
     }
-    function turn(d) { var n = Math.max(0, Math.min(2, LOOK + d)); if (n === LOOK) return; LOOK = n; snd("click"); lookUpdate(); }
+    function turn(d) { var n = Math.max(0, Math.min(SCENE_DIRS.length - 1, LOOK + d)); if (n === LOOK) return; LOOK = n; snd("click"); lookUpdate(); }
 
     // ===== blackjack =====
     function bjSkel() {
@@ -1678,6 +1787,7 @@
       else if (view === "vp") { stage.innerHTML = vpSkel(); vpRestore(); }
       else if (view === "ba") { stage.innerHTML = baSkel(); baRestore(); }
       else if (view === "cr") { stage.innerHTML = crSkel(); crRestore(); }
+      else if (view === "bar") { stage.innerHTML = barSkel(); barRefresh(); }
       else { stage.innerHTML = hlSkel(); hlRestore(); }
       // While a game is open, the casino floor keeps living behind it, blurred
       try { document.body.classList.toggle("cz-fs", view === "lobby" && isFull()); } catch (e) { /* ignore */ }
@@ -1729,6 +1839,7 @@
       switch (a) {
         case "open": return go(v, t);
         case "turn": return turn(+v);
+        case "drink": return barOrder(v);
         case "back": return go("lobby");
         case "chip": if (g.all) g.bet = 0; g.all = false; g.bet = Math.min(api.coins(), (g.bet || 0) + (+v)); snd("chip"); return refresh();
         case "clear": g.all = false; g.bet = 0; snd("click"); return refresh();
