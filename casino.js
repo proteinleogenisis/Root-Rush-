@@ -19,6 +19,14 @@
   var BALL_TURNS = 6;          // full ball turns (opposite way)
   var ZOOM_MS = 400;           // lobby <-> game zoom
   var COIN_POUR_BIG = 10;      // win of this many times the bet = a heavy coin shower
+  var HILO_EDGE = 0.92;        // higher/lower: each guess is paid HILO_EDGE / P(win), so the house keeps 8%
+  var HILO_MAX_MULT = 50;      // higher/lower: pot multiplier cap; reaching it cashes out by itself
+  var BACC_BANKER_RETURN = 1.95; // baccarat: coins returned per coin on a winning Banker bet (0.95:1)
+  var BACC_TIE_RETURN = 9;     // baccarat: coins returned per coin on a winning Tie bet (8:1)
+  var BACC_STEP_MS = 620;      // pause between baccarat cards
+  var VP_STEP_MS = 170;        // stagger between video poker cards flipping
+  var DICE_TICKS = 9;          // faces the craps dice flash through while tumbling
+  var DICE_TICK_MS = 100;      // time per flash (the tumble lasts DICE_TICKS * DICE_TICK_MS)
 
   // ---------- pure logic ----------
   var SUITS = ["♠", "♥", "♦", "♣"];
@@ -106,14 +114,116 @@
     return 0;
   }
 
-  var HILO_MULT = [1, 1.5, 2.2, 3.3, 5, 7.5, 11];
   function rankOf(x) { return typeof x === "object" && x !== null ? x.r : x; }
+  // Higher/lower. Every draw is an independent random card, so the odds are exact:
+  // P(higher) = (13-a)/13, P(lower) = (a-1)/13, and the same rank loses.
+  function hiloDraw(rng) {
+    rng = rng || Math.random;
+    return { r: 1 + Math.floor(rng() * 13), s: SUITS[Math.floor(rng() * 4)] };
+  }
+  // The pot multiplier a correct guess applies: HILO_EDGE / P(win). 0 means the guess is impossible.
+  function hiloOdds(rank) {
+    var a = rankOf(rank);
+    return {
+      higher: a < 13 ? HILO_EDGE * 13 / (13 - a) : 0,
+      lower: a > 1 ? HILO_EDGE * 13 / (a - 1) : 0
+    };
+  }
   function hiloResult(cur, next, guess) {
     var a = rankOf(cur), b = rankOf(next);
-    if (a === b) return "push";
+    if (a === b) return "lose";
     if (guess === "higher") return b > a ? "win" : "lose";
     return b < a ? "win" : "lose";
   }
+
+  // Video poker, Jacks or Better, 9/6 paytable. mult = coins returned per coin bet.
+  var VP_PAYTABLE = [
+    ["Royal Flush", 250], ["Straight Flush", 50], ["Four of a Kind", 25], ["Full House", 9], ["Flush", 6],
+    ["Straight", 4], ["Three of a Kind", 3], ["Two Pair", 2], ["Jacks or Better", 1]
+  ];
+  function vpMult(name) {
+    for (var i = 0; i < VP_PAYTABLE.length; i++) if (VP_PAYTABLE[i][0] === name) return VP_PAYTABLE[i][1];
+    return 0;
+  }
+  function videoPokerRank(cards) {
+    if (!cards || cards.length !== 5) return { name: "No win", mult: 0 };
+    var cnt = {}, ranks = [], i, flush = true;
+    for (i = 0; i < 5; i++) {
+      cnt[cards[i].r] = (cnt[cards[i].r] || 0) + 1;
+      ranks.push(cards[i].r);
+      if (cards[i].s !== cards[0].s) flush = false;
+    }
+    ranks.sort(function (x, y) { return x - y; });
+    var groups = Object.keys(cnt).map(function (k) { return cnt[k]; }).sort(function (x, y) { return y - x; });
+    var wheel = ranks.join() === "1,10,11,12,13";
+    var straight = groups.length === 5 && (ranks[4] - ranks[0] === 4 || wheel);
+    var name = "No win";
+    if (straight && flush && wheel) name = "Royal Flush";
+    else if (straight && flush) name = "Straight Flush";
+    else if (groups[0] === 4) name = "Four of a Kind";
+    else if (groups[0] === 3 && groups[1] === 2) name = "Full House";
+    else if (flush) name = "Flush";
+    else if (straight) name = "Straight";
+    else if (groups[0] === 3) name = "Three of a Kind";
+    else if (groups[0] === 2 && groups[1] === 2) name = "Two Pair";
+    else if (groups[0] === 2) {
+      for (var k in cnt) if (cnt[k] === 2 && (+k === 1 || +k >= 11)) name = "Jacks or Better";
+    }
+    return { name: name, mult: vpMult(name) };
+  }
+  function videoPokerPayout(cards, bet) { return Math.floor(videoPokerRank(cards).mult * bet); }
+
+  // Baccarat (punto banco). Cards are taken from the END of the deck array (like makeDeck().pop()).
+  function baccaratValue(cards) {
+    var t = 0;
+    for (var i = 0; i < cards.length; i++) t += cards[i].r >= 10 ? 0 : cards[i].r;
+    return t % 10;
+  }
+  // Banker's third-card rule. playerThird = baccarat value (0-9) of the player's third card, or null if the player stood.
+  function baccaratBankerDraws(bTotal, playerThird) {
+    if (bTotal >= 7) return false;
+    if (playerThird === null) return bTotal <= 5;
+    var p = playerThird;
+    if (bTotal <= 2) return true;
+    if (bTotal === 3) return p !== 8;
+    if (bTotal === 4) return p >= 2 && p <= 7;
+    if (bTotal === 5) return p >= 4 && p <= 7;
+    return p === 6 || p === 7; // bTotal 6
+  }
+  function baccaratPlay(src) {
+    var deck = Array.isArray(src) ? src : makeDeck(src);
+    var p = [], b = [], deals = [];
+    function give(hand, who) { var c = deck.pop(); hand.push(c); deals.push({ who: who, card: c }); }
+    give(p, "p"); give(b, "b"); give(p, "p"); give(b, "b");
+    var pt = baccaratValue(p), bt = baccaratValue(b), natural = pt >= 8 || bt >= 8;
+    if (!natural) {
+      var third = null;
+      if (pt <= 5) { give(p, "p"); third = baccaratValue([p[2]]); }
+      if (baccaratBankerDraws(bt, third)) give(b, "b");
+    }
+    pt = baccaratValue(p); bt = baccaratValue(b);
+    return { player: p, banker: b, deals: deals, pTotal: pt, bTotal: bt, natural: natural, winner: pt > bt ? "player" : bt > pt ? "banker" : "tie" };
+  }
+  // Coins RETURNED (stake already taken). on and winner are "player" | "banker" | "tie".
+  function baccaratPayout(on, winner, amount) {
+    if (winner === "tie") return on === "tie" ? Math.floor(amount * BACC_TIE_RETURN) : (on === "player" || on === "banker" ? amount : 0);
+    if (on !== winner) return 0;
+    return on === "player" ? 2 * amount : Math.floor(amount * BACC_BANKER_RETURN + 1e-9);
+  }
+
+  // Craps, pass line only. state = {point: null | 4|5|6|8|9|10}. result: "win" | "lose" | "point" (point just set) | "roll" (keep rolling)
+  function crapsStep(state, d1, d2) {
+    var t = d1 + d2, pt = state && state.point ? state.point : null;
+    if (!pt) {
+      if (t === 7 || t === 11) return { result: "win", state: { point: null }, total: t };
+      if (t === 2 || t === 3 || t === 12) return { result: "lose", state: { point: null }, total: t };
+      return { result: "point", state: { point: t }, total: t };
+    }
+    if (t === pt) return { result: "win", state: { point: null }, total: t };
+    if (t === 7) return { result: "lose", state: { point: null }, total: t };
+    return { result: "roll", state: { point: pt }, total: t };
+  }
+  function crapsPayout(result, bet) { return result === "win" ? 2 * bet : 0; }
 
   // European wheel: real pocket order, clockwise from the zero. Pocket i is centred
   // (i + 0.5) * POCKET_DEG degrees clockwise from the top of the wheel.
@@ -160,7 +270,10 @@
     dealerShouldHit: dealerShouldHit, settleBlackjack: settleBlackjack,
     SLOT_SYMBOLS: SLOT_SYMBOLS, spinReels: spinReels, slotPayout: slotPayout,
     ROULETTE_REDS: ROULETTE_REDS, rouletteColor: rouletteColor, roulettePayout: roulettePayout,
-    HILO_MULT: HILO_MULT, hiloResult: hiloResult,
+    HILO_EDGE: HILO_EDGE, HILO_MAX_MULT: HILO_MAX_MULT, hiloOdds: hiloOdds, hiloDraw: hiloDraw, hiloResult: hiloResult,
+    VP_PAYTABLE: VP_PAYTABLE, videoPokerRank: videoPokerRank, videoPokerPayout: videoPokerPayout,
+    baccaratValue: baccaratValue, baccaratBankerDraws: baccaratBankerDraws, baccaratPlay: baccaratPlay, baccaratPayout: baccaratPayout,
+    crapsStep: crapsStep, crapsPayout: crapsPayout,
     WHEEL_ORDER: WHEEL_ORDER, wheelAngleFor: wheelAngleFor, pocketAt: pocketAt, wheelSvg: wheelSvg
   };
 
@@ -181,7 +294,7 @@
     ".cz-inl{animation:cz-inl .4s ease-out both}@keyframes cz-inl{from{transform:scale(1.25);opacity:0}to{transform:none;opacity:1}}",
     // lobby
     ".cz-room{display:flex;justify-content:center}",
-    ".cz-roomsvg{width:100%;height:auto;max-height:calc(100vh - 150px);max-height:calc(100dvh - 150px);display:block;border-radius:14px;box-shadow:0 0 0 2px #7a5513,0 6px 24px rgba(0,0,0,.5);-webkit-tap-highlight-color:transparent}",
+    ".cz-roomsvg{width:100%;height:auto;display:block;border-radius:14px;box-shadow:0 0 0 2px #7a5513,0 6px 24px rgba(0,0,0,.5);-webkit-tap-highlight-color:transparent}",
     ".cz-spot{cursor:pointer;outline:none}",
     ".cz-spot:focus-visible{outline:2px solid #ffe08a}",
     ".cz-spot:not(.can){opacity:.62}",
@@ -325,10 +438,57 @@
     ".cz-pile{position:relative;--cw:80px;--ch:112px;width:var(--cw);height:var(--ch)}",
     ".cz-pile i{position:absolute;inset:0;border-radius:9px;background:repeating-linear-gradient(45deg,#7a1020 0 5px,#a01c34 5px 10px);border:3px solid #fff;box-shadow:0 2px 4px rgba(0,0,0,.5)}",
     ".cz-pile i:nth-child(1){transform:translate(-3px,3px)}.cz-pile i:nth-child(2){transform:translate(-1.5px,1.5px)}",
-    ".cz-lad{display:flex;align-items:flex-end;gap:4px;height:74px;margin:12px 4px 4px}",
-    ".cz-lad span{flex:1;text-align:center;font-size:11px;font-weight:800;padding-top:4px;border-radius:6px 6px 2px 2px;background:rgba(0,0,0,.35);color:#9bc3cc;border:1px solid rgba(255,255,255,.18);transition:background .3s,color .3s,box-shadow .3s}",
-    ".cz-lad span.lit{background:linear-gradient(#ffe48a,#d9a62e);color:#3a2408;border-color:#fff3b0;box-shadow:0 0 12px rgba(255,214,90,.7)}",
-    ".cz-lad span.now{box-shadow:0 0 0 2px #fff,0 0 16px rgba(255,214,90,.95)}",
+    ".cz-hlmult{text-align:center;font-weight:900;font-size:28px;line-height:1.1;color:#ffe08a;text-shadow:0 2px 0 rgba(0,0,0,.45);margin:10px 0 2px;min-height:32px}",
+    ".cz-hlhint{text-align:center;font-size:11px;font-weight:700;color:#cfeaf0;min-height:15px}",
+    ".cz-hlbtn small{display:block;font-size:13px;font-weight:800;opacity:.95;margin-top:1px}",
+    // video poker
+    ".cz-vpm{background:linear-gradient(180deg,#2c49a8,#101c4a);border:3px solid #e8c05a;border-radius:16px;padding:10px 8px 8px;box-shadow:0 0 0 3px #7a5513,0 8px 20px rgba(0,0,0,.5)}",
+    ".cz-vpt{text-align:center;font-weight:900;letter-spacing:.14em;font-size:14px;color:#ffe9a0;text-shadow:0 0 8px #ff9a3c}",
+    ".cz-vpp{display:grid;grid-auto-flow:column;grid-template-rows:repeat(5,auto);gap:1px 14px;font-size:12px;font-weight:700;background:#0a1233;border:2px solid #e8c05a88;border-radius:8px;padding:6px 8px;margin:8px 0 14px}",
+    ".cz-vpp div{display:flex;justify-content:space-between;gap:6px;color:#9fb4ff;padding:1px 5px;border-radius:5px;white-space:nowrap}",
+    ".cz-vpp div b{color:#ffe08a}",
+    ".cz-vpp div.lit{background:linear-gradient(#ffe48a,#d9a62e);color:#3a2408;animation:cz-vlit .5s ease-in-out 6 alternate}.cz-vpp div.lit b{color:#3a2408}",
+    "@keyframes cz-vlit{from{box-shadow:0 0 0 0 #ffe08a}to{box-shadow:0 0 12px 2px #ffd54a}}",
+    ".cz-vph{display:flex;justify-content:center;gap:6px;padding-bottom:32px}",
+    ".cz-vps{position:relative;width:56px;height:80px;cursor:pointer;-webkit-tap-highlight-color:transparent;outline:none}",
+    ".cz-vps .cz-c{--cw:56px;--ch:80px;transition:transform .15s}",
+    ".cz-vps.held .cz-c{transform:translateY(-8px)}",
+    ".cz-vps.held .cz-cf{box-shadow:0 0 0 3px #ffe08a,0 0 12px rgba(255,224,138,.8)}",
+    ".cz-held{display:none;position:absolute;left:0;right:0;bottom:-20px;text-align:center;font-style:normal;font-weight:900;font-size:11px;letter-spacing:.12em;color:#3a2408;background:linear-gradient(#f9e08e,#c8962b);border-radius:5px;padding:1px 0}",
+    ".cz-vps.held .cz-held{display:block}",
+    ".cz-dealin{animation:cz-vpin .28s ease-out both}@keyframes cz-vpin{from{transform:translateY(-26px) rotate(-6deg);opacity:0}to{transform:none;opacity:1}}",
+    ".cz-vpbet{text-align:center;font-weight:800;font-size:12px;letter-spacing:.1em;color:#ffe9a0;margin-top:-4px}",
+    // baccarat
+    ".cz-bat{position:relative;background:radial-gradient(120% 100% at 50% 20%,#22995a,#0b4b2a);border:6px solid #5a3218;border-radius:22px;padding:34px 6px 12px;box-shadow:inset 0 0 0 2px #e8c05a88}",
+    ".cz-bashoe{top:6px;right:auto;left:50%;margin-left:-23px;width:46px;height:44px}",
+    ".cz-bacols{display:flex;gap:4px}",
+    ".cz-bacol{flex:1;text-align:center;border:2px solid #e8c05a55;border-radius:12px;padding:6px 2px 8px;background:rgba(0,0,0,.14)}",
+    ".cz-balbl{font-size:12px;font-weight:800;letter-spacing:.08em;color:#d6f0de;text-shadow:0 1px 2px #000;margin-bottom:6px}",
+    ".cz-balbl.win{color:#3a2408;background:linear-gradient(#f9e08e,#c8962b);border-radius:6px;text-shadow:none;animation:cz-vlit .5s ease-in-out 6 alternate}",
+    ".cz-bah{--cw:46px;--ch:64px;display:flex;justify-content:center;align-items:center;min-height:64px}",
+    ".cz-bah .cz-c+.cz-c{margin-left:-12px}",
+    ".cz-bz{display:grid;grid-template-columns:1fr .8fr 1fr;gap:6px;margin:10px 0 4px}",
+    ".cz-bz button{position:relative;min-height:56px;font-weight:800;font-size:15px;color:#fff!important;border:2px solid rgba(255,255,255,.45)!important;padding:4px}",
+    ".cz-bz button small{display:block;font-size:11px;font-weight:700;opacity:.85}",
+    ".cz-bz .bp{background:#1d4f9a!important}.cz-bz .bt{background:#0b7a48!important}.cz-bz .bb{background:#b3141f!important}",
+    ".cz-bz button:disabled{opacity:.6}",
+    ".cz-dot{display:inline-block;width:20px;height:20px;border-radius:50%;color:#fff;font-size:11px;font-weight:800;line-height:20px;text-align:center}",
+    ".cz-dot.p{background:#1d4f9a}.cz-dot.b{background:#b3141f}.cz-dot.t{background:#0b7a48}",
+    // craps
+    ".cz-crt{position:relative;background:radial-gradient(120% 100% at 50% 20%,#22995a,#0b4b2a);border:6px solid #5a3218;border-radius:22px;padding:10px 8px 12px;box-shadow:inset 0 0 0 2px #e8c05a88;overflow:hidden}",
+    ".cz-dice{display:flex;justify-content:center;gap:24px;margin:8px 0 6px;min-height:76px;align-items:center}",
+    ".cz-die{width:68px;height:68px;border-radius:13px;background:linear-gradient(145deg,#e0343e,#a1161f);box-shadow:inset 0 -4px 0 rgba(0,0,0,.25),inset 0 2px 0 rgba(255,255,255,.35),0 5px 9px rgba(0,0,0,.55);display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);padding:10px;gap:1px}",
+    ".cz-die i{border-radius:50%}.cz-die i.on{background:#fff;box-shadow:inset 0 -1px 1px rgba(0,0,0,.25)}",
+    ".cz-die.roll{animation:cz-tumble .42s linear infinite}",
+    "@keyframes cz-tumble{0%{transform:translateY(0) rotate(0)}25%{transform:translateY(-16px) rotate(95deg) scale(1.06)}50%{transform:translateY(0) rotate(185deg)}75%{transform:translateY(-9px) rotate(275deg) scale(1.03)}100%{transform:translateY(0) rotate(360deg)}}",
+    ".cz-crtot{text-align:center;font-weight:900;font-size:18px;color:#ffe08a;min-height:24px;text-shadow:0 2px 0 rgba(0,0,0,.4)}",
+    ".cz-pts{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin:8px 0}",
+    ".cz-pts>div{position:relative;height:48px;display:flex;align-items:center;justify-content:center;border:2px solid rgba(255,255,255,.45);border-radius:7px;color:#fff;font-weight:900;font-size:17px;background:rgba(0,0,0,.2)}",
+    ".cz-pts>div.on{border-color:#ffe08a;box-shadow:0 0 0 2px #ffe08a,0 0 12px rgba(255,224,138,.7)}",
+    ".cz-puck{position:absolute;left:50%;top:50%;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;background:#fff;color:#111;border:3px solid #111;box-shadow:0 3px 6px rgba(0,0,0,.6);font-weight:900;font-size:12px;display:flex;align-items:center;justify-content:center;animation:cz-popin .3s ease-out both}",
+    ".cz-pass{display:flex;align-items:flex-end;justify-content:center;gap:14px;min-height:70px;border:2px solid #f0cf74;border-radius:10px;padding:6px 8px;color:#f0cf74;font-weight:900;letter-spacing:.2em;font-size:13px}",
+    ".cz-pass span{align-self:center}",
+    ".cz-stack.ghost{opacity:.55}",
     ".cz-pot{text-align:center;font-weight:800;font-size:16px;min-height:22px;color:#fff}",
     "@media (prefers-reduced-motion:reduce){.cz *{animation:none!important;transition:none!important}}"
   ].join("\n");
@@ -376,7 +536,8 @@
   }
 
   // ---------- the casino room (lobby) ----------
-  var SPOT_NAMES = { bj: "Blackjack", sl: "Slots", ro: "Roulette", hl: "Higher / Lower" };
+  var SPOT_NAMES = { bj: "Blackjack", sl: "Slots", ro: "Roulette", hl: "Higher / Lower", ba: "Baccarat", vp: "Video Poker", cr: "Craps" };
+  var LOBBY_H = 764;  // lobby drawing height (it is 360 wide)
 
   function lobbySvg(can) {
     var i, k, x, n, s = [];
@@ -388,24 +549,25 @@
         '<text x="' + cx + '" y="' + (y + 13) + '" text-anchor="middle" font-size="11.5" font-weight="800" fill="#3a2408" font-family="inherit">' + name + "</text>" +
         '<text x="' + cx + '" y="' + (y + 25) + '" text-anchor="middle" font-size="9.5" font-weight="700" fill="#5a3b0c" font-family="inherit">min bet ' + MIN_BET + "</text>";
     }
-    s.push('<svg class="cz-roomsvg" viewBox="0 0 360 500" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Root Rush Casino floor">');
+    s.push('<svg class="cz-roomsvg" viewBox="0 0 360 ' + LOBBY_H + '" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Root Rush Casino floor">');
     s.push("<defs>",
       '<pattern id="czl-carpet" width="30" height="30" patternUnits="userSpaceOnUse"><rect width="30" height="30" fill="#8a1426"/><path d="M15 2L28 15 15 28 2 15Z" fill="none" stroke="#d3a950" stroke-opacity=".5" stroke-width="1.1"/><path d="M15 9L21 15 15 21 9 15Z" fill="#650d1b"/><circle cx="0" cy="0" r="2.2" fill="#d3a950" fill-opacity=".45"/><circle cx="30" cy="0" r="2.2" fill="#d3a950" fill-opacity=".45"/><circle cx="0" cy="30" r="2.2" fill="#d3a950" fill-opacity=".45"/><circle cx="30" cy="30" r="2.2" fill="#d3a950" fill-opacity=".45"/></pattern>',
       '<radialGradient id="czl-vig" cx="50%" cy="50%" r="75%"><stop offset="55%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#000" stop-opacity=".55"/></radialGradient>',
       '<radialGradient id="czl-felt" cx="50%" cy="40%" r="70%"><stop offset="0" stop-color="#22995a"/><stop offset="1" stop-color="#0d5a31"/></radialGradient>',
       '<radialGradient id="czl-felt2" cx="50%" cy="40%" r="70%"><stop offset="0" stop-color="#2a93ad"/><stop offset="1" stop-color="#0d4558"/></radialGradient>',
       '<linearGradient id="czl-gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f9e08e"/><stop offset="1" stop-color="#b98a24"/></linearGradient>',
+      '<linearGradient id="czl-blue" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a5fd0"/><stop offset="1" stop-color="#14235a"/></linearGradient>',
       '<linearGradient id="czl-wood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6b3f22"/><stop offset="1" stop-color="#2e170b"/></linearGradient>',
       '<linearGradient id="czl-mach" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e0314a"/><stop offset="1" stop-color="#7a0c1e"/></linearGradient>',
       '<radialGradient id="czl-glow"><stop offset="0" stop-color="#ffe08a" stop-opacity=".9"/><stop offset="1" stop-color="#ffe08a" stop-opacity="0"/></radialGradient>',
       '<filter id="czl-neon" x="-20%" y="-40%" width="140%" height="180%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>',
       wheelDefs(), "</defs>");
     // carpet, wall, trim
-    s.push('<rect width="360" height="500" fill="url(#czl-carpet)"/><rect width="360" height="500" fill="url(#czl-vig)"/>');
+    s.push('<rect width="360" height="' + LOBBY_H + '" fill="url(#czl-carpet)"/><rect width="360" height="' + LOBBY_H + '" fill="url(#czl-vig)"/>');
     s.push('<rect width="360" height="66" fill="url(#czl-wood)"/><rect y="66" width="360" height="3" fill="url(#czl-gold)"/>');
     for (i = 0; i < 9; i++) s.push('<rect x="' + (10 + i * 40) + '" y="10" width="22" height="50" rx="3" fill="#000" fill-opacity=".18"/>');
     s.push('<circle cx="22" cy="40" r="6" fill="#ffe9a0"/><circle cx="22" cy="40" r="16" fill="url(#czl-glow)" opacity=".6"/><circle cx="338" cy="40" r="6" fill="#ffe9a0"/><circle cx="338" cy="40" r="16" fill="url(#czl-glow)" opacity=".6"/>');
-    s.push('<rect x="5" y="5" width="350" height="490" rx="10" fill="none" stroke="url(#czl-gold)" stroke-width="3"/><rect x="10" y="10" width="340" height="480" rx="7" fill="none" stroke="#e8c05a" stroke-opacity=".4" stroke-width="1"/>');
+    s.push('<rect x="5" y="5" width="350" height="' + (LOBBY_H - 10) + '" rx="10" fill="none" stroke="url(#czl-gold)" stroke-width="3"/><rect x="10" y="10" width="340" height="' + (LOBBY_H - 20) + '" rx="7" fill="none" stroke="#e8c05a" stroke-opacity=".4" stroke-width="1"/>');
     // neon sign
     s.push('<g class="cz-neon"><rect x="52" y="9" width="256" height="50" rx="12" fill="#14060a" stroke="#ff5fa2" stroke-width="2" filter="url(#czl-neon)"/>' +
       '<text x="180" y="35" text-anchor="middle" font-size="25" font-weight="900" letter-spacing="2.5" fill="#ff7ab5" stroke="#ffb0d3" stroke-width=".6" filter="url(#czl-neon)" font-family="inherit">ROOT RUSH</text>' +
@@ -469,9 +631,52 @@
     s.push('<rect x="84" y="396" width="20" height="26" rx="3" fill="#a01c34" stroke="#fff" transform="translate(-2 2)"/><rect x="84" y="396" width="20" height="26" rx="3" fill="#a01c34" stroke="#fff"/>');
     s.push('<g transform="translate(150 394)"><rect width="22" height="30" rx="3" fill="#fff"/><text x="11" y="14" font-size="11" font-weight="800" text-anchor="middle" fill="#1d1d1b">K</text><text x="11" y="26" font-size="11" text-anchor="middle" fill="#1d1d1b">♣</text></g>');
     s.push('<g transform="translate(184 394)"><rect width="22" height="30" rx="3" fill="#a01c34" stroke="#fff"/></g>');
-    s.push('<text x="236" y="412" font-size="13" fill="#ffe08a" text-anchor="middle" font-weight="800" font-family="inherit">▲</text><text x="236" y="426" font-size="13" fill="#ffe08a" text-anchor="middle" font-weight="800" font-family="inherit">▼</text><text x="272" y="420" font-size="14" fill="#ffe08a" text-anchor="middle" font-weight="800" font-family="inherit">x11</text>');
+    s.push('<text x="236" y="412" font-size="13" fill="#ffe08a" text-anchor="middle" font-weight="800" font-family="inherit">▲</text><text x="236" y="426" font-size="13" fill="#ffe08a" text-anchor="middle" font-weight="800" font-family="inherit">▼</text><text x="272" y="420" font-size="14" fill="#ffe08a" text-anchor="middle" font-weight="800" font-family="inherit">x50</text>');
     [[100, 446], [180, 450], [260, 446]].forEach(function (p) { s.push('<circle cx="' + p[0] + '" cy="' + p[1] + '" r="7" fill="#3b0a14" stroke="#e8c05a" stroke-width="1.5"/>'); });
     s.push(plaque(180, 460, 150, "HIGHER / LOWER"));
+    s.push("</g>");
+
+    // baccarat (oval table)
+    s.push(spotOpen("ba"));
+    s.push('<ellipse class="cz-glow" cx="180" cy="552" rx="160" ry="56" fill="url(#czl-glow)"/>');
+    s.push('<rect x="30" y="500" width="300" height="134" fill="#000" fill-opacity="0.001"/>');
+    s.push('<rect x="40" y="506" width="280" height="76" rx="38" fill="url(#czl-felt)" stroke="#5a3218" stroke-width="8"/><rect x="48" y="514" width="264" height="60" rx="30" fill="none" stroke="#e8c05a" stroke-opacity=".7"/>');
+    s.push('<text x="100" y="531" text-anchor="middle" font-size="9" font-weight="800" fill="#8fc2ff" letter-spacing="1.2" font-family="inherit">PLAYER</text><text x="260" y="531" text-anchor="middle" font-size="9" font-weight="800" fill="#ff9aa5" letter-spacing="1.2" font-family="inherit">BANKER</text>');
+    s.push('<circle cx="180" cy="544" r="15" fill="none" stroke="#f0cf74" stroke-width="1.2"/><text x="180" y="548" text-anchor="middle" font-size="10" font-weight="900" fill="#f0cf74" font-family="inherit">TIE</text>');
+    s.push('<g transform="translate(86 538)"><rect x="-17" y="0" width="16" height="22" rx="2" fill="#fff" transform="rotate(-6)"/><rect x="1" y="0" width="16" height="22" rx="2" fill="#fff" transform="rotate(6)"/><text x="9" y="15" font-size="10" fill="#c0392b" text-anchor="middle" transform="rotate(6)">♥</text><text x="-9" y="14" font-size="10" text-anchor="middle" transform="rotate(-6)">♠</text></g>');
+    s.push('<g transform="translate(246 538)"><rect x="-17" y="0" width="16" height="22" rx="2" fill="#fff" transform="rotate(-6)"/><rect x="1" y="0" width="16" height="22" rx="2" fill="#fff" transform="rotate(6)"/><text x="9" y="15" font-size="10" text-anchor="middle" transform="rotate(6)">♣</text><text x="-9" y="14" font-size="10" fill="#c0392b" text-anchor="middle" transform="rotate(-6)">♦</text></g>');
+    s.push('<circle cx="314" cy="548" r="5" fill="#1c1c1c" stroke="#fff"/><circle cx="314" cy="544" r="5" fill="#c0392b" stroke="#fff"/>');
+    s.push(plaque(180, 594, 150, "BACCARAT"));
+    s.push("</g>");
+
+    // video poker machine
+    s.push(spotOpen("vp"));
+    s.push('<ellipse class="cz-glow" cx="98" cy="690" rx="90" ry="62" fill="url(#czl-glow)"/>');
+    s.push('<rect x="14" y="638" width="168" height="120" fill="#000" fill-opacity="0.001"/>');
+    s.push('<rect x="24" y="644" width="148" height="72" rx="10" fill="url(#czl-blue)" stroke="#e8c05a" stroke-width="2"/>');
+    s.push('<text x="98" y="657" text-anchor="middle" font-size="8.5" font-weight="900" fill="#ffd96a" letter-spacing="1.4" font-family="inherit">JACKS OR BETTER</text>');
+    s.push('<rect x="32" y="662" width="132" height="40" rx="4" fill="#0a1233" stroke="#e8c05a" stroke-opacity=".6"/>');
+    [["A", "♠", 0], ["K", "♥", 1], ["Q", "♥", 2], ["J", "♠", 3], ["10", "♥", 4]].forEach(function (c) {
+      var cx = 36 + c[2] * 25.6, red = c[1] === "♥";
+      s.push('<rect x="' + cx + '" y="666" width="22" height="32" rx="2" fill="#fff"/><text x="' + (cx + 11) + '" y="679" text-anchor="middle" font-size="10" font-weight="800" fill="' + (red ? "#c0392b" : "#1d1d1b") + '" font-family="inherit">' + c[0] + '</text><text x="' + (cx + 11) + '" y="692" text-anchor="middle" font-size="11" fill="' + (red ? "#c0392b" : "#1d1d1b") + '">' + c[1] + "</text>");
+    });
+    [48, 73, 98, 123, 148].forEach(function (bx) { s.push('<circle cx="' + bx + '" cy="709" r="3.6" fill="#f0b72c" stroke="#7a5513"/>'); });
+    s.push(plaque(98, 726, 124, "VIDEO POKER"));
+    s.push("</g>");
+
+    // craps
+    s.push(spotOpen("cr"));
+    s.push('<ellipse class="cz-glow" cx="264" cy="690" rx="90" ry="62" fill="url(#czl-glow)"/>');
+    s.push('<rect x="184" y="638" width="168" height="120" fill="#000" fill-opacity="0.001"/>');
+    s.push('<rect x="190" y="646" width="148" height="70" rx="10" fill="url(#czl-felt)" stroke="#5a3218" stroke-width="7"/><rect x="196" y="652" width="136" height="58" rx="6" fill="none" stroke="#e8c05a" stroke-opacity=".7"/>');
+    [[220, 664, -12, 3], [252, 670, 14, 4]].forEach(function (d) {
+      var dx = d[0], dy = d[1], pips = d[3] === 3 ? [[5, 5], [11, 11], [17, 17]] : [[6, 6], [16, 6], [6, 16], [16, 16]];
+      s.push('<g transform="translate(' + dx + " " + dy + ") rotate(" + d[2] + ')"><rect width="22" height="22" rx="4" fill="#d02a35" stroke="#7a0a12"/>' +
+        pips.map(function (p) { return '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="2.1" fill="#fff"/>'; }).join("") + "</g>");
+    });
+    s.push('<circle cx="312" cy="672" r="9" fill="#fff" stroke="#111" stroke-width="2"/><text x="312" y="675.5" text-anchor="middle" font-size="8.5" font-weight="900" fill="#111" font-family="inherit">ON</text>');
+    s.push('<text x="264" y="703" text-anchor="middle" font-size="8" font-weight="900" fill="#f0cf74" letter-spacing="2" font-family="inherit">PASS LINE</text>');
+    s.push(plaque(264, 726, 124, "CRAPS"));
     s.push("</g>");
 
     // decor: plants, sparkles, drifting chips
@@ -508,7 +713,10 @@
     var bj = { phase: "bet", deck: [], p: [], d: [], bet: 0, reveal: false, msg: "", win: null, visP: [], visD: [], anim: false };
     var sl = { phase: "bet", reels: [SLOT_SYMBOLS[0].sym, SLOT_SYMBOLS[1].sym, SLOT_SYMBOLS[2].sym], top: ["🍋", "🍒", "🔔"], bot: ["🔔", "🍋", "🍒"], stopped: [true, true, true], bet: 0, msg: "", win: null, lv: 0 };
     var ro = { phase: "bet", sel: null, n: null, bet: 0, rot: 0, brot: 0, msg: "", win: null, hist: [] };
-    var hl = { phase: "bet", deck: [], cur: null, streak: 0, bet: 0, msg: "", win: null };
+    var hl = { phase: "bet", cur: null, streak: 0, mult: 1, bet: 0, msg: "", win: null };
+    var vp = { phase: "bet", deck: [], hand: [], held: [false, false, false, false, false], bet: 0, rank: null, msg: "", win: null };
+    var ba = { phase: "bet", on: "player", betOn: "player", bet: 0, res: null, msg: "", win: null, hist: [], visP: [], visB: [] };
+    var cr = { phase: "bet", point: null, show: null, bet: 0, d: [4, 3], msg: "", win: null };
 
     el.innerHTML = '<div class="cz"><div class="cz-head"><div id="cz-left"></div><div class="cz-plaque" id="cz-coins"></div></div><div class="cz-stage" id="cz-stage"></div></div>';
     var rootEl = el.firstChild;
@@ -522,7 +730,10 @@
       return (view === "bj" && bj.phase !== "bet" && bj.phase !== "done") ||
         (view === "sl" && sl.phase === "spin") ||
         (view === "ro" && ro.phase === "spin") ||
-        (view === "hl" && (hl.phase === "play" || hl.phase === "reveal"));
+        (view === "hl" && (hl.phase === "play" || hl.phase === "reveal")) ||
+        (view === "vp" && (vp.phase === "dealing" || vp.phase === "hold" || vp.phase === "drawing")) ||
+        (view === "ba" && ba.phase === "deal") ||
+        (view === "cr" && (cr.phase === "roll" || cr.phase === "point"));
     }
     function header() {
       leftEl.innerHTML = view === "lobby" ? '<div class="cz-title">🎰 Casino floor</div>' :
@@ -630,10 +841,10 @@
       setHtml("#bj-ctl", h);
     }
     // slide a card from the shoe to its spot; face-up cards flip once they land
-    function dealTo(handEl, c, hole, delay, onFlip) {
+    function dealTo(handEl, c, hole, delay, onFlip, shoeSel) {
       var n = cardNode(c, hole);
       handEl.appendChild(n);
-      var shoe = $("#bj-shoe");
+      var shoe = $(shoeSel || "#bj-shoe");
       if (shoe) {
         var a = n.getBoundingClientRect(), s = shoe.getBoundingClientRect();
         n.style.setProperty("--dx", (s.left + s.width / 2 - (a.left + a.width / 2)) + "px");
@@ -933,14 +1144,14 @@
     }
 
     // ===== higher / lower =====
-    function hlPot() { return Math.floor(hl.bet * HILO_MULT[hl.streak]); }
+    function hlPot() { return Math.floor(hl.bet * hl.mult); }
+    function x2(m) { return "×" + m.toFixed(2); }
     function hlSkel() {
-      var lad = HILO_MULT.map(function (m, i) { return '<span style="height:' + (26 + i * 8) + 'px;transition-delay:' + (i * 60) + 'ms">×' + m + "</span>"; }).join("");
       return '<div class="cz-game"><div class="cz-hlt"><div class="cz-hlplate">HIGHER · LOWER</div><div class="cz-hlrow">' +
         '<div class="cz-slot"><div class="cz-pile"><i></i><i></i><i></i></div><small>DECK</small></div>' +
         '<div class="cz-slot"><div class="cz-cw empty" id="hl-cur"></div><small>CURRENT</small></div>' +
         '<div class="cz-slot"><div class="cz-cw" id="hl-next"></div><small>NEXT</small></div></div>' +
-        '<div class="cz-lad" id="hl-lad">' + lad + '</div><div class="cz-pot" id="hl-pot"></div></div>' +
+        '<div class="cz-hlmult" id="hl-mult"></div><div class="cz-pot" id="hl-pot"></div><div class="cz-hlhint" id="hl-hint"></div></div>' +
         '<div id="hl-msg"></div><div id="hl-ctl"></div></div>';
     }
     function hlShowCur(anim) {
@@ -965,49 +1176,46 @@
     function hlRefresh() {
       header();
       if (view !== "hl") return;
-      var lad = $("#hl-lad");
-      if (lad) {
-        for (var i = 0; i < lad.children.length; i++) {
-          var lit = hl.phase !== "bet" && !(hl.phase === "done" && hl.win === false) && i <= hl.streak;
-          lad.children[i].classList.toggle("lit", lit);
-          lad.children[i].classList.toggle("now", lit && i === hl.streak && (hl.phase === "play" || hl.phase === "reveal"));
-        }
-      }
-      setHtml("#hl-pot", hl.phase === "play" || hl.phase === "reveal" ? "Pot: " + hlPot() + " coins" : hl.phase === "bet" ? "Guess if the next card is higher or lower. A = 1, J = 11, Q = 12, K = 13" : "");
+      var inPlay = hl.phase === "play" || hl.phase === "reveal";
+      setHtml("#hl-mult", inPlay ? "Pot " + x2(hl.mult) : "");
+      setHtml("#hl-pot", inPlay ? hlPot() + " coins" : "");
+      setHtml("#hl-hint", hl.phase === "done" ? "" : "Same rank loses · A = 1, J = 11, Q = 12, K = 13");
       setHtml("#hl-msg", msgBox(hl.msg, hl.win));
       var h = "";
-      if (hl.phase === "play" || hl.phase === "reveal") {
-        var dis = hl.phase === "reveal" ? " disabled" : "", r = hl.cur.r;
-        h = '<div class="cz-row"><button class="cz-stand" data-a="hl-higher"' + (r === 13 || dis ? " disabled" : "") + '>▲ Higher</button><button class="cz-dbl" data-a="hl-lower"' + (r === 1 || dis ? " disabled" : "") + ">▼ Lower</button></div>";
+      if (inPlay) {
+        var dis = hl.phase === "reveal" ? " disabled" : "", o = hiloOdds(hl.cur);
+        h = '<div class="cz-row"><button class="cz-stand cz-hlbtn" data-a="hl-higher"' + (!o.higher || dis ? " disabled" : "") + '>▲ Higher<small>' + (o.higher ? x2(o.higher) : "impossible") + '</small></button>' +
+          '<button class="cz-dbl cz-hlbtn" data-a="hl-lower"' + (!o.lower || dis ? " disabled" : "") + ">▼ Lower<small>" + (o.lower ? x2(o.lower) : "impossible") + "</small></button></div>";
         h += '<button class="cz-go" style="margin-top:8px" data-a="hl-cash"' + (hl.streak < 1 || dis ? " disabled" : "") + ">Cash out " + (hl.streak < 1 ? "" : "(" + hlPot() + ")") + "</button>";
       } else {
         h = canBet() ? betPicker() + '<button class="cz-go" data-a="hl-start"' + goDis() + '>' + (hl.phase === "done" ? "Play again" : "Start") + " (" + curBet() + ")</button>" : broke();
       }
       setHtml("#hl-ctl", h);
     }
-    function hlNext() { if (hl.deck.length < 2) hl.deck = makeDeck(); return hl.deck.pop(); }
     function hlStart() {
       var b = takeBet("higher/lower");
       if (!b) return hlRefresh();
-      hl.bet = b; hl.deck = makeDeck(); hl.streak = 0; hl.cur = hlNext(); hl.phase = "play"; hl.msg = ""; hl.win = null;
+      hl.bet = b; hl.streak = 0; hl.mult = 1; hl.cur = hiloDraw(); hl.phase = "play"; hl.msg = ""; hl.win = null;
       updCoins(); hlShowCur(true); hlRefresh(); snd("click");
     }
     function hlGuess(guess) {
       if (hl.phase !== "play") return;
-      var nx = hlNext(), res = hiloResult(hl.cur, nx, guess);
+      var m = hiloOdds(hl.cur)[guess];
+      if (!m) return;
+      var nx = hiloDraw(), res = hiloResult(hl.cur, nx, guess);
       snd("click");
       hl.phase = "reveal"; hlRefresh();
       var slot = $("#hl-next"), card = slot && slot.firstChild;
       if (card) { card.querySelector(".cz-cf").innerHTML = faceHtml(nx) + hiloVal(nx); if (isRed(nx.s)) card.classList.add("red"); card.classList.remove("noanim"); void card.offsetWidth; card.classList.add("up"); }
       later(function () {
         hl.phase = "play";
-        if (res === "push") { hl.cur = nx; hl.msg = "Same rank: push. Drawing again."; hl.win = null; }
-        else if (res === "lose") {
-          hl.cur = nx; hl.phase = "done"; hl.msg = "Wrong! It was " + hiloName(nx) + ". The pot is gone: you lose " + hl.bet + " coins.";
+        if (res === "lose") {
+          var tie = nx.r === hl.cur.r;
+          hl.cur = nx; hl.phase = "done"; hl.msg = (tie ? "Same rank, house wins! It was " : "Wrong! It was ") + hiloName(nx) + ". The pot is gone: you lose " + hl.bet + " coins.";
           hl.win = false; snd("lose");
         } else {
-          hl.streak++; hl.cur = nx; hl.win = true;
-          if (hl.streak >= HILO_MULT.length - 1) { hlShowCur(true); return hlCash("Top of the ladder! "); }
+          hl.streak++; hl.cur = nx; hl.win = true; hl.mult = hl.mult * m;
+          if (hl.mult >= HILO_MAX_MULT) { hl.mult = HILO_MAX_MULT; hlShowCur(true); return hlCash("Max pot reached! "); }
           hl.msg = "Right! Pot is now " + hlPot() + " coins.";
         }
         hlShowCur(true); hlRefresh();
@@ -1017,17 +1225,253 @@
       if (hl.phase !== "play" || hl.streak < 1) return;
       var back = hlPot();
       pay(back, "higher/lower");
-      hl.phase = "done"; hl.win = true;
-      hl.msg = (prefix || "") + "Cashed out " + back + " coins (+" + (back - hl.bet) + ").";
+      hl.phase = "done"; hl.win = back >= hl.bet;
+      hl.msg = (prefix || "") + "Cashed out " + back + " coins (" + (back >= hl.bet ? "+" : "") + (back - hl.bet) + ").";
       settleFeel(hl.bet, back, "Higher/Lower");
       updCoins(); hlRefresh();
+    }
+
+    // ===== video poker =====
+    function vpSkel() {
+      var slots = "", pay = "", i;
+      for (i = 0; i < 5; i++) slots += '<div class="cz-vps" id="vp-s' + i + '" data-a="vp-hold" data-v="' + i + '" role="button" tabindex="0" aria-label="Card ' + (i + 1) + ', tap to hold"><div id="vp-c' + i + '"></div><em class="cz-held">HELD</em></div>';
+      VP_PAYTABLE.forEach(function (r, k) { pay += '<div data-k="' + k + '"><span>' + r[0] + "</span><b>" + r[1] + "</b></div>"; });
+      return '<div class="cz-game"><div class="cz-vpm"><div class="cz-vpt">★ JACKS OR BETTER ★</div><div class="cz-vpp" id="vp-pay">' + pay + "</div>" +
+        '<div class="cz-vph">' + slots + '</div><div class="cz-vpbet" id="vp-bet"></div></div><div id="vp-msg"></div><div id="vp-ctl"></div></div>';
+    }
+    function vpPut(i, c, faceUp, anim, flipDelay) {
+      var box = $("#vp-c" + i);
+      if (!box) return;
+      box.innerHTML = "";
+      var n = cardNode(c, false);
+      if (!anim) n.className += " noanim" + (faceUp ? " up" : "");
+      else {
+        n.classList.add("cz-dealin");
+        n.style.animationDelay = flipDelay + "ms";
+        later(function () { var b2 = $("#vp-c" + i), cn = b2 && b2.firstChild; if (cn) cn.classList.add("up"); snd("click"); }, ms(flipDelay + 300));
+      }
+      box.appendChild(n);
+    }
+    function vpRestore() {
+      for (var i = 0; i < vp.hand.length; i++) vpPut(i, vp.hand[i], true, false);
+      if (!vp.hand.length) for (var k = 0; k < 5; k++) { var bx = $("#vp-c" + k); if (bx) bx.innerHTML = '<div class="cz-c noanim"><div class="cz-ci"><div class="cz-cb"></div></div></div>'; }
+      vpRefresh();
+    }
+    function vpRefresh() {
+      header();
+      if (view !== "vp") return;
+      var holding = vp.phase === "hold" || vp.phase === "drawing", i;
+      for (i = 0; i < 5; i++) { var s = $("#vp-s" + i); if (s) s.classList.toggle("held", holding && !!vp.held[i]); }
+      var rows = $("#vp-pay") ? $("#vp-pay").children : [];
+      for (i = 0; i < rows.length; i++) rows[i].classList.toggle("lit", vp.phase === "done" && !!vp.rank && vp.rank.mult > 0 && VP_PAYTABLE[i][0] === vp.rank.name);
+      var shown = vp.phase === "bet" || vp.phase === "done" ? (canBet() ? curBet() : 0) : vp.bet;
+      setHtml("#vp-bet", shown ? "BET " + shown : "");
+      setHtml("#vp-msg", msgBox(vp.phase === "hold" ? "Tap the cards you want to HOLD, then press Draw." : vp.msg, vp.phase === "hold" ? null : vp.win));
+      var h;
+      if (vp.phase === "bet" || vp.phase === "done") h = canBet() ? betPicker() + '<button class="cz-go" data-a="vp-deal"' + goDis() + '>' + (vp.phase === "done" ? "Deal again" : "Deal") + " (" + curBet() + ")</button>" : broke();
+      else h = '<button class="cz-go" data-a="vp-draw"' + (vp.phase === "hold" ? "" : " disabled") + ">" + (vp.phase === "hold" ? "Draw" : "…") + "</button>";
+      setHtml("#vp-ctl", h);
+    }
+    function vpDeal() {
+      if (vp.phase !== "bet" && vp.phase !== "done") return;
+      var b = takeBet("video poker");
+      if (!b) return vpRefresh();
+      vp.bet = b; vp.deck = makeDeck(); vp.hand = []; vp.held = [false, false, false, false, false]; vp.rank = null; vp.msg = ""; vp.win = null;
+      for (var i = 0; i < 5; i++) vp.hand.push(vp.deck.pop());
+      vp.phase = "dealing"; updCoins();
+      for (i = 0; i < 5; i++) vpPut(i, vp.hand[i], false, true, i * VP_STEP_MS);
+      vpRefresh();
+      later(function () { vp.phase = "hold"; vpRefresh(); }, ms(5 * VP_STEP_MS + 400));
+    }
+    function vpToggle(i) {
+      if (vp.phase !== "hold" || !(i >= 0 && i < 5)) return;
+      vp.held[i] = !vp.held[i]; snd("click"); vpRefresh();
+    }
+    function vpDraw() {
+      if (vp.phase !== "hold") return;
+      vp.phase = "drawing"; snd("click");
+      var k = 0, i;
+      for (i = 0; i < 5; i++) {
+        if (vp.held[i]) continue;
+        vp.hand[i] = vp.deck.pop();
+        vpPut(i, vp.hand[i], false, true, k * VP_STEP_MS); k++;
+      }
+      vpRefresh();
+      later(function () {
+        vp.rank = videoPokerRank(vp.hand);
+        var back = videoPokerPayout(vp.hand, vp.bet);
+        pay(back, "video poker");
+        if (back > 0) { vp.msg = (vp.rank.mult >= 4 ? "🎉 " : "") + vp.rank.name + "! " + (back > vp.bet ? "You win " + (back - vp.bet) + " coins!" : "Your bet comes back."); vp.win = back > vp.bet ? true : null; }
+        else { vp.msg = "No win. You lose " + vp.bet + " coins."; vp.win = false; }
+        settleFeel(vp.bet, back, "Video Poker");
+        vp.phase = "done"; updCoins(); vpRefresh();
+      }, ms(k * VP_STEP_MS + 450));
+    }
+
+    // ===== baccarat =====
+    function baSkel() {
+      return '<div class="cz-game"><div class="cz-bat"><div class="cz-shoe cz-bashoe" id="ba-shoe"><i></i><i></i><i></i></div>' +
+        '<div class="cz-bacols"><div class="cz-bacol"><div class="cz-balbl" id="ba-pl">PLAYER</div><div class="cz-bah" id="ba-p"></div></div>' +
+        '<div class="cz-bacol"><div class="cz-balbl" id="ba-bl">BANKER</div><div class="cz-bah" id="ba-b"></div></div></div></div>' +
+        '<div class="cz-board" id="ba-board" style="margin-top:8px"></div><div id="ba-msg"></div><div id="ba-ctl"></div></div>';
+    }
+    function baRestore() {
+      var ph = $("#ba-p"), bh = $("#ba-b");
+      ba.visP = []; ba.visB = [];
+      if (ba.res && ba.phase === "done") {
+        ba.res.player.forEach(function (c) { var n = cardNode(c, false); n.className += " noanim up"; ph.appendChild(n); ba.visP.push(c); });
+        ba.res.banker.forEach(function (c) { var n = cardNode(c, false); n.className += " noanim up"; bh.appendChild(n); ba.visB.push(c); });
+      }
+      baRefresh();
+    }
+    function baLabels() {
+      var pl = $("#ba-pl"), bl = $("#ba-bl");
+      if (pl) pl.textContent = "PLAYER" + (ba.visP.length ? " · " + baccaratValue(ba.visP) : "");
+      if (bl) bl.textContent = "BANKER" + (ba.visB.length ? " · " + baccaratValue(ba.visB) : "");
+    }
+    function baRefresh() {
+      header();
+      if (view !== "ba") return;
+      baLabels();
+      var pl = $("#ba-pl"), bl = $("#ba-bl"), done = ba.phase === "done" && ba.res;
+      if (pl) pl.classList.toggle("win", !!done && ba.res.winner === "player");
+      if (bl) bl.classList.toggle("win", !!done && ba.res.winner === "banker");
+      var board = ba.phase === "deal" ? "🃏 No more bets…" : "Place your bet";
+      if (ba.hist.length) {
+        board += ' <span style="opacity:.7;margin-left:6px">last</span> ';
+        ba.hist.slice(0, 10).forEach(function (w) { board += '<span class="cz-dot ' + w[0] + '">' + w[0].toUpperCase() + "</span>"; });
+      }
+      setHtml("#ba-board", board);
+      setHtml("#ba-msg", msgBox(ba.msg, ba.win));
+      var h = "";
+      if (ba.phase === "deal") h = '<div class="cz-msg">Dealing…</div>';
+      else {
+        var bv = curBet(), plc = bv >= MIN_BET ? '<i class="cz-plc ' + denomClass(bv) + '">' + bv + "</i>" : "";
+        h = '<div class="cz-bz">' +
+          '<button class="bp' + (ba.on === "player" ? " cz-on" : "") + '" data-a="ba-on" data-v="player">Player<small>pays 1 : 1</small>' + (ba.on === "player" ? plc : "") + "</button>" +
+          '<button class="bt' + (ba.on === "tie" ? " cz-on" : "") + '" data-a="ba-on" data-v="tie">Tie<small>pays 8 : 1</small>' + (ba.on === "tie" ? plc : "") + "</button>" +
+          '<button class="bb' + (ba.on === "banker" ? " cz-on" : "") + '" data-a="ba-on" data-v="banker">Banker<small>pays 0.95 : 1</small>' + (ba.on === "banker" ? plc : "") + "</button></div>";
+        h += canBet() ? betPicker() + '<button class="cz-go" data-a="ba-deal"' + goDis() + '>Deal on ' + ba.on[0].toUpperCase() + ba.on.slice(1) + " (" + curBet() + ")</button>" : broke();
+        h += '<div class="cz-total" style="text-align:center;margin-top:8px">Closest to 9 wins. A = 1, 10/J/Q/K = 0. Player or Banker bets push on a Tie.</div>';
+      }
+      setHtml("#ba-ctl", h);
+    }
+    function baDeal() {
+      if (ba.phase === "deal") return;
+      var b = takeBet("baccarat");
+      if (!b) return baRefresh();
+      ba.bet = b; ba.betOn = ba.on; ba.res = baccaratPlay(); ba.msg = ""; ba.win = null; ba.phase = "deal"; ba.visP = []; ba.visB = [];
+      setHtml("#ba-p", ""); setHtml("#ba-b", "");
+      updCoins(); baRefresh();
+      var res = ba.res;
+      res.deals.forEach(function (d, i) {
+        later(function () {
+          var hand = $(d.who === "p" ? "#ba-p" : "#ba-b");
+          if (!hand) return;
+          dealTo(hand, d.card, false, 0, function () { (d.who === "p" ? ba.visP : ba.visB).push(d.card); baLabels(); }, "#ba-shoe");
+        }, ms(i * BACC_STEP_MS));
+      });
+      later(baSettle, ms(res.deals.length * BACC_STEP_MS + SLIDE_MS + 450));
+    }
+    function baSettle() {
+      var r = ba.res, back = baccaratPayout(ba.betOn, r.winner, ba.bet);
+      pay(back, "baccarat");
+      var who = r.winner === "tie" ? "Tie " + r.pTotal + " - " + r.bTotal : (r.winner === "player" ? "Player " : "Banker ") + "wins " + (r.winner === "player" ? r.pTotal + " to " + r.bTotal : r.bTotal + " to " + r.pTotal);
+      var pre = (r.natural ? "Natural! " : "") + who + ". ";
+      if (back > ba.bet) { ba.msg = pre + "You win " + (back - ba.bet) + " coins!"; ba.win = true; }
+      else if (back === ba.bet) { ba.msg = pre + "Push: your " + ba.bet + " coins come back."; ba.win = null; }
+      else { ba.msg = pre + "You lose " + ba.bet + " coins."; ba.win = false; }
+      settleFeel(ba.bet, back, "Baccarat");
+      ba.hist.unshift(r.winner); if (ba.hist.length > 12) ba.hist.length = 12;
+      ba.phase = "done"; updCoins(); baRefresh();
+    }
+
+    // ===== craps (pass line) =====
+    var PIPS = { 1: [5], 2: [1, 9], 3: [1, 5, 9], 4: [1, 3, 7, 9], 5: [1, 3, 5, 7, 9], 6: [1, 3, 4, 6, 7, 9] };
+    function dieFace(n) {
+      var h = "";
+      for (var i = 1; i <= 9; i++) h += "<i" + (PIPS[n].indexOf(i) >= 0 ? ' class="on"' : "") + "></i>";
+      return h;
+    }
+    function crSkel() {
+      var pts = "";
+      [4, 5, 6, 8, 9, 10].forEach(function (p) { pts += '<div data-p="' + p + '">' + p + "</div>"; });
+      return '<div class="cz-game"><div class="cz-crt"><div class="cz-balbl" style="text-align:center">CRAPS · PASS LINE</div>' +
+        '<div class="cz-dice"><div class="cz-die" id="cr-d0" aria-hidden="true">' + dieFace(cr.d[0]) + '</div><div class="cz-die" id="cr-d1" aria-hidden="true">' + dieFace(cr.d[1]) + "</div></div>" +
+        '<div class="cz-crtot" id="cr-tot"></div><div class="cz-pts" id="cr-pts">' + pts + '</div><div class="cz-pass" id="cr-pass"></div></div>' +
+        '<div id="cr-msg"></div><div id="cr-ctl"></div></div>';
+    }
+    function crRestore() { crRefresh(); }
+    function crRefresh() {
+      header();
+      if (view !== "cr") return;
+      var pts = $("#cr-pts"), i;
+      if (pts) for (i = 0; i < pts.children.length; i++) {
+        var c = pts.children[i], on = cr.show === +c.getAttribute("data-p");
+        c.classList.toggle("on", on);
+        var pk = c.querySelector(".cz-puck");
+        if (on && !pk) c.insertAdjacentHTML("beforeend", '<div class="cz-puck">ON</div>');
+        if (!on && pk) pk.remove();
+      }
+      setHtml("#cr-tot", cr.phase === "bet" ? "Come-out roll" : cr.phase === "roll" ? "Rolling…" : "Rolled " + (cr.d[0] + cr.d[1]));
+      var show = cr.phase === "bet" || cr.phase === "done" ? (canBet() ? curBet() : 0) : cr.bet;
+      setHtml("#cr-pass", (show ? stackHtml(show, cr.phase === "bet" || cr.phase === "done" ? "ghost" : "") : "") + "<span>PASS LINE · pays 1 : 1</span>");
+      setHtml("#cr-msg", msgBox(cr.msg, cr.win));
+      var h;
+      if (cr.phase === "bet" || cr.phase === "done") h = canBet() ? betPicker() + '<button class="cz-go" data-a="cr-roll"' + goDis() + '>Roll the dice (' + curBet() + ")</button>" : broke();
+      else h = '<button class="cz-go" data-a="cr-roll"' + (cr.phase === "point" ? "" : " disabled") + ">" + (cr.phase === "point" ? "Roll again (no new bet)" : "Rolling…") + "</button>";
+      if (cr.phase === "bet" || cr.phase === "done") h += '<div class="cz-total" style="text-align:center;margin-top:8px">Come-out: 7 or 11 wins, 2, 3 or 12 loses. Any other number is the point: roll it again before a 7.</div>';
+      setHtml("#cr-ctl", h);
+    }
+    function crSetDice(a, b) {
+      var d0 = $("#cr-d0"), d1 = $("#cr-d1");
+      if (d0) d0.innerHTML = dieFace(a);
+      if (d1) d1.innerHTML = dieFace(b);
+    }
+    function crRoll() {
+      var fresh = cr.phase === "bet" || cr.phase === "done";
+      if (!fresh && cr.phase !== "point") return;
+      if (fresh) {
+        var b = takeBet("craps");
+        if (!b) return crRefresh();
+        cr.bet = b; cr.point = null; cr.show = null; cr.msg = ""; cr.win = null; updCoins();
+      }
+      var a1 = 1 + Math.floor(Math.random() * 6), a2 = 1 + Math.floor(Math.random() * 6);
+      cr.phase = "roll"; cr.msg = fresh ? "" : cr.msg; snd("spin");
+      crRefresh();
+      var d0 = $("#cr-d0"), d1 = $("#cr-d1"), t;
+      if (d0) d0.classList.add("roll");
+      if (d1) d1.classList.add("roll");
+      for (t = 1; t <= DICE_TICKS; t++) later(function () { crSetDice(1 + Math.floor(Math.random() * 6), 1 + Math.floor(Math.random() * 6)); }, ms(t * DICE_TICK_MS));
+      later(function () {
+        var e0 = $("#cr-d0"), e1 = $("#cr-d1");
+        if (e0) e0.classList.remove("roll");
+        if (e1) e1.classList.remove("roll");
+        cr.d = [a1, a2]; crSetDice(a1, a2); snd("chip");
+        crResolve(a1, a2);
+      }, ms((DICE_TICKS + 1) * DICE_TICK_MS));
+    }
+    function crResolve(a1, a2) {
+      var st = crapsStep({ point: cr.point }, a1, a2), tot = a1 + a2;
+      cr.point = st.state.point;
+      if (st.result === "point") { cr.show = tot; cr.phase = "point"; cr.msg = "Point is " + tot + ". Roll " + tot + " again before a 7!"; cr.win = null; }
+      else if (st.result === "roll") { cr.phase = "point"; cr.msg = "Rolled " + tot + ". Keep going: you need " + cr.show + ", a 7 loses."; cr.win = null; }
+      else {
+        var back = crapsPayout(st.result, cr.bet);
+        pay(back, "craps");
+        if (st.result === "win") { cr.msg = (cr.show ? "Made the point " + cr.show + "! " : "Natural " + tot + "! ") + "You win " + cr.bet + " coins."; cr.win = true; }
+        else { cr.msg = (cr.show ? "Seven out! " : tot + " is craps. ") + "You lose " + cr.bet + " coins."; cr.win = false; }
+        settleFeel(cr.bet, back, "Craps");
+        cr.phase = "done"; updCoins();
+      }
+      crRefresh();
     }
 
     // ===== render + events =====
     function refresh() {
       if (!live()) return;
       updCoins();
-      if (view === "bj") bjRefresh(); else if (view === "sl") slRefresh(); else if (view === "ro") roRefresh(); else if (view === "hl") hlRefresh(); else header();
+      if (view === "bj") bjRefresh(); else if (view === "sl") slRefresh(); else if (view === "ro") roRefresh(); else if (view === "hl") hlRefresh(); else if (view === "vp") vpRefresh(); else if (view === "ba") baRefresh(); else if (view === "cr") crRefresh(); else header();
     }
     function render() {
       header(); updCoins();
@@ -1035,6 +1479,9 @@
       else if (view === "bj") { stage.innerHTML = bjSkel(); bjRestore(); }
       else if (view === "sl") { stage.innerHTML = slSkel(); slRestore(); }
       else if (view === "ro") { stage.innerHTML = roSkel(); roRefresh(); }
+      else if (view === "vp") { stage.innerHTML = vpSkel(); vpRestore(); }
+      else if (view === "ba") { stage.innerHTML = baSkel(); baRestore(); }
+      else if (view === "cr") { stage.innerHTML = crSkel(); crRestore(); }
       else { stage.innerHTML = hlSkel(); hlRestore(); }
     }
     function go(v, from) {
@@ -1077,6 +1524,12 @@
         case "hl-higher": return hlGuess("higher");
         case "hl-lower": return hlGuess("lower");
         case "hl-cash": return hlCash();
+        case "vp-deal": return vpDeal();
+        case "vp-draw": return vpDraw();
+        case "vp-hold": return vpToggle(+v);
+        case "ba-on": if (ba.phase === "deal") return; ba.on = v; snd("click"); return baRefresh();
+        case "ba-deal": return baDeal();
+        case "cr-roll": return crRoll();
       }
     }
     rootEl.addEventListener("click", function (e) {
@@ -1088,7 +1541,7 @@
       if (e.key !== "Enter" && e.key !== " ") return;
       var lv = e.target.closest && e.target.closest("#sl-lv");
       if (lv) { e.preventDefault(); return slSpin(false); }
-      var t = e.target.closest ? e.target.closest("g[data-a]") : null;
+      var t = e.target.closest ? e.target.closest("g[data-a],.cz-vps[data-a]") : null;
       if (t && live()) { e.preventDefault(); act(t); }
     });
     // slot lever: tap it, or drag it down

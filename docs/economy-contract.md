@@ -30,7 +30,7 @@ Power-ups were removed from the game (Nov 14). Coins are spent only on casino be
 ## `globalThis.RRCasino`
 
 ```
-RRCasino.mount(el, api)   // render the casino ROOM (lobby) into el; tapping a table/machine opens that game. Called each time the screen opens.
+RRCasino.mount(el, api)   // render the casino ROOM (lobby) into el; tapping a table/machine opens that game (blackjack, slots, roulette, higher/lower, video poker, baccarat, craps). Called each time the screen opens.
 RRCasino.logic = {
   makeDeck(rng = Math.random)        -> 52 shuffled cards {r: 1..13, s: "♠"|"♥"|"♦"|"♣"}  (r 1 = ace, 11 J, 12 Q, 13 K)
   handValue(cards)                   -> best total: aces count 11 unless that busts, then 1. J/Q/K = 10.
@@ -47,37 +47,22 @@ RRCasino.logic = {
   rouletteColor(n)                   -> "green" for 0, else "red" | "black"
   roulettePayout(bet, n, amount)     -> coins returned. bet = {type: "red"|"black"|"odd"|"even"|"number", value?}
         red/black/odd/even win -> 2*amount (0 always loses these); number hit -> 36*amount; else 0
-  HILO_MULT                          -> [1, 1.5, 2.2, 3.3, 5, 7.5, 11]
-  hiloResult(cur, next, guess)       -> "win" | "lose" | "push" (compare ranks; equal = push). guess "higher"|"lower"
-}
-```
+  HILO_EDGE = 0.92, HILO_MAX_MULT = 50 -> higher/lower tunables
+  hiloDraw(rng)                      -> an independent random card {r: 1..13 uniform, s}; no deck, so the odds are exact
+  hiloOdds(rank | card)              -> {higher, lower}: the pot multiplier a correct guess applies = HILO_EDGE / P(win), with
+                                        P(higher) = (13-a)/13, P(lower) = (a-1)/13. 0 = impossible guess (Higher on K, Lower on A).
+                                        Shown to 2 decimals; the pot is kept unrounded and floored to whole coins when paid.
+  hiloResult(cur, next, guess)       -> "win" | "lose" (same rank LOSES). guess "higher"|"lower"
+        Pot = bet * product of the multipliers; Cash out after >= 1 win; reaching HILO_MAX_MULT cashes out by itself.
+  VP_PAYTABLE                        -> [[name, mult]] Jacks or Better 9/6: Royal 250, Straight Flush 50, Four of a Kind 25, Full House 9,
+                                        Flush 6, Straight 4, Three of a Kind 3, Two Pair 2, Jacks or Better 1
+  videoPokerRank(cards5)             -> {name, mult} ("No win", 0 when nothing). Ace plays low (A-2-3-4-5) and high (10-J-Q-K-A); K-A-2 does not wrap.
+  videoPokerPayout(cards5, bet)      -> coins returned = bet * mult
+  baccaratValue(cards)               -> sum mod 10 (A = 1, 2..9 face value, 10/J/Q/K = 0)
+  baccaratBankerDraws(bTotal, playerThird|null) -> the punto banco banker rule (playerThird = baccarat value of the player's 3rd card, null if player stood)
+  baccaratPlay(deckArray | rng)      -> {player, banker, deals:[{who:"p"|"b",card}], pTotal, bTotal, natural, winner:"player"|"banker"|"tie"};
+                                        cards are popped from the END of a deck array; deal order P, B, P, B, then player 3rd, banker 3rd
+  baccaratPayout(on, winner, amount) -> coins returned: Player 2x, Banker floor(1.95x), Tie 9x; Player/Banker bets push (amount back) on a tie
+  crapsStep(state{point}, d1, d2)    -> {result:"win"|"lose"|"point"|"roll", state:{point}, total}; pass line only
+  crapsPayout(result, bet)           -> 2*bet on "win" (1:1), else 0
 
-Bets: chips 10, 25, 50, 100 stack (each tap adds), Clear, and "All in". Minimum bet 10. Never bet more than `api.coins()`.
-The bet is taken with `api.spend` when the round starts; winnings come back with `api.earn`.
-
-## `globalThis.RRProfile`
-
-```
-RRProfile.CATALOG     -> [{id, slot, name, price, desc}]   slots: "hat","shades","outfit","chain","shoes","ride","place","pet"
-RRProfile.netWorth(ownedIds) -> sum of CATALOG prices of owned ids
-RRProfile.avatarSVG({equipped, size, crop}) -> complete <svg> string (viewBox fixed, width/height = size, default 220)
-RRProfile.mount(el, api)
-```
-
-Catalog (prices are fixed):
-place: small room 150, mansion 20000 · outfit: clean tee 100, varsity jacket 900 · hat: headphones 700 · shades: nerd glasses 150 ·
-chain: dog tag 200 · shoes: slides 120 · ride: skateboard 250 · pet: cat 400, dog 600, tiger 15000 ·
-hat: cap 300, beanie 400, crown 5000 · shades: sunglasses 350, gold shades 1500 ·
-outfit: hoodie 500, drip jacket 1200, suit 2500 · chain: silver chain 800, gold chain 3000, diamond chain 8000 ·
-shoes: sneakers 400, designer kicks 2000 · ride: bike 700, sports car 9000 ·
-place: city view 1000, penthouse 6000, yacht 12000 (default = broke on the road: road scene, ragged tee, worn shoes, free).
-`RRProfile.status(ownedIds)` -> {name, line, level, next, toNext, frac}: Broke 0, Scraping by 100, Getting by 1000, Comfortable 5000, Rich 15000, Rolling in it 35000, Legend 75000 (net worth).
-
-The avatar does NOT change with study progress any more: only cosmetics change him.
-
-## Look and feel
-
-Use the app's CSS variables only: --bg --card --line --ink --mute --good --bad --hot --root --pow --goodbg --badbg.
-Dark mode is the main mode. Phone width 390 px, tap targets >= 44 px, no horizontal scroll.
-Animations smooth and short (200-700 ms), never flashing, and off under prefers-reduced-motion.
-Each file injects its own `<style>` once, with every class prefixed (`cz-` casino, `pf-` profile).
