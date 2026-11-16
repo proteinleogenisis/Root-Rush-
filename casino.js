@@ -586,6 +586,7 @@
   var FULL_TOP_SHARE = 0.45;   // of the extra height on a tall phone, this share goes above the scene (ceiling), the rest below (floor)
   var HERO_Z = 0.3, HERO_X = 25;  // the two featured machines in the left view: distance and how far from the middle
   var AISLE_X = 64;              // the rows of machines further back along the sides
+  var TITLE_SCALE = 0.82, TITLE_BACK = 0.6; // game title size (x the old neon size) and how dark the panel behind it is
   var LOOK = 1;               // which way you're looking: 0 left, 1 straight, 2 right (kept while the app is open)  // lobby drawing height (it is 360 wide)
   // the back of the room (crowd, far machines) is blurred this much and covered by a haze this strong
   var DOF_FAR_BLUR = 3, DOF_HAZE = 0.45;
@@ -614,9 +615,23 @@
     function neon(cx, y, txt, col, size, delay) {
       return '<g class="cz-flk" style="animation-delay:' + delay + 's"><text x="' + cx + '" y="' + y + '" text-anchor="middle" font-size="' + size + '" font-weight="900" letter-spacing="1.2" fill="#fff" stroke="' + col + '" stroke-width="' + r1(size / 7) + '" paint-order="stroke" filter="url(#czl-neon)" font-family="inherit">' + txt + "</text></g>";
     }
-    function plate(cx, y, txt, col, size, delay) {
-      var w = r1(txt.length * size * 0.66 + 18), h = r1(size + 10);
-      return '<rect x="' + r1(cx - w / 2) + '" y="' + r1(y - size - 3) + '" width="' + w + '" height="' + h + '" rx="' + r1(h / 2) + '" fill="#0b0014" fill-opacity=".8" stroke="' + col + '" stroke-opacity=".75" stroke-width="1.3"/>' + neon(cx, y, txt, col, size, delay);
+    // Game titles: quiet and classy, like a real casino's table signs. Champagne serif capitals, wide letter
+    // spacing, gold hairlines with small diamonds, a soft dark backing, and a short underline in the game's color. No glow.
+    function plate(cx, y, txt, col, size) {
+      var fs = r1(size * TITLE_SCALE), tw = txt.length * fs * 0.8, w = r1(tw + 64), h = r1(fs + 16), x0 = r1(cx - w / 2), top = r1(y - fs - 5);
+      var lx1 = r1(cx - tw / 2 - 26), lx2 = r1(cx - tw / 2 - 8), rx1 = r1(cx + tw / 2 + 8), rx2 = r1(cx + tw / 2 + 26), ly = r1(y - fs * 0.36);
+      function dia(x) { return '<path d="M' + x + " " + r1(ly - 2.2) + " L" + r1(x + 2.2) + " " + ly + " L" + x + " " + r1(ly + 2.2) + " L" + r1(x - 2.2) + " " + ly + 'Z" fill="#d9b86a"/>'; }
+      return '<g class="cz-title2"><rect x="' + x0 + '" y="' + top + '" width="' + w + '" height="' + h + '" rx="3" fill="#07030c" fill-opacity="' + TITLE_BACK + '"/>' +
+        '<line x1="' + lx1 + '" y1="' + ly + '" x2="' + lx2 + '" y2="' + ly + '" stroke="#d9b86a" stroke-width=".8"/><line x1="' + rx1 + '" y1="' + ly + '" x2="' + rx2 + '" y2="' + ly + '" stroke="#d9b86a" stroke-width=".8"/>' + dia(lx1) + dia(rx2) +
+        '<text x="' + cx + '" y="' + y + '" text-anchor="middle" font-size="' + fs + '" font-weight="700" letter-spacing="' + r1(fs * 0.16) + '" fill="#f3e6c4" font-family="Cinzel, Georgia, \'Times New Roman\', serif">' + txt + "</text>" +
+        '<rect x="' + r1(cx - 12) + '" y="' + r1(y + 4) + '" width="24" height="1.6" rx=".8" fill="' + col + '"/></g>';
+    }
+    // section heading in the same style, without the backing
+    function heading(cy, txt, sub) {
+      var fs = 20, tw = txt.length * fs * 0.8;
+      return '<text x="180" y="' + cy + '" text-anchor="middle" font-size="' + fs + '" font-weight="700" letter-spacing="' + r1(fs * 0.2) + '" fill="#f3e6c4" font-family="Cinzel, Georgia, \'Times New Roman\', serif">' + txt + "</text>" +
+        '<line x1="' + r1(180 - tw / 2 - 30) + '" y1="' + (cy - 7) + '" x2="' + r1(180 - tw / 2 - 8) + '" y2="' + (cy - 7) + '" stroke="#d9b86a" stroke-width=".8"/><line x1="' + r1(180 + tw / 2 + 8) + '" y1="' + (cy - 7) + '" x2="' + r1(180 + tw / 2 + 30) + '" y2="' + (cy - 7) + '" stroke="#d9b86a" stroke-width=".8"/>' +
+        '<text x="180" y="' + (cy + 18) + '" text-anchor="middle" font-size="8.5" font-weight="600" letter-spacing="4" fill="#d9b86a" opacity=".85" font-family="Cinzel, Georgia, serif">' + sub + "</text>";
     }
     var PP = [["#2b6cb0", "#2a1a10", "#f1c7a0"], ["#c0392b", "#111", "#8d5a3b"], ["#1f8a5b", "#6b3f1f", "#e6b08a"], ["#7a4bc2", "#d9a441", "#f3d2b5"],
       ["#e07b24", "#3a2414", "#c58c62"], ["#d6d6d6", "#1d1d1d", "#6e432a"], ["#e0557e", "#7a2a12", "#f1c7a0"], ["#25303d", "#b9b9b9", "#e8b894"]];
@@ -795,13 +810,13 @@
       };
       var hs = hero(-HERO_X, slot, "#ff2e63", 0, "#ff2e93"), hv = hero(HERO_X, vpm, "#1d4fff", 2, "#00d5ff");
       LBL.push(plate(hs.x, r1(hs.top - 16), "SLOTS", "#ff2e93", 21, 1.1), plate(hv.x, r1(hv.top - 16), "VIDEO POKER", "#00d5ff", 16, 3.3));
-      s.push(neon(180, 70, "MACHINES", "#ffd23f", 22, 2), '<text x="180" y="92" text-anchor="middle" font-size="10" font-weight="800" letter-spacing="3" fill="#fff" opacity=".75" font-family="inherit">PULL · HOLD · WIN</text>');
+      s.push(heading(74, "MACHINES", "PULL · HOLD · WIN"));
       ZONES.push(["sl", 0, 120, 172, H - 170], ["vp", 188, 120, 172, H - 170]);
       s.push(burst(hs.x, r1(hs.top + 40), 1.1, 0.5, "#ff2e93"));
     }
 
     if (dir === "r") {
-      s.push(neon(180, 70, "TABLE GAMES", "#3dff7a", 24, 2), '<text x="180" y="92" text-anchor="middle" font-size="10" font-weight="800" letter-spacing="3" fill="#fff" opacity=".75" font-family="inherit">SPIN · ROLL · BET</text>');
+      s.push(heading(74, "TABLE GAMES", "SPIN · ROLL · BET"));
       // ---- baccarat (back left): kidney table with PLAYER / BANKER / TIE boxes ----
       var zB = 0.44, XB = -40;
       s.push("<g " + at(XB, zB) + ">", skirt(24, 12),
