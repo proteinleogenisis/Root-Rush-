@@ -295,7 +295,14 @@
     ".cz-outg{animation:cz-outg .35s ease-in both}@keyframes cz-outg{to{transform:scale(.9);opacity:0}}",
     ".cz-inl{animation:cz-inl .4s ease-out both}@keyframes cz-inl{from{transform:scale(1.25);opacity:0}to{transform:none;opacity:1}}",
     // lobby
-    ".cz-room{display:flex;justify-content:center}",
+    ".cz-room{position:relative;overflow:hidden;margin:0 auto;border-radius:14px;box-shadow:0 0 0 2px #7a5513,0 6px 24px rgba(0,0,0,.5);touch-action:pan-y}",
+    ".cz-pano{display:flex;width:300%;transition:transform " + TURN_MS + "ms cubic-bezier(.2,.8,.2,1)}",
+    ".cz-pv{width:33.3334%;flex:none}",
+    ".cz-pv .cz-roomsvg{box-shadow:none;border-radius:0}",
+    ".cz-turn{position:absolute;top:50%;transform:translateY(-50%);width:40px;height:64px;border:0;border-radius:12px;background:rgba(10,0,20,.55);color:#fff;font:inherit;font-size:28px;font-weight:900;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 1.5px rgba(255,214,107,.6);z-index:2}",
+    ".cz-turn.l{left:6px}.cz-turn.r{right:6px}.cz-turn:disabled{opacity:0;pointer-events:none}",
+    ".cz-look{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);display:flex;gap:6px;align-items:center;padding:6px 10px;border-radius:999px;background:rgba(10,0,20,.62);color:#fff;font-size:12px;font-weight:800;white-space:nowrap;z-index:2}",
+    ".cz-look i{width:7px;height:7px;border-radius:50%;background:#fff;opacity:.35;display:inline-block}.cz-look i.on{opacity:1;background:#ffd66b}",
     ".cz-roomsvg{width:100%;height:auto;max-width:100%;margin:0 auto;display:block;border-radius:14px;box-shadow:0 0 0 2px #7a5513,0 6px 24px rgba(0,0,0,.5);-webkit-tap-highlight-color:transparent}",
     ".cz-spot{cursor:pointer;outline:none}",
     ".cz-spot:focus-visible{outline:2px solid #ffe08a}",
@@ -568,241 +575,54 @@
 
   // ---------- the casino room (lobby) ----------
   var SPOT_NAMES = { bj: "Blackjack", sl: "Slots", ro: "Roulette", hl: "Higher / Lower", ba: "Baccarat", vp: "Video Poker", cr: "Craps" };
-  var LOBBY_H = 640;  // lobby drawing height (it is 360 wide)
-  // where each game is tapped on the floor drawing (x, y, w, h in the 360-wide drawing), later entries on top
-  var TAP_ZONES = [
-    ["sl", [[0, 140, 128, 150]]], ["vp", [[232, 140, 128, 150]]],
-    ["bj", [[70, 345, 220, 335], [0, 440, 360, 240]]],
-    ["hl", [[0, 290, 128, 150]]], ["ba", [[232, 290, 128, 150]]],
-    ["ro", [[100, 232, 79, 100]]], ["cr", [[181, 232, 79, 100]]]
-  ];
-  // depth of field on the floor: machines/tables at distance z >= DOF_FAR_Z get DOF_FAR_BLUR, z >= DOF_MID_Z get DOF_MID_BLUR
-  var DOF_FAR_Z = 0.8, DOF_MID_Z = 0.5, DOF_FAR_BLUR = 3, DOF_MID_BLUR = 1.2, DOF_HAZE = 0.45, DOF_SIDE_BLUR = 1.6, DOF_SIDE_DIM = 0.8;
+  var LOBBY_H = 640;
+  var LOOK = 1;               // which way you're looking: 0 left, 1 straight, 2 right (kept while the app is open)  // lobby drawing height (it is 360 wide)
+  // the back of the room (crowd, far machines) is blurred this much and covered by a haze this strong
+  var DOF_FAR_BLUR = 3, DOF_HAZE = 0.45;
+  var TURN_MS = 450;          // turning your head between the left / straight / right views
+  var SWIPE_PX = 45;          // a sideways drag this long on the floor turns you
   var CONFETTI_N = 10;
   var JACKPOT_START = 1248903; // the jackpot sign starts here and ticks up while you watch
   var JACKPOT_TICK_MS = 140;   // how often it ticks
   var LOBBY_FIT_GAP = 32; // px kept free under the floor when it is shrunk to fit the screen (covers the page's bottom padding)
 
-  // First-person casino floor: standing in the aisle looking forward. Simple perspective:
-  // a world point (X, Y, z) lands at (VX + X / z, VY + Y / z); the floor is Y = EYE.
-  function lobbySvg(can) {
-    var s = [], i, k, FAR = [], MID = [], NEAR = [], SIDE = [], LBL = [];
-    var VX = 180, VY = 250, EYE = 40, H = LOBBY_H;
+  // First-person casino floor in three views you turn between: look left (machine aisle),
+  // straight (blackjack + higher/lower) and right (roulette, craps, baccarat).
+  // Simple perspective: a world point (X, Y, z) lands at (VX + X / z, VY + Y / z); the floor is Y = EYE.
+  // People only stand in the blurred back of the room; the games in focus are left clear.
+  var SCENE_DIRS = ["l", "c", "r"];
+  var SCENE_NAMES = { l: "Slots · Video poker", c: "Blackjack · Higher/Lower", r: "Roulette · Craps · Baccarat" };
+  function sceneSvg(dir, can) {
+    var s = [], i, k, BACK = [], H = LOBBY_H;
+    var VX = 180, VY = 250, EYE = 40;
     function r1(n) { return Math.round(n * 10) / 10; }
     function sx(X, z) { return r1(VX + X / z); }
     function sy(Y, z) { return r1(VY + Y / z); }
-    // drawings sit in plain groups; taps go to the invisible zones laid on top at the end (TAP_ZONES)
-    function vis() { return '<g class="cz-vis' + (can ? " can" : "") + '">'; }
     function spotOpen(id) {
       return '<g class="cz-spot' + (can ? " can" : "") + '" data-a="open" data-v="' + id + '" role="button" tabindex="0" aria-label="' + SPOT_NAMES[id] + ", minimum bet " + MIN_BET + ' coins">';
     }
-    // glowing neon word: white core, colored tube, soft glow
     function neon(cx, y, txt, col, size, delay) {
       return '<g class="cz-flk" style="animation-delay:' + delay + 's"><text x="' + cx + '" y="' + y + '" text-anchor="middle" font-size="' + size + '" font-weight="900" letter-spacing="1.2" fill="#fff" stroke="' + col + '" stroke-width="' + r1(size / 7) + '" paint-order="stroke" filter="url(#czl-neon)" font-family="inherit">' + txt + "</text></g>";
     }
     function plate(cx, y, txt, col, size, delay) {
-      var w = r1(txt.length * size * 0.66 + 16), h = r1(size + 9);
-      return '<rect x="' + r1(cx - w / 2) + '" y="' + r1(y - size - 2) + '" width="' + w + '" height="' + h + '" rx="' + r1(h / 2) + '" fill="#0b0014" fill-opacity=".78" stroke="' + col + '" stroke-opacity=".7" stroke-width="1.2"/>' + neon(cx, y, txt, col, size, delay);
+      var w = r1(txt.length * size * 0.66 + 18), h = r1(size + 10);
+      return '<rect x="' + r1(cx - w / 2) + '" y="' + r1(y - size - 3) + '" width="' + w + '" height="' + h + '" rx="' + r1(h / 2) + '" fill="#0b0014" fill-opacity=".8" stroke="' + col + '" stroke-opacity=".75" stroke-width="1.3"/>' + neon(cx, y, txt, col, size, delay);
     }
     var PP = [["#2b6cb0", "#2a1a10", "#f1c7a0"], ["#c0392b", "#111", "#8d5a3b"], ["#1f8a5b", "#6b3f1f", "#e6b08a"], ["#7a4bc2", "#d9a441", "#f3d2b5"],
       ["#e07b24", "#3a2414", "#c58c62"], ["#d6d6d6", "#1d1d1d", "#6e432a"], ["#e0557e", "#7a2a12", "#f1c7a0"], ["#25303d", "#b9b9b9", "#e8b894"]];
-    // a player seen from behind (shoulders, head, a hand that reaches for the table)
-    function person(x, y, i, sc, rx) {
-      var c = PP[i % PP.length], d = ((i * 0.83) % 3).toFixed(2), d2 = ((i * 1.37) % 5).toFixed(2);
-      return '<g transform="translate(' + x + " " + y + ") scale(" + sc + ')"><g class="cz-pp" style="animation-delay:-' + d + 's">' +
-        '<circle class="cz-hand" style="animation-delay:-' + d2 + "s;--rx:" + (rx || 3) + 'px" cx="' + (rx < 0 ? -11 : 11) + '" cy="-6" r="3.3" fill="' + c[2] + '"/>' +
-        '<path d="M-14 8 Q-14 -8 0 -9 Q14 -8 14 8 Z" fill="' + c[0] + '" stroke="#000" stroke-opacity=".35" stroke-width="1"/>' +
-        '<g class="cz-hd" style="animation-delay:-' + d2 + 's"><circle cy="-15" r="7" fill="' + c[2] + '"/><path d="M-7 -15 A7 7 0 0 1 7 -15 L7 -12 Q0 -9 -7 -12 Z" fill="' + c[1] + '"/></g></g></g>';
-    }
-    // a dealer facing us: vest, white shirt, bow tie, face
-    function dealer(x, y, i, sc) {
-      var c = PP[(i + 3) % PP.length];
-      return '<g transform="translate(' + x + " " + y + ") scale(" + sc + ')"><g class="cz-pp" style="animation-delay:-' + (i * 0.7 % 3).toFixed(2) + 's">' +
-        '<path d="M-15 10 Q-15 -8 0 -9 Q15 -8 15 10 Z" fill="#15151b"/><path d="M-5 -9 L0 4 L5 -9 Z" fill="#fff"/><path d="M-4 -7 L0 -5 L4 -7 L4 -3 L0 -5 L-4 -3 Z" fill="#d0142c"/>' +
-        '<circle cy="-16" r="7.5" fill="' + c[2] + '"/><path d="M-7.5 -17 A7.5 7.5 0 0 1 7.5 -17 Q4 -21 -7.5 -17 Z" fill="' + c[1] + '"/>' +
-        '<circle cx="-2.6" cy="-16" r=".9" fill="#222"/><circle cx="2.6" cy="-16" r=".9" fill="#222"/><path d="M-2.5 -12.5 Q0 -11 2.5 -12.5" fill="none" stroke="#7a3a2a" stroke-width=".8"/></g></g>';
+    // a standing guest: body, head, hair (seen from the side/back, drawn soft in the blurred layer)
+    function guest(x, y, i, sc) {
+      var c = PP[i % PP.length];
+      return '<g transform="translate(' + x + " " + y + ") scale(" + sc + ')"><path d="M-9 0 L-8 -26 Q0 -31 8 -26 L9 0 Z" fill="' + c[0] + '"/><rect x="-7" y="0" width="5" height="16" fill="#1b1b24"/><rect x="2" y="0" width="5" height="16" fill="#1b1b24"/>' +
+        '<circle cy="-34" r="6.5" fill="' + c[2] + '"/><path d="M-6.5 -35 A6.5 6.5 0 0 1 6.5 -35 Q3 -39 -6.5 -35 Z" fill="' + c[1] + '"/></g>';
     }
     function chip(x, y, col, r) { return '<circle cx="' + x + '" cy="' + y + '" r="' + r + '" fill="' + col + '" stroke="#fff" stroke-width="' + r1(r * 0.3) + '" stroke-dasharray="' + r1(r * 0.5) + " " + r1(r * 0.4) + '"/>'; }
-
-    s.push('<svg class="cz-roomsvg" viewBox="0 0 360 ' + H + '" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Root Rush Casino floor">');
-    s.push("<defs>",
-      '<linearGradient id="czl-ceil" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#14031f"/><stop offset=".7" stop-color="#3c0b48"/><stop offset="1" stop-color="#6a1550"/></linearGradient>',
-      '<linearGradient id="czl-floor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a0618"/><stop offset=".35" stop-color="#7a0f2a"/><stop offset="1" stop-color="#a3163a"/></linearGradient>',
-      '<linearGradient id="czl-shade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset=".35" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".45"/></linearGradient>',
-      '<linearGradient id="czl-beam" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>',
-      '<radialGradient id="czl-felt" cx="50%" cy="40%" r="70%"><stop offset="0" stop-color="#25b066"/><stop offset="1" stop-color="#0d5a31"/></radialGradient>',
-      '<radialGradient id="czl-felt2" cx="50%" cy="40%" r="70%"><stop offset="0" stop-color="#2fb3d1"/><stop offset="1" stop-color="#0d4558"/></radialGradient>',
-      '<radialGradient id="czl-glow"><stop offset="0" stop-color="#ffe08a" stop-opacity=".9"/><stop offset="1" stop-color="#ffe08a" stop-opacity="0"/></radialGradient>',
-      '<radialGradient id="czl-bokeh"><stop offset="0" stop-color="#fff" stop-opacity=".9"/><stop offset=".4" stop-color="#fff" stop-opacity=".35"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>',
-      '<linearGradient id="czl-gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f9e08e"/><stop offset="1" stop-color="#b98a24"/></linearGradient>',
-      '<filter id="czl-neon" x="-20%" y="-60%" width="140%" height="220%"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>',
-      '<linearGradient id="czl-haze" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3c0b48" stop-opacity="0"/><stop offset=".5" stop-color="#3c0b48" stop-opacity="' + DOF_HAZE + '"/><stop offset="1" stop-color="#3c0b48" stop-opacity="0"/></linearGradient>',
-      '<filter id="czl-dof3" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="' + DOF_SIDE_BLUR + '"/></filter>',
-      '<filter id="czl-dof2" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="' + DOF_FAR_BLUR + '"/></filter>',
-      '<filter id="czl-dof1" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="' + DOF_MID_BLUR + '"/></filter>',
-      '<filter id="czl-soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>',
-      wheelDefs(), "</defs>");
-
-    // ---- ceiling, back wall, floor ----
-    s.push('<rect width="360" height="' + VY + '" fill="url(#czl-ceil)"/>');
-    s.push('<rect y="' + VY + '" width="360" height="' + (H - VY) + '" fill="url(#czl-floor)"/>');
-    // ceiling light strips converging on the vanishing point
-    for (i = -6; i <= 12; i++) s.push('<line x1="' + (i * 30) + '" y1="0" x2="' + r1(VX + (i * 30 - VX) * 0.18) + '" y2="' + r1(VY * 0.82) + '" stroke="#ff9be0" stroke-opacity=".10" stroke-width="1"/>');
-    // rows of ceiling lights getting smaller into the distance
-    [0.32, 0.45, 0.65, 0.95, 1.4, 2.1].forEach(function (z, row) {
-      for (var X = -165; X <= 165; X += 55) {
-        var cx = sx(X, z), cy = sy(-62, z), r = r1(2.6 / z);
-        if (cx < -10 || cx > 370) continue;
-        s.push('<circle class="cz-bulb2" style="animation-delay:' + ((row * 0.3 + X / 300) % 2).toFixed(2) + 's" cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="#ffe7a8"/><circle cx="' + cx + '" cy="' + cy + '" r="' + r1(r * 3.2) + '" fill="url(#czl-glow)" opacity=".45"/>');
-      }
-    });
-    // far end of the hall: a wall of tiny machine lights (bokeh)
-    s.push('<rect x="0" y="' + (VY - 30) + '" width="360" height="36" fill="#1a0322" opacity=".9"/>');
-    var BOK = ["#ff4fa3", "#ffd23f", "#3ff0ff", "#9b5cff", "#4dff88", "#ff7a2f"], i0 = s.length;
-    for (i = 0; i < 46; i++) {
-      var bx = (i * 37.7) % 360, by = VY - 26 + ((i * 13) % 26), br = 2 + (i % 4);
-      s.push('<circle cx="' + r1(bx) + '" cy="' + by + '" r="' + br + '" fill="' + BOK[i % BOK.length] + '" opacity=".75"/>');
+    function stack(x, y, col, r, n) { var o = ""; for (var j = 0; j < n; j++) o += '<ellipse cx="' + x + '" cy="' + r1(y - j * r * 0.32) + '" rx="' + r + '" ry="' + r1(r * 0.42) + '" fill="' + col + '" stroke="#fff" stroke-width="' + r1(r * 0.12) + '"/>'; return o; }
+    function card(x, y, w, face, red, rot) {
+      var h = r1(w * 1.4), t = rot ? ' transform="rotate(' + rot + " " + r1(x + w / 2) + " " + r1(y + h / 2) + ')"' : "";
+      if (!face) return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="' + r1(w * 0.12) + '" fill="#a01c34" stroke="#fff" stroke-width="' + r1(w * 0.06) + '"' + t + "/>";
+      return '<g' + t + '><rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="' + r1(w * 0.12) + '" fill="#fff" stroke="#bbb" stroke-width="' + r1(w * 0.03) + '"/><text x="' + r1(x + w / 2) + '" y="' + r1(y + h * 0.62) + '" text-anchor="middle" font-size="' + r1(w * 0.62) + '" font-weight="900" fill="' + (red ? "#c8102e" : "#141414") + '" font-family="inherit">' + face + "</text></g>";
     }
-    FAR.push(s.splice(i0).join(""));
-    // carpet: perspective lines and a gold-edged runner down the middle
-    for (i = -14; i <= 14; i++) s.push('<line x1="' + VX + '" y1="' + VY + '" x2="' + r1(VX + i * 60) + '" y2="' + H + '" stroke="#ffcf6a" stroke-opacity=".10" stroke-width="1"/>');
-    [0.1, 0.13, 0.17, 0.22, 0.29, 0.38, 0.5, 0.68, 0.95, 1.4, 2.2].forEach(function (z) { var y = sy(EYE, z); if (y < H) s.push('<line x1="0" y1="' + y + '" x2="360" y2="' + y + '" stroke="#ffcf6a" stroke-opacity=".09"/>'); });
-    s.push('<path d="M' + sx(-26, 3) + " " + sy(EYE, 3) + " L" + sx(26, 3) + " " + sy(EYE, 3) + " L" + sx(26, 0.06) + " " + sy(EYE, 0.06) + " L" + sx(-26, 0.06) + " " + sy(EYE, 0.06) + 'Z" fill="#4a0618" opacity=".55"/>');
-    s.push('<path d="M' + sx(-26, 3) + " " + sy(EYE, 3) + " L" + sx(-26, 0.06) + " " + sy(EYE, 0.06) + " M" + sx(26, 3) + " " + sy(EYE, 3) + " L" + sx(26, 0.06) + " " + sy(EYE, 0.06) + '" stroke="#ffcf6a" stroke-opacity=".5" stroke-width="1.5"/>');
-
-    // ---- sweeping spotlight beams ----
-    [[70, "#ff4fd8", 0], [290, "#3ff0ff", 4.1]].forEach(function (b) {
-      s.push('<g class="cz-beam" style="transform-origin:' + b[0] + 'px 0px;animation-delay:-' + b[2] + 's"><path d="M' + (b[0] - 4) + " 0 L" + (b[0] + 4) + " 0 L" + (b[0] + 70) + " " + (H * 0.9) + " L" + (b[0] - 70) + " " + (H * 0.9) + 'Z" fill="' + b[1] + '" opacity=".13"/></g>');
-    });
-
-    // ---- the big sign + jackpot ticker ----
-    s.push('<rect x="58" y="22" width="244" height="106" rx="16" fill="#0d0216" stroke="#ff4fa3" stroke-width="2.5" filter="url(#czl-neon)"/>');
-    for (i = 0; i < 26; i++) s.push('<circle class="cz-bulb" style="animation-delay:' + (i * 0.08).toFixed(2) + 's" cx="' + (66 + i * 9.1) + '" cy="29" r="2.2"/><circle class="cz-bulb" style="animation-delay:' + (1.2 - i * 0.08).toFixed(2) + 's" cx="' + (66 + i * 9.1) + '" cy="121" r="2.2"/>');
-    s.push(neon(180, 66, "ROOT RUSH", "#ff2e93", 32, 0));
-    s.push('<text x="180" y="84" text-anchor="middle" font-size="12" font-weight="900" letter-spacing="9" fill="#bff9ff" stroke="#00d5ff" stroke-width="1.6" paint-order="stroke" filter="url(#czl-neon)" font-family="inherit">CASINO</text>');
-    s.push('<rect x="96" y="91" width="168" height="24" rx="6" fill="#000" stroke="#ffd23f" stroke-opacity=".8"/>');
-    s.push('<text x="104" y="107" font-size="8" font-weight="900" fill="#ffd23f" letter-spacing="1.5" font-family="inherit">JACKPOT</text>');
-    s.push('<text id="czl-jp" x="256" y="108.5" text-anchor="end" font-size="14" font-weight="900" fill="#ffe86b" stroke="#ff9d00" stroke-width=".8" paint-order="stroke" filter="url(#czl-neon)" font-family="inherit">' + JACKPOT_START.toLocaleString("en-US") + "</text>");
-
-    // ---- machine rows: slots on the left, video poker on the right ----
-    var SLOTC = ["#ff2e63", "#9b30ff", "#ffb800", "#00c2b8", "#ff6a00", "#ff3fd2", "#2f8cff"];
-    var VPC = ["#1d4fff", "#7a2bff", "#0aa0ff", "#2c2cc8", "#0fb5a8", "#5a3dff", "#1a7bff"];
-    var ROWZ = [2.2, 1.5, 1.05, 0.75, 0.55, 0.42];
-    function slotUnit(c, n, win) {
-      var sym = [["#e0142c", "#ffcd1f", "#e0142c"], ["#ffcd1f", "#3fd0ff", "#ffcd1f"], ["#e0142c", "#e0142c", "#e0142c"]][n % 3];
-      var u = '<ellipse class="cz-top" style="animation-delay:-' + (n * 0.4).toFixed(1) + 's" cx="13" cy="0" rx="11" ry="5" fill="' + SLOTC[(n + 3) % SLOTC.length] + '"/>' +
-        '<rect width="26" height="44" rx="2" fill="' + c + '"/><rect width="26" height="44" rx="2" fill="url(#czl-shade)"/>' +
-        '<rect x="2" y="2" width="22" height="4" rx="1" fill="#1a0010"/>';
-      for (var b = 0; b < 5; b++) u += '<circle class="cz-bulb" style="animation-delay:' + ((b * 0.2 + n * 0.13) % 1.2).toFixed(2) + 's" cx="' + (4.5 + b * 4.25) + '" cy="4" r="1.1"/>';
-      u += '<rect x="3" y="8" width="20" height="13" rx="1" fill="#fff6d6"/>';
-      for (b = 0; b < 3; b++) u += '<rect x="' + (3.8 + b * 6.4) + '" y="9" width="5.6" height="11" fill="#fff"/><circle cx="' + (6.6 + b * 6.4) + '" cy="14.5" r="1.9" fill="' + sym[b] + '"/>';
-      if (win) u += '<rect class="cz-scr" x="3" y="8" width="20" height="13" rx="1" fill="#ffe14a"/>';
-      u += '<line x1="3" y1="14.5" x2="23" y2="14.5" stroke="#ff2b2b" stroke-width=".4"/>' +
-        '<rect x="3" y="24" width="20" height="6" rx="1" fill="#1b0509"/><circle cx="7" cy="27" r="1.3" fill="#ffcd1f"/><circle cx="13" cy="27" r="1.3" fill="#3fd0ff"/><circle cx="19" cy="27" r="1.3" fill="#ff3b6b"/>' +
-        '<rect x="2" y="34" width="22" height="8" rx="1" fill="#000" opacity=".35"/>' +
-        '<line x1="27.5" y1="12" x2="27.5" y2="22" stroke="#ddd" stroke-width="1.1"/><circle cx="27.5" cy="11" r="1.8" fill="#e81b30"/>';
-      return u;
-    }
-    function vpUnit(c, n, win) {
-      var u = '<ellipse class="cz-top" style="animation-delay:-' + (n * 0.5).toFixed(1) + 's" cx="13" cy="0" rx="11" ry="5" fill="#3ff0ff"/>' +
-        '<rect width="26" height="44" rx="2" fill="' + c + '"/><rect width="26" height="44" rx="2" fill="url(#czl-shade)"/>' +
-        '<rect x="3" y="4" width="20" height="18" rx="1" fill="#0a1233" stroke="#ffd23f" stroke-width=".5"/>' +
-        '<line x1="5" y1="7" x2="21" y2="7" stroke="#ffd23f" stroke-width=".5" stroke-opacity=".7"/><line x1="5" y1="9" x2="21" y2="9" stroke="#ffd23f" stroke-width=".5" stroke-opacity=".5"/>';
-      for (var b = 0; b < 5; b++) u += '<rect x="' + (4.3 + b * 3.6) + '" y="12" width="3.1" height="6" rx=".4" fill="#fff"/><circle cx="' + (5.85 + b * 3.6) + '" cy="15" r=".8" fill="' + (b % 2 ? "#111" : "#d0142c") + '"/>';
-      if (win) u += '<rect class="cz-scr" x="3" y="4" width="20" height="18" rx="1" fill="#3ff0ff"/>';
-      for (b = 0; b < 5; b++) u += '<circle class="cz-bulb" style="animation-delay:' + ((b * 0.18 + n * 0.11) % 1.2).toFixed(2) + 's" cx="' + (5.5 + b * 3.75) + '" cy="27" r="1.2"/>';
-      u += '<rect x="2" y="32" width="22" height="10" rx="1" fill="#000" opacity=".3"/>';
-      return u;
-    }
-    var MW = 28, MH = 52; // machine size in world units
-    function row(id, X, unit, cols, label, lcol, lx, wins) {
-      ROWZ.forEach(function (z, n) {
-        var w = MW / z, h = MH / z, x = sx(X, z) - w / 2, y = sy(EYE, z) - h;
-        (z >= DOF_FAR_Z ? FAR : z >= DOF_MID_Z ? MID : SIDE).push('<g transform="translate(' + r1(x) + " " + r1(y) + ") scale(" + (MW / 26 / z).toFixed(3) + " " + (MH / 44 / z).toFixed(3) + ')">' + unit(cols[n % cols.length], n, wins.indexOf(n) >= 0) + "</g>");
-      });
-      LBL.push(plate(lx, 196, label, lcol, X < 0 ? 17 : 14, X < 0 ? 1.1 : 3.3));
-    }
-    row("sl", -72, slotUnit, SLOTC, "SLOTS", "#ff2e93", 50, [3, 5]);
-    row("vp", 72, vpUnit, VPC, "VIDEO POKER", "#00d5ff", 304, [4]);
-
-    // ---- tables: far (roulette, craps), middle (higher/lower, baccarat), near (blackjack) ----
-    function at(X, z) { return 'transform="translate(' + sx(X, z) + " " + sy(EYE, z) + ") scale(" + (1 / z).toFixed(3) + ')"'; }
-    function glowAt(X, z, rx) { return '<ellipse class="cz-glow" cx="' + sx(X, z) + '" cy="' + r1(sy(EYE, z) - 10 / z) + '" rx="' + r1(rx / z) + '" ry="' + r1(rx * 0.6 / z) + '" fill="url(#czl-glow)"/>'; }
-    function hit(X, z, w, top) { return '<rect x="' + r1(sx(X, z) - w / 2 / z) + '" y="' + r1(sy(EYE, z) - top / z) + '" width="' + r1(w / z) + '" height="' + r1(top / z) + '" fill="#000" fill-opacity="0.001"/>'; }
-    function skirt(rx, top, col) { return '<path d="M' + (-rx) + " " + (-top) + " L" + (-rx + 2) + " 0 L" + (rx - 2) + " 0 L" + rx + " " + (-top) + 'Z" fill="' + (col || "#3a1d0c") + '"/>'; }
-
-    // roulette (far left)
-    var zR = 0.8, XR = -34;
-    i0 = s.length;
-    s.push(vis(), glowAt(XR, zR, 30), hit(XR, zR, 52, 58));
-    s.push("<g " + at(XR, zR) + ">", skirt(24, 12),
-      '<ellipse cx="0" cy="-12" rx="25" ry="8" fill="#5a3218"/><ellipse cx="0" cy="-12.6" rx="22.5" ry="6.6" fill="url(#czl-felt)"/>',
-      '<g transform="translate(-10 -12.6) scale(1 .42)"><g transform="scale(.07)"><circle r="108" fill="#4a2a14" stroke="#e8c05a" stroke-width="6"/><circle r="97" fill="#101010"/><g class="cz-spin2">' + wheelInner() + "</g></g></g>");
-    for (k = 0; k < 9; k++) s.push('<rect x="' + (2 + (k % 3) * 5.2) + '" y="' + (-16 + Math.floor(k / 3) * 2.4) + '" width="4.8" height="2.1" fill="' + (k % 2 ? "#141414" : "#c8102e") + '"/>');
-    s.push(chip(9, -12, "#2b6cb0", 1.3), chip(14, -13, "#ffd23f", 1.3), person(10, 3, 6, 0.5, -3), "</g>");
-    LBL.push(plate(sx(XR, zR) - 8, r1(sy(EYE, zR) - 44 / zR), "ROULETTE", "#ff3b3b", 13, 0.6)); s.push("</g>");
-
-    // craps (far right)
-    var zC = 0.8, XC = 34;
-    s.push(vis(), glowAt(XC, zC, 30), hit(XC, zC, 52, 58));
-    s.push("<g " + at(XC, zC) + ">", skirt(25, 12, "#2a1308"),
-      '<rect x="-26" y="-21" width="52" height="15" rx="7" fill="#5a3218"/><rect x="-23.5" y="-19.5" width="47" height="12" rx="6" fill="url(#czl-felt)"/>',
-      '<path d="M-20 -10 Q0 -6 20 -10" fill="none" stroke="#ffe08a" stroke-width=".6"/>',
-      '<g class="cz-dice"><rect x="-6" y="-17" width="4.2" height="4.2" rx=".8" fill="#e8222f" transform="rotate(-14 -4 -15)"/><rect x="1" y="-16" width="4.2" height="4.2" rx=".8" fill="#e8222f" transform="rotate(18 3 -14)"/><circle cx="-4" cy="-15" r=".5" fill="#fff"/><circle cx="3" cy="-14" r=".5" fill="#fff"/></g>',
-      '<circle cx="15" cy="-15" r="2.2" fill="#fff" stroke="#111" stroke-width=".6"/>',
-      person(-8, 4, 2, 0.5, 3), "</g>");
-    LBL.push(plate(sx(XC, zC) + 8, r1(sy(EYE, zC) - 44 / zC), "CRAPS", "#3dff7a", 13, 2.4)); s.push("</g>");
-    FAR.push(s.splice(i0).join(""));
-
-    // higher / lower (middle left)
-    var zH = 0.3, XH = -40;
-    i0 = s.length;
-    s.push(vis(), glowAt(XH, zH, 26), hit(XH, zH, 46, 46));
-    s.push("<g " + at(XH, zH) + ">", dealer(0, -14, 6, 0.5), skirt(20, 11),
-      '<ellipse cx="0" cy="-11" rx="21" ry="6.5" fill="#5a3218"/><ellipse cx="0" cy="-11.5" rx="19" ry="5.3" fill="url(#czl-felt2)"/>',
-      '<rect x="-12" y="-14.5" width="4.5" height="6" rx=".6" fill="#a01c34" stroke="#fff" stroke-width=".4"/>',
-      '<rect x="-3" y="-15" width="5" height="6.6" rx=".6" fill="#fff"/><text x="-.5" y="-10.4" text-anchor="middle" font-size="4.2" font-weight="900" fill="#c0142c" font-family="inherit">K</text>',
-      '<rect x="5" y="-14.5" width="4.5" height="6" rx=".6" fill="#a01c34" stroke="#fff" stroke-width=".4"/>',
-      '<text x="14" y="-11" font-size="3.6" fill="#ffe08a" font-weight="900" font-family="inherit">▲▼</text>',
-      person(-11, 3, 3, 0.48, 3), person(11, 3, 1, 0.48, -3), "</g>");
-    LBL.push(plate(r1(Math.max(64, sx(XH, zH))), r1(sy(EYE, zH) - 33 / zH), "HIGHER · LOWER", "#b45cff", 12.5, 1.7)); s.push("</g>");
-
-    // baccarat (middle right)
-    var zB = 0.3, XB = 40;
-    s.push(vis(), glowAt(XB, zB, 26), hit(XB, zB, 46, 46));
-    s.push("<g " + at(XB, zB) + ">", dealer(0, -14, 2, 0.5), skirt(20, 11),
-      '<ellipse cx="0" cy="-11" rx="21" ry="6.5" fill="#5a3218"/><ellipse cx="0" cy="-11.5" rx="19" ry="5.3" fill="url(#czl-felt)"/>',
-      '<text x="-9" y="-12.5" text-anchor="middle" font-size="2.6" font-weight="900" fill="#9cd0ff" font-family="inherit">PLAYER</text><text x="9" y="-12.5" text-anchor="middle" font-size="2.6" font-weight="900" fill="#ffa3ad" font-family="inherit">BANKER</text>',
-      '<ellipse cx="0" cy="-11" rx="3" ry="1.6" fill="none" stroke="#ffe08a" stroke-width=".4"/>',
-      '<rect x="-12" y="-11.5" width="3" height="4" rx=".4" fill="#fff"/><rect x="-8.5" y="-11.5" width="3" height="4" rx=".4" fill="#fff"/><rect x="6" y="-11.5" width="3" height="4" rx=".4" fill="#fff"/><rect x="9.5" y="-11.5" width="3" height="4" rx=".4" fill="#fff"/>',
-      chip(-3, -9, "#c0392b", 1), chip(3, -9, "#111", 1),
-      person(-11, 3, 4, 0.48, 3), person(11, 3, 7, 0.48, -3), "</g>");
-    LBL.push(plate(r1(Math.min(300, sx(XB, zB))), r1(sy(EYE, zB) - 33 / zB), "BACCARAT", "#ffb21f", 13, 3.9)); s.push("</g>");
-    MID.push(s.splice(i0).join(""));
-
-    // blackjack (close up, right in front of you)
-    var zJ = 0.13;
-    i0 = s.length;
-    s.push(vis(), glowAt(0, zJ, 24), hit(0, zJ, 46, 34));
-    s.push("<g " + at(0, zJ) + ">", dealer(0, -15.5, 0, 0.42),
-      '<path d="M-21 -15.5 A21 8.5 0 0 0 21 -15.5 Z" fill="#5a3218"/><path d="M-19.2 -15.2 A19.2 7.3 0 0 0 19.2 -15.2 Z" fill="url(#czl-felt)"/>',
-      '<path id="czl-bjarc" d="M-12 -12.8 Q0 -9.6 12 -12.8" fill="none"/><text font-size="1.25" font-weight="900" fill="#f0cf74" letter-spacing=".15" text-anchor="middle" font-family="inherit"><textPath href="#czl-bjarc" startOffset="50%">BLACKJACK PAYS 3 TO 2</textPath></text>',
-      '<rect x="-2.6" y="-15.2" width="2.3" height="3.2" rx=".3" fill="#fff" transform="rotate(-6 -1.5 -13.6)"/><rect x=".3" y="-15.2" width="2.3" height="3.2" rx=".3" fill="#a01c34" stroke="#fff" stroke-width=".15"/>',
-      '<rect x="-12" y="-11.4" width="2.3" height="3.2" rx=".3" fill="#fff" transform="rotate(10 -11 -10)"/><rect x="-9.8" y="-11.2" width="2.3" height="3.2" rx=".3" fill="#fff" transform="rotate(18 -9 -10)"/>',
-      '<rect x="-1.2" y="-10" width="2.3" height="3.2" rx=".3" fill="#fff"/><rect x="1.1" y="-9.9" width="2.3" height="3.2" rx=".3" fill="#fff" transform="rotate(8 2 -8.4)"/>',
-      '<rect x="9.4" y="-11.3" width="2.3" height="3.2" rx=".3" fill="#fff" transform="rotate(-14 10.5 -10)"/><rect x="11.6" y="-11.1" width="2.3" height="3.2" rx=".3" fill="#fff" transform="rotate(-6 12.7 -9.6)"/>',
-      chip(-8, -13.4, "#c0392b", 0.75), chip(-7.3, -13.6, "#2b6cb0", 0.75), chip(8, -13.4, "#1f8a5b", 0.75), chip(0, -7.4, "#ffd23f", 0.75),
-      person(-13, -0.5, 4, 0.38, 3), person(0, 1.8, 7, 0.38, 3), person(13, -0.5, 6, 0.38, -3), "</g>");
-    LBL.push(plate(VX, r1(sy(EYE, zJ) - 33 / zJ), "BLACKJACK", "#ffe14a", 17, 0.3)); s.push("</g>");
-    NEAR.push(s.splice(i0).join(""));
-    // paint far to near: far blurred most, middle a little, near sharp
-    s.push('<g class="cz-far"><g filter="url(#czl-dof2)">' + FAR.join("") + '</g><rect x="0" y="' + (VY - 70) + '" width="360" height="130" fill="url(#czl-haze)"/></g>');
-    s.push('<g filter="url(#czl-dof1)">' + MID.join("") + "</g>");
-    // the closest machines at the screen edges: soft foreground blur, a bit darker, so they frame instead of shout
-    s.push('<g filter="url(#czl-dof3)" opacity="' + DOF_SIDE_DIM + '">' + SIDE.join("") + "</g>");
-    s.push(NEAR.join(""));
-
-    // ---- dopamine layer: win bursts, coins popping, confetti, sparkles ----
     function burst(cx, cy, sc, delay, col) {
       var b = '<g transform="translate(' + cx + " " + cy + ") scale(" + sc + ')"><g class="cz-burst" style="animation-delay:' + delay + 's">';
       for (var a = 0; a < 12; a++) b += '<path d="M-2.2 0 L0 -26 L2.2 0Z" fill="' + (a % 2 ? col : "#fff7c2") + '" transform="rotate(' + a * 30 + ')"/>';
@@ -810,25 +630,210 @@
       for (a = 0; a < 6; a++) b += '<circle class="cz-coin" style="animation-delay:' + (delay + 0.1 + a * 0.07).toFixed(2) + "s;--dx:" + ((a - 2.5) * 9) + 'px" r="3.2" fill="#ffd23f" stroke="#a87400" stroke-width=".9"/>';
       return b + "</g>";
     }
-    var zw = ROWZ[5];
-    s.push(burst(sx(72, 0.78), r1(sy(EYE, 0.78) - MH / 0.78 + 4), 0.7, 0.5, "#00d5ff"));
-    var CONF = ["#ff2e93", "#ffd23f", "#3ff0ff", "#9b5cff", "#4dff88", "#ff7a2f", "#fff"];
-    for (i = 0; i < CONFETTI_N; i++) {
-      s.push('<rect class="cz-conf" style="animation-delay:-' + ((i * 0.71) % 9).toFixed(2) + "s;animation-duration:" + (7 + (i % 5)) + 's" x="' + r1((i * 47.3 + 11) % 360) + '" y="-12" width="' + (3 + (i % 3)) + '" height="' + (5 + (i % 2) * 2) + '" rx="1" fill="' + CONF[i % CONF.length] + '"/>');
-    }
-    [[30, 150, 0], [330, 160, 2.6]].forEach(function (p) {
-      s.push('<g transform="translate(' + p[0] + " " + p[1] + ')"><path class="cz-sp" style="animation-delay:' + p[2] + 's" d="M0-7 L1.6-1.6 7 0 1.6 1.6 0 7-1.6 1.6-7 0-1.6-1.6Z" fill="#fff6c8"/></g>');
+
+    s.push('<svg class="cz-roomsvg" viewBox="0 0 360 ' + H + '" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Casino floor, looking ' + (dir === "l" ? "left" : dir === "r" ? "right" : "straight ahead") + '">');
+    s.push("<defs>",
+      '<radialGradient id="czl-vig" cx="50%" cy="45%" r="75%"><stop offset="60%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#000" stop-opacity=".55"/></radialGradient>',
+      '<linearGradient id="czl-ceil" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#14031f"/><stop offset=".7" stop-color="#3c0b48"/><stop offset="1" stop-color="#6a1550"/></linearGradient>',
+      '<linearGradient id="czl-floor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a0618"/><stop offset=".35" stop-color="#7a0f2a"/><stop offset="1" stop-color="#a3163a"/></linearGradient>',
+      '<linearGradient id="czl-shade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset=".35" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".45"/></linearGradient>',
+      '<linearGradient id="czl-haze" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3c0b48" stop-opacity="0"/><stop offset=".55" stop-color="#3c0b48" stop-opacity="' + DOF_HAZE + '"/><stop offset="1" stop-color="#3c0b48" stop-opacity="0"/></linearGradient>',
+      '<radialGradient id="czl-felt" cx="50%" cy="40%" r="70%"><stop offset="0" stop-color="#25b066"/><stop offset="1" stop-color="#0d5a31"/></radialGradient>',
+      '<radialGradient id="czl-felt2" cx="50%" cy="40%" r="70%"><stop offset="0" stop-color="#2fb3d1"/><stop offset="1" stop-color="#0d4558"/></radialGradient>',
+      '<radialGradient id="czl-glow"><stop offset="0" stop-color="#ffe08a" stop-opacity=".9"/><stop offset="1" stop-color="#ffe08a" stop-opacity="0"/></radialGradient>',
+      '<linearGradient id="czl-gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f9e08e"/><stop offset="1" stop-color="#b98a24"/></linearGradient>',
+      '<filter id="czl-neon" x="-20%" y="-60%" width="140%" height="220%"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>',
+      '<filter id="czl-dof2" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="' + DOF_FAR_BLUR + '"/></filter>',
+      wheelDefs(), "</defs>");
+
+    // ---- room shell: ceiling with light rows, floor with carpet lines ----
+    s.push('<rect width="360" height="' + VY + '" fill="url(#czl-ceil)"/><rect y="' + VY + '" width="360" height="' + (H - VY) + '" fill="url(#czl-floor)"/>');
+    for (i = -6; i <= 12; i++) s.push('<line x1="' + (i * 30) + '" y1="0" x2="' + r1(VX + (i * 30 - VX) * 0.18) + '" y2="' + r1(VY * 0.82) + '" stroke="#ff9be0" stroke-opacity=".10"/>');
+    [0.32, 0.45, 0.65, 0.95, 1.4].forEach(function (z, row) {
+      for (var X = -165; X <= 165; X += 55) {
+        var cx = sx(X, z), cy = sy(-62, z), r = r1(2.6 / z);
+        if (cx < -10 || cx > 370) continue;
+        s.push('<circle class="cz-bulb2" style="animation-delay:' + ((row * 0.3 + X / 300 + 4) % 2).toFixed(2) + 's" cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="#ffe7a8"/><circle cx="' + cx + '" cy="' + cy + '" r="' + r1(r * 3.2) + '" fill="url(#czl-glow)" opacity=".45"/>');
+      }
     });
-    // vignette so the edges stay moody and the middle pops
+    for (i = -14; i <= 14; i++) s.push('<line x1="' + VX + '" y1="' + VY + '" x2="' + r1(VX + i * 60) + '" y2="' + H + '" stroke="#ffcf6a" stroke-opacity=".09"/>');
+    [0.1, 0.13, 0.17, 0.22, 0.29, 0.38, 0.5, 0.68, 0.95, 1.4].forEach(function (z) { var y = sy(EYE, z); if (y < H) s.push('<line x1="0" y1="' + y + '" x2="360" y2="' + y + '" stroke="#ffcf6a" stroke-opacity=".08"/>'); });
+
+    // ---- the blurred back of the room: machine lights, distant tables, and the crowd ----
+    var seed = dir === "l" ? 3 : dir === "r" ? 7 : 1;
+    var BOK = ["#ff4fa3", "#ffd23f", "#3ff0ff", "#9b5cff", "#4dff88", "#ff7a2f"];
+    BACK.push('<rect x="0" y="' + (VY - 46) + '" width="360" height="52" fill="#1a0322"/>');
+    for (i = 0; i < 16; i++) { // far machine cabinets
+      var mx = r1(((i * 23.3 + seed * 11) % 372) - 6), mh = 30 + ((i * 7 + seed) % 14);
+      BACK.push('<rect x="' + mx + '" y="' + (VY + 4 - mh) + '" width="15" height="' + mh + '" rx="2" fill="' + BOK[(i + seed) % BOK.length] + '" opacity=".85"/><rect x="' + (mx + 3) + '" y="' + (VY + 9 - mh) + '" width="9" height="7" fill="#fff6d6" opacity=".9"/>');
+    }
+    for (i = 0; i < 40; i++) BACK.push('<circle cx="' + r1((i * 37.7 + seed * 19) % 360) + '" cy="' + (VY - 42 + ((i * 13) % 30)) + '" r="' + (2 + (i % 4)) + '" fill="' + BOK[i % BOK.length] + '" opacity=".8"/>');
+    [[-60, 1.5], [55, 1.6]].forEach(function (t, j) { // two distant tables
+      var tx = sx(t[0] + seed * 4 - 12, t[1]), ty = sy(EYE, t[1]);
+      BACK.push('<ellipse cx="' + tx + '" cy="' + r1(ty - 8) + '" rx="' + r1(22 / t[1]) + '" ry="' + r1(7 / t[1]) + '" fill="#0d6a3a" stroke="#5a3218" stroke-width="2"/>');
+    });
+    for (i = 0; i < 17; i++) { // the crowd: guests standing around, small and soft
+      var gz = 1.05 + ((i * 0.37 + seed * 0.13) % 0.9), gX = ((i * 47 + seed * 23) % 300) - 150;
+      BACK.push(guest(sx(gX, gz), sy(EYE, gz), i + seed, r1(0.85 / gz * 100) / 100));
+    }
+    s.push('<g class="cz-far"><g filter="url(#czl-dof2)">' + BACK.join("") + '</g><rect x="0" y="' + (VY - 70) + '" width="360" height="130" fill="url(#czl-haze)"/></g>');
+
+    // two slow light beams
+    [[70, "#ff4fd8", 0], [290, "#3ff0ff", 4.1]].forEach(function (b) {
+      s.push('<g class="cz-beam" style="transform-origin:' + b[0] + 'px 0px;animation-delay:-' + b[2] + 's"><path d="M' + (b[0] - 4) + " 0 L" + (b[0] + 4) + " 0 L" + (b[0] + 70) + " " + (H * 0.9) + " L" + (b[0] - 70) + " " + (H * 0.9) + 'Z" fill="' + b[1] + '" opacity=".12"/></g>');
+    });
+
+    function at(X, z) { return 'transform="translate(' + sx(X, z) + " " + sy(EYE, z) + ") scale(" + (1 / z).toFixed(3) + ')"'; }
+    function skirt(rx, top, col) { return '<path d="M' + (-rx) + " " + (-top) + " L" + (-rx + 2) + " 0 L" + (rx - 2) + " 0 L" + rx + " " + (-top) + 'Z" fill="' + (col || "#3a1d0c") + '"/>'; }
+    var LBL = [], ZONES = [];
+    function zone(id, X, z, w, top) { ZONES.push([id, r1(sx(X, z) - w / 2 / z), r1(sy(EYE, z) - top / z), r1(w / z), r1(top / z + 12)]); }
+
+    if (dir === "c") {
+      // ---- the big sign ----
+      s.push('<rect x="58" y="22" width="244" height="106" rx="16" fill="#0d0216" stroke="#ff4fa3" stroke-width="2.5" filter="url(#czl-neon)"/>');
+      for (i = 0; i < 26; i++) s.push('<circle class="cz-bulb" style="animation-delay:' + (i * 0.08).toFixed(2) + 's" cx="' + (66 + i * 9.1) + '" cy="29" r="2.2"/><circle class="cz-bulb" style="animation-delay:' + (1.2 - i * 0.08).toFixed(2) + 's" cx="' + (66 + i * 9.1) + '" cy="121" r="2.2"/>');
+      s.push(neon(180, 66, "ROOT RUSH", "#ff2e93", 32, 0));
+      s.push('<text x="180" y="84" text-anchor="middle" font-size="12" font-weight="900" letter-spacing="9" fill="#bff9ff" stroke="#00d5ff" stroke-width="1.6" paint-order="stroke" filter="url(#czl-neon)" font-family="inherit">CASINO</text>');
+      s.push('<rect x="96" y="91" width="168" height="24" rx="6" fill="#000" stroke="#ffd23f" stroke-opacity=".8"/><text x="104" y="107" font-size="8" font-weight="900" fill="#ffd23f" letter-spacing="1.5" font-family="inherit">JACKPOT</text>');
+      s.push('<text id="czl-jp" x="256" y="108.5" text-anchor="end" font-size="14" font-weight="900" fill="#ffe86b" stroke="#ff9d00" stroke-width=".8" paint-order="stroke" filter="url(#czl-neon)" font-family="inherit">' + JACKPOT_START.toLocaleString("en-US") + "</text>");
+
+      // ---- higher / lower: a card table further back with a big card and up/down arrows ----
+      var zH = 0.42;
+      s.push("<g " + at(0, zH) + ">", '<ellipse cx="0" cy="-2" rx="30" ry="8" fill="url(#czl-glow)" opacity=".5"/>', skirt(26, 13),
+        '<ellipse cx="0" cy="-13" rx="27" ry="8" fill="#5a3218"/><ellipse cx="0" cy="-13.6" rx="24.5" ry="6.6" fill="url(#czl-felt2)"/>',
+        // stand with the face-up card and the arrows, like a real game display
+        '<rect x="-11" y="-44" width="22" height="30" rx="2.5" fill="#1a0a2e" stroke="#b45cff" stroke-width="1"/>',
+        card(-6.5, -41, 13, "Q", true, 0),
+        '<path d="M15 -36 L20 -29 L10 -29 Z" fill="#4dff88"/><path d="M15 -19 L20 -26 L10 -26 Z" fill="#ff5a6e"/>',
+        '<path d="M-15 -36 L-10 -29 L-20 -29 Z" fill="#4dff88"/><path d="M-15 -19 L-10 -26 L-20 -26 Z" fill="#ff5a6e"/>',
+        card(-20, -16.5, 6, "", false, -8), card(-13.5, -16.5, 6, "", false, -4), stack(14, -12, "#7a4bc2", 2.6, 4), "</g>");
+      LBL.push(plate(VX, r1(sy(EYE, zH) - 50 / zH), "HIGHER · LOWER", "#b45cff", 13, 1.7));
+      zone("hl", 0, zH, 60, 56);
+
+      // ---- blackjack, right in front of you: empty seats waiting for you ----
+      var zJ = 0.12;
+      s.push("<g " + at(0, zJ) + ">",
+        // the table's padded front and body down toward the floor
+        '<path d="M-21 -15.5 A21 8.5 0 0 0 21 -15.5 L21 -10 A21 8.5 0 0 1 -21 -10 Z" fill="#2a1408"/>',
+        '<path d="M-21 -15.5 A21 8.5 0 0 0 21 -15.5 L21 -13.6 A21 8.5 0 0 1 -21 -13.6 Z" fill="#6b3a1c"/>',
+        '<path d="M-21 -15.5 A21 8.5 0 0 0 21 -15.5 Z" fill="#5a3218"/><path d="M-19.2 -15.2 A19.2 7.3 0 0 0 19.2 -15.2 Z" fill="url(#czl-felt)"/>',
+        '<path id="czl-bjarc" d="M-12 -12.6 Q0 -9.6 12 -12.6" fill="none"/><text font-size="1.3" font-weight="900" fill="#f0cf74" letter-spacing=".15" text-anchor="middle" font-family="inherit"><textPath href="#czl-bjarc" startOffset="50%">BLACKJACK PAYS 3 TO 2</textPath></text>',
+        '<text x="0" y="-8.9" text-anchor="middle" font-size=".8" font-weight="800" fill="#f0cf74" opacity=".8" font-family="inherit">DEALER STANDS ON ALL 17</text>',
+        // chip rack and shoe on the dealer side
+        '<rect x="-6" y="-16.3" width="12" height="2.2" rx=".3" fill="#2a1508"/>');
+      ["#c0392b", "#2b6cb0", "#1f8a5b", "#111", "#ffd23f", "#7a4bc2"].forEach(function (c, j) { s.push('<rect x="' + r1(-5.6 + j * 1.95) + '" y="-16" width="1.6" height="1.7" rx=".4" fill="' + c + '"/>'); });
+      s.push('<rect x="9" y="-17.5" width="3.4" height="2.6" rx=".4" fill="#111" transform="rotate(-10 10.7 -16.2)"/>',
+        // dealer's cards and three betting spots with cards dealt
+        card(-2.6, -14.2, 1.9, "A", false, -4), card(-0.4, -14.2, 1.9, "", false, 3));
+      [[-11.5, -10.6, -12], [0, -7.6, 0], [11.5, -10.6, 12]].forEach(function (p, j) {
+        s.push('<ellipse cx="' + p[0] + '" cy="' + (p[1] + 2.2) + '" rx="1.6" ry=".8" fill="none" stroke="#f0cf74" stroke-width=".15"/>',
+          card(r1(p[0] - 1.9), r1(p[1] - 1.4), 1.8, ["K", "9", "7"][j], j !== 1, p[2] * 0.6), card(r1(p[0] - 0.2), r1(p[1] - 1.2), 1.8, ["10", "A", "5"][j], j === 1, p[2] * 0.9),
+          stack(p[0], r1(p[1] + 2.4), ["#c0392b", "#2b6cb0", "#1f8a5b"][j], 0.75, 3));
+      });
+      s.push("</g>");
+      LBL.push(plate(VX, r1(sy(EYE, zJ) - 23.5 / zJ), "BLACKJACK", "#ffe14a", 18, 0.3));
+      zone("bj", 0, zJ, 44, 25);
+      s.push(burst(VX, r1(sy(EYE, zH) - 34 / zH), 0.7, 0.5, "#b45cff"));
+    }
+
+    if (dir === "l") {
+      // ---- an aisle of machines: slots on the left, video poker on the right ----
+      var SLOTC = ["#ff2e63", "#9b30ff", "#ffb800", "#00c2b8", "#ff6a00", "#ff3fd2"];
+      var VPC = ["#1d4fff", "#7a2bff", "#0aa0ff", "#2c2cc8", "#0fb5a8", "#5a3dff"];
+      var ROWZ = [1.6, 1.1, 0.76, 0.52, 0.36, 0.26], MW = 32, MH = 64;
+      var SYMS = [["7", "7", "7"], ["🍒", "🍒", "🍋"], ["🔔", "💎", "🔔"], ["BAR", "BAR", "7"], ["💎", "💎", "💎"]];
+      var slot = function (c, n) {
+        var sy3 = SYMS[n % SYMS.length], u = '<ellipse class="cz-top" style="animation-delay:-' + (n * 0.4).toFixed(1) + 's" cx="13" cy="0" rx="11" ry="5" fill="' + SLOTC[(n + 3) % SLOTC.length] + '"/>' +
+          '<rect width="26" height="44" rx="2" fill="' + c + '"/><rect width="26" height="44" rx="2" fill="url(#czl-shade)"/><rect x="2" y="2" width="22" height="4" rx="1" fill="#1a0010"/>';
+        for (var b = 0; b < 5; b++) u += '<circle class="cz-bulb" style="animation-delay:' + ((b * 0.2 + n * 0.13) % 1.2).toFixed(2) + 's" cx="' + (4.5 + b * 4.25) + '" cy="4" r="1.1"/>';
+        u += '<rect x="3" y="8" width="20" height="13" rx="1" fill="#fff6d6"/>';
+        for (b = 0; b < 3; b++) u += '<rect x="' + (3.8 + b * 6.4) + '" y="9" width="5.6" height="11" fill="#fff"/><text x="' + (6.6 + b * 6.4) + '" y="' + (sy3[b] === "BAR" ? 15.6 : 16.6) + '" text-anchor="middle" font-size="' + (sy3[b] === "BAR" ? 2.4 : sy3[b] === "7" ? 6.5 : 5) + '" font-weight="900" fill="' + (sy3[b] === "7" ? "#e0142c" : "#111") + '" font-family="inherit">' + sy3[b] + "</text>";
+        if (n === 3) u += '<rect class="cz-scr" x="3" y="8" width="20" height="13" rx="1" fill="#ffe14a"/>';
+        u += '<line x1="3" y1="14.5" x2="23" y2="14.5" stroke="#ff2b2b" stroke-width=".4"/><rect x="3" y="24" width="20" height="6" rx="1" fill="#1b0509"/>' +
+          '<circle cx="7" cy="27" r="1.3" fill="#ffcd1f"/><circle cx="13" cy="27" r="1.3" fill="#3fd0ff"/><circle cx="19" cy="27" r="1.3" fill="#ff3b6b"/>' +
+          '<rect x="2" y="34" width="22" height="8" rx="1" fill="#000" opacity=".35"/><line x1="27.5" y1="12" x2="27.5" y2="22" stroke="#ddd" stroke-width="1.1"/><circle cx="27.5" cy="11" r="1.8" fill="#e81b30"/>';
+        return u;
+      };
+      var vpm = function (c, n) {
+        var u = '<ellipse class="cz-top" style="animation-delay:-' + (n * 0.5).toFixed(1) + 's" cx="13" cy="0" rx="11" ry="5" fill="#3ff0ff"/>' +
+          '<rect width="26" height="44" rx="2" fill="' + c + '"/><rect width="26" height="44" rx="2" fill="url(#czl-shade)"/>' +
+          '<rect x="3" y="4" width="20" height="18" rx="1" fill="#0a1233" stroke="#ffd23f" stroke-width=".5"/>' +
+          '<text x="13" y="7.6" text-anchor="middle" font-size="2" font-weight="900" fill="#ffd23f" font-family="inherit">JACKS OR BETTER</text>';
+        var hand = [["A", 1], ["K", 1], ["Q", 1], ["J", 1], ["10", 1]];
+        for (var b = 0; b < 5; b++) u += card(r1(4.2 + b * 3.6), 10, 3.1, hand[b][0], b % 2 === 0, 0);
+        if (n === 2) u += '<rect class="cz-scr" x="3" y="4" width="20" height="18" rx="1" fill="#3ff0ff"/>';
+        for (b = 0; b < 5; b++) u += '<rect x="' + (4.2 + b * 3.6) + '" y="25" width="3.1" height="2" rx=".5" fill="#ffd23f"/>';
+        u += '<rect x="2" y="32" width="22" height="10" rx="1" fill="#000" opacity=".3"/>';
+        return u;
+      };
+      var rowOf = function (X, unit, cols) {
+        ROWZ.forEach(function (z, n) {
+          var w = MW / z, h = MH / z, x = sx(X, z) - w / 2, y = sy(EYE, z) - h;
+          s.push('<g transform="translate(' + r1(x) + " " + r1(y) + ") scale(" + (MW / 26 / z).toFixed(3) + " " + (MH / 44 / z).toFixed(3) + ')">' + unit(cols[n % cols.length], n) + "</g>");
+        });
+      };
+      // stools in front of the machines, then the machines
+      [-50, 50].forEach(function (X) { ROWZ.forEach(function (z) { var x = sx(X + (X < 0 ? 12 : -12), z * 0.92), y = sy(EYE, z * 0.92); s.push('<ellipse cx="' + x + '" cy="' + r1(y - 9 / z) + '" rx="' + r1(6 / z) + '" ry="' + r1(2.4 / z) + '" fill="#7a0f2a" stroke="#e8c05a" stroke-width="' + r1(0.7 / z) + '"/><rect x="' + r1(x - 0.8 / z) + '" y="' + r1(y - 9 / z) + '" width="' + r1(1.6 / z) + '" height="' + r1(9 / z) + '" fill="#c9a24a"/>'); }); });
+      rowOf(-50, slot, SLOTC); rowOf(50, vpm, VPC);
+      var zn = ROWZ[ROWZ.length - 1];
+      LBL.push(plate(78, 140, "SLOTS", "#ff2e93", 20, 1.1), plate(284, 140, "VIDEO POKER", "#00d5ff", 15, 3.3));
+      s.push(neon(180, 70, "MACHINES", "#ffd23f", 22, 2), '<text x="180" y="92" text-anchor="middle" font-size="10" font-weight="800" letter-spacing="3" fill="#fff" opacity=".75" font-family="inherit">PULL · HOLD · WIN</text>');
+      ZONES.push(["sl", 0, 120, 172, H - 170], ["vp", 188, 120, 172, H - 170]);
+      s.push(burst(sx(-50, ROWZ[3]), r1(sy(EYE, ROWZ[3]) - MH / ROWZ[3] + 8), 1, 0.5, "#ff2e93"));
+    }
+
+    if (dir === "r") {
+      s.push(neon(180, 70, "TABLE GAMES", "#3dff7a", 24, 2), '<text x="180" y="92" text-anchor="middle" font-size="10" font-weight="800" letter-spacing="3" fill="#fff" opacity=".75" font-family="inherit">SPIN · ROLL · BET</text>');
+      // ---- baccarat (back left): kidney table with PLAYER / BANKER / TIE boxes ----
+      var zB = 0.44, XB = -40;
+      s.push("<g " + at(XB, zB) + ">", skirt(24, 12),
+        '<ellipse cx="0" cy="-12" rx="25" ry="8" fill="#5a3218"/><ellipse cx="0" cy="-12.6" rx="22.5" ry="6.6" fill="url(#czl-felt)"/>',
+        '<rect x="-19" y="-16" width="11" height="6" rx="1.5" fill="none" stroke="#9cd0ff" stroke-width=".6"/><text x="-13.5" y="-12" text-anchor="middle" font-size="2.6" font-weight="900" fill="#9cd0ff" font-family="inherit">PLAYER</text>',
+        '<rect x="8" y="-16" width="11" height="6" rx="1.5" fill="none" stroke="#ffa3ad" stroke-width=".6"/><text x="13.5" y="-12" text-anchor="middle" font-size="2.6" font-weight="900" fill="#ffa3ad" font-family="inherit">BANKER</text>',
+        '<ellipse cx="0" cy="-13" rx="4" ry="2" fill="none" stroke="#ffe08a" stroke-width=".5"/><text x="0" y="-12.2" text-anchor="middle" font-size="2.2" font-weight="900" fill="#ffe08a" font-family="inherit">TIE</text>',
+        card(-17, -10.4, 3, "8", true, -6), card(-13.6, -10.4, 3, "K", false, 5), card(9.5, -10.4, 3, "6", false, -5), card(13, -10.4, 3, "Q", true, 6), "</g>");
+      LBL.push(plate(sx(XB, zB), r1(sy(EYE, zB) - 30 / zB), "BACCARAT", "#ffb21f", 13, 3.9));
+      zone("ba", XB, zB, 54, 32);
+      // ---- craps (back right): long table, dice, pass line, point puck ----
+      var zC = 0.44, XC = 40;
+      s.push("<g " + at(XC, zC) + ">", skirt(26, 12, "#2a1308"),
+        '<rect x="-27" y="-22" width="54" height="16" rx="8" fill="#5a3218"/><rect x="-24.5" y="-20.5" width="49" height="13" rx="6.5" fill="url(#czl-felt)"/>',
+        '<path d="M-21 -10.5 Q0 -7.5 21 -10.5" fill="none" stroke="#fff" stroke-width=".7"/><text x="0" y="-8.4" text-anchor="middle" font-size="2" font-weight="900" fill="#fff" font-family="inherit">PASS LINE</text>');
+      [4, 5, 6, 8, 9, 10].forEach(function (n, j) { s.push('<rect x="' + (-15 + j * 5) + '" y="-19.5" width="4.4" height="3.6" fill="none" stroke="#ffe08a" stroke-width=".35"/><text x="' + (-12.8 + j * 5) + '" y="-16.8" text-anchor="middle" font-size="2.4" font-weight="900" fill="#ffe08a" font-family="inherit">' + n + "</text>"); });
+      s.push('<circle cx="10.2" cy="-21.4" r="1.6" fill="#fff" stroke="#111" stroke-width=".4"/><text x="10.2" y="-20.8" text-anchor="middle" font-size="1.2" font-weight="900" fill="#111" font-family="inherit">ON</text>',
+        '<g class="cz-dice"><rect x="-8" y="-14.5" width="4" height="4" rx=".7" fill="#e8222f" transform="rotate(-14 -6 -12.5)"/><rect x="-2.5" y="-13.8" width="4" height="4" rx=".7" fill="#e8222f" transform="rotate(16 -.5 -11.8)"/>' +
+        '<circle cx="-6.8" cy="-13.3" r=".45" fill="#fff"/><circle cx="-5.2" cy="-11.7" r=".45" fill="#fff"/><circle cx="-1.5" cy="-12.6" r=".45" fill="#fff"/><circle cx=".3" cy="-11.6" r=".45" fill="#fff"/><circle cx="-.6" cy="-11" r=".45" fill="#fff"/></g>',
+        stack(14, -11, "#1f8a5b", 1.4, 4), "</g>");
+      LBL.push(plate(sx(XC, zC), r1(sy(EYE, zC) - 30 / zC), "CRAPS", "#3dff7a", 13, 2.4));
+      zone("cr", XC, zC, 58, 32);
+      // ---- roulette (front): wheel on the left, number layout on the right ----
+      var zR = 0.16;
+      s.push("<g " + at(0, zR) + ">", skirt(30, 9),
+        '<rect x="-31" y="-20" width="62" height="13" rx="4" fill="#5a3218"/><rect x="-29.5" y="-19" width="59" height="11" rx="3" fill="url(#czl-felt)"/>',
+        '<g transform="translate(-19 -13.5) scale(1 .5)"><g transform="scale(.085)"><circle r="108" fill="#4a2a14" stroke="#e8c05a" stroke-width="6"/><circle r="97" fill="#101010"/><g class="cz-spin2">' + wheelInner() + "</g></g></g>");
+      s.push('<rect x="-8" y="-18.2" width="2.2" height="9.4" fill="#0b7a48" stroke="#fff" stroke-width=".12"/><text x="-6.9" y="-12.8" text-anchor="middle" font-size="1.4" font-weight="900" fill="#fff" font-family="inherit">0</text>');
+      for (k = 0; k < 36; k++) {
+        var n = k + 1, col = Math.floor(k / 3), rw = 2 - (k % 3);
+        s.push('<rect x="' + r1(-5.8 + col * 2.6) + '" y="' + r1(-18.2 + rw * 3.13) + '" width="2.6" height="3.13" fill="' + pocketFill(rouletteColor(n)) + '" stroke="#fff" stroke-width=".1"/><text x="' + r1(-4.5 + col * 2.6) + '" y="' + r1(-16.1 + rw * 3.13) + '" text-anchor="middle" font-size="1.1" font-weight="800" fill="#fff" font-family="inherit">' + n + "</text>");
+      }
+      s.push(stack(3.3, -14.4, "#ffd23f", 0.9, 3), stack(-2, -10.5, "#2b6cb0", 0.9, 2), '<rect x="-24" y="-8.6" width="48" height="1" fill="#e8c05a" opacity=".5"/>', "</g>");
+      LBL.push(plate(VX, r1(sy(EYE, zR) - 26 / zR), "ROULETTE", "#ff3b3b", 18, 0.6));
+      zone("ro", 0, zR, 64, 28);
+      s.push(burst(sx(XC, zC), r1(sy(EYE, zC) - 24 / zC), 0.6, 2.2, "#3dff7a"));
+    }
+
+    // confetti, a couple of sparkles, the vignette, the labels, and the tap zones on top
+    var CONF = ["#ff2e93", "#ffd23f", "#3ff0ff", "#9b5cff", "#4dff88", "#ff7a2f", "#fff"];
+    for (i = 0; i < CONFETTI_N; i++) s.push('<rect class="cz-conf" style="animation-delay:-' + ((i * 0.71 + seed) % 9).toFixed(2) + "s;animation-duration:" + (7 + (i % 5)) + 's" x="' + r1((i * 47.3 + 11 + seed * 31) % 360) + '" y="-12" width="' + (3 + (i % 3)) + '" height="' + (5 + (i % 2) * 2) + '" rx="1" fill="' + CONF[i % CONF.length] + '"/>');
+    [[30, 150, 0], [330, 160, 2.6]].forEach(function (p) { s.push('<g transform="translate(' + p[0] + " " + p[1] + ')"><path class="cz-sp" style="animation-delay:' + p[2] + 's" d="M0-7 L1.6-1.6 7 0 1.6 1.6 0 7-1.6 1.6-7 0-1.6-1.6Z" fill="#fff6c8"/></g>'); });
     s.push('<rect width="360" height="' + H + '" fill="url(#czl-vig)" pointer-events="none"/>');
     s.push(LBL.join(""));
-    // tap zones, later ones on top: small far tables last so they win where zones overlap
-    TAP_ZONES.forEach(function (t) {
-      s.push(spotOpen(t[0]) + t[1].map(function (r) { return '<rect x="' + r[0] + '" y="' + r[1] + '" width="' + r[2] + '" height="' + r[3] + '" fill="#000" fill-opacity="0.001"/>'; }).join("") + "</g>");
-    });
+    ZONES.forEach(function (zn2) { s.push(spotOpen(zn2[0]) + '<rect x="' + zn2[1] + '" y="' + zn2[2] + '" width="' + zn2[3] + '" height="' + zn2[4] + '" fill="#000" fill-opacity="0.001"/></g>'); });
     s.push("</svg>");
-    return s.join("").replace("<defs>", '<defs><radialGradient id="czl-vig" cx="50%" cy="45%" r="75%"><stop offset="60%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#000" stop-opacity=".55"/></radialGradient>');
+    return s.join("");
   }
+  // The blurred background behind an open game uses the straight-ahead view.
+  function lobbySvg(can) { return sceneSvg("c", can); }
 
   // ---------- UI ----------
   function mount(el, api) {
@@ -923,7 +928,23 @@
     function setHtml(sel, h) { var n = $(sel); if (n) n.innerHTML = h; }
 
     // ===== lobby =====
-    function lobbyHtml() { return '<div class="cz-room">' + lobbySvg(canBet()) + "</div>"; }
+    function lobbyHtml() {
+      var can = canBet();
+      return '<div class="cz-room"><div class="cz-pano" style="transform:translateX(-' + (LOOK * 100 / 3) + '%)">' +
+        SCENE_DIRS.map(function (d) { return '<div class="cz-pv">' + sceneSvg(d, can) + "</div>"; }).join("") + "</div>" +
+        '<button class="cz-turn l" data-a="turn" data-v="-1" aria-label="Look left"><span style="display:flex"><svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M15 4 L7 12 L15 20" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button><button class="cz-turn r" data-a="turn" data-v="1" aria-label="Look right"><span style="display:flex;transform:scaleX(-1)"><svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M15 4 L7 12 L15 20" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>' +
+        '<div class="cz-look" aria-live="polite"></div></div>';
+    }
+    function lookUpdate() {
+      var pano = stage.querySelector(".cz-pano"); if (!pano) return;
+      pano.style.transform = "translateX(-" + (LOOK * 100 / 3) + "%)";
+      stage.querySelector(".cz-turn.l").disabled = LOOK === 0;
+      stage.querySelector(".cz-turn.r").disabled = LOOK === 2;
+      stage.querySelector(".cz-look").innerHTML = [0, 1, 2].map(function (j) { return '<i class="' + (j === LOOK ? "on" : "") + '"></i>'; }).join("") + " " + SCENE_NAMES[SCENE_DIRS[LOOK]];
+      // only the view you're looking at can be tabbed to / tapped
+      stage.querySelectorAll(".cz-pv").forEach(function (pv, j) { pv.setAttribute("aria-hidden", j === LOOK ? "false" : "true"); pv.querySelectorAll(".cz-spot").forEach(function (g) { g.setAttribute("tabindex", j === LOOK ? "0" : "-1"); }); });
+    }
+    function turn(d) { var n = Math.max(0, Math.min(2, LOOK + d)); if (n === LOOK) return; LOOK = n; snd("click"); lookUpdate(); }
 
     // ===== blackjack =====
     function bjSkel() {
@@ -1622,18 +1643,19 @@
       else if (view === "cr") { stage.innerHTML = crSkel(); crRestore(); }
       else { stage.innerHTML = hlSkel(); hlRestore(); }
       // While a game is open, the casino floor keeps living behind it, blurred
-      if (view === "lobby") { bgEl.classList.remove("on"); bgEl.innerHTML = ""; fitLobby(); }
+      if (view === "lobby") { bgEl.classList.remove("on"); bgEl.innerHTML = ""; fitLobby(); lookUpdate(); }
       else if (!bgEl.innerHTML) { bgEl.innerHTML = lobbySvg(false).replace('class="cz-roomsvg"', 'preserveAspectRatio="xMidYMid slice"').replace(/ data-a="open"/g, ""); bgEl.classList.add("on"); }
     }
     // Shrink the floor so the whole thing fits on screen without scrolling (LOBBY_FIT_GAP px left below it)
     function fitLobby() {
-      var svg = stage.querySelector(".cz-roomsvg"); if (!svg || !globalThis.innerHeight) return;
-      svg.style.height = ""; svg.style.width = "";
+      var room = stage.querySelector(".cz-room"), svgs = stage.querySelectorAll(".cz-roomsvg"); if (!room || !globalThis.innerHeight) return;
       // measure from the header and the stage's layout width: the stage itself may be mid zoom-animation (transformed)
       var head = rootEl.querySelector(".cz-head"), mt = parseFloat(getComputedStyle(stage).marginTop) || 0;
-      var top = head.getBoundingClientRect().bottom + (globalThis.scrollY || 0) + mt, room = globalThis.innerHeight - top - LOBBY_FIT_GAP;
-      var full = stage.clientWidth * LOBBY_H / 360;
-      if (room > 200 && full > room) { svg.style.height = room + "px"; svg.style.width = (room * 360 / LOBBY_H) + "px"; }
+      var top = head.getBoundingClientRect().bottom + (globalThis.scrollY || 0) + mt, space = globalThis.innerHeight - top - LOBBY_FIT_GAP;
+      var w = stage.clientWidth, h = w * LOBBY_H / 360;
+      if (space > 200 && h > space) { h = space; w = h * 360 / LOBBY_H; }
+      room.style.width = w + "px";
+      svgs.forEach(function (sv) { sv.style.width = w + "px"; sv.style.height = h + "px"; });
     }
     var jp = JACKPOT_START, jpT = setInterval(function () {
       if (!live()) return clearInterval(jpT);
@@ -1665,6 +1687,7 @@
       var a = t.getAttribute("data-a"), v = t.getAttribute("data-v");
       switch (a) {
         case "open": return go(v, t);
+        case "turn": return turn(+v);
         case "back": return go("lobby");
         case "chip": if (g.all) g.bet = 0; g.all = false; g.bet = Math.min(api.coins(), (g.bet || 0) + (+v)); snd("chip"); return refresh();
         case "clear": g.all = false; g.bet = 0; snd("click"); return refresh();
@@ -1690,7 +1713,14 @@
         case "cr-roll": return crRoll();
       }
     }
+    var swipe = null, swipeBlock = 0;
+    rootEl.addEventListener("pointerdown", function (e) { if (view === "lobby" && e.target.closest && e.target.closest(".cz-pano")) swipe = { x: e.clientX, y: e.clientY }; });
+    rootEl.addEventListener("pointerup", function (e) {
+      if (!swipe) return; var dx = e.clientX - swipe.x, dy = e.clientY - swipe.y; swipe = null;
+      if (Math.abs(dx) >= SWIPE_PX && Math.abs(dx) > Math.abs(dy) * 1.3) { swipeBlock = Date.now() + 400; turn(dx < 0 ? 1 : -1); }
+    });
     rootEl.addEventListener("click", function (e) {
+      if (Date.now() < swipeBlock) return;
       var t = e.target.closest ? e.target.closest("[data-a]") : null;
       if (!t || t.disabled || !live()) return;
       act(t);
