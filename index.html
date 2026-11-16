@@ -15,6 +15,17 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#f6f5f1;--card:#fff;--ink:#1d1d1b;--mute:#6b6a64;--line:#e2e0d8;--root:#7F77DD;--pow:#1D9E75;--hot:#D85A30;--good:#3B6D11;--goodbg:#EAF3DE;--bad:#A32D2D;--badbg:#FCEBEB;--ghost:#B4B2A9}
+.hk-link{display:block;margin:10px auto 0;background:none;border:0;color:var(--mute);font:inherit;font-size:14px;text-decoration:underline;text-underline-offset:3px;padding:6px}
+.hk-top{margin-bottom:18px}.hk-lab{display:block;font-size:13px;color:var(--mute);margin-bottom:6px}
+.hk-in{width:100%;font:inherit;font-size:20px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);outline:none}
+.hk-in:focus{border-color:var(--mute)}
+.hk-keys{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:10px 0 14px}
+.hk-keys button{padding:8px 6px;font:inherit;font-size:17px;border:1px solid var(--line);border-radius:8px;background:transparent;color:var(--ink)}
+.hk-typed{font-size:15px;min-height:22px}.hk-out{margin:14px 0 22px;min-height:60px}
+.hk-ans{font-size:28px;line-height:1.3;word-break:break-word}.hk-sub{font-size:16px;color:var(--mute);margin-top:4px}
+.hk-st{margin-top:14px;font-size:15px}.hk-st summary{color:var(--mute);cursor:pointer}.hk-st ol{margin:8px 0 0 20px;padding:0}.hk-st li{margin:6px 0}.hk-st li span{display:block;font-size:13px;color:var(--mute)}
+.hk-help{font-size:13px;line-height:1.5}
+.hk-r{white-space:nowrap}.hk-ov{border-top:1.5px solid currentColor;padding:0 2px;margin-left:-2px}.hk-ix{font-size:.6em;margin-right:-3px;vertical-align:super}
 @media (prefers-color-scheme:dark){:root{--bg:#141413;--card:#1f1f1d;--ink:#f1efe8;--mute:#a3a199;--line:#33332f;--good:#97C459;--goodbg:#1f2a12;--bad:#F09595;--badbg:#3a1616;--ghost:#5F5E5A}}
 *{box-sizing:border-box;margin:0}
 html{-webkit-text-size-adjust:100%}
@@ -302,6 +313,7 @@ body.calc-open.paper-only .wrap{padding-bottom:440px}
     <div class="goal" id="goal" style="margin-top:12px"><span class="check" id="goalBox"></span><span id="goalTxt">Daily goal: finish 1 run</span></div>
     <button class="big" id="start">Play Rush</button>
     <button class="big casinobtn" id="casinoBtn">🎰 Casino</button>
+    <button class="hk-link" id="checkBtn">Check a homework answer</button>
     <div class="mini mute" id="rushMix"></div>
     <div class="mini mute">Rank <b id="hRank">Square one</b> · Runs <b id="hRuns">0</b> · Freezes <b id="hFrz">0 / 2</b></div>
   </div>
@@ -351,6 +363,15 @@ body.calc-open.paper-only .wrap{padding-bottom:440px}
 </div>
 </section>
 
+<section id="check" class="hidden">
+  <div class="hk-top"><button class="small" id="kHome">Home</button></div>
+  <label class="hk-lab" for="hkIn">Type a problem</label>
+  <input id="hkIn" class="hk-in" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="e.g. 3x^4 + 5 = 53  or  √72">
+  <div class="hk-keys" id="hkKeys"></div>
+  <div class="hk-typed mute" id="hkTyped"></div>
+  <div class="hk-out" id="hkOut"></div>
+  <div class="hk-help mute">Evaluate (16^(3/4), ∛-27), simplify (√72, 2√12 + 3√27, √(x^3)), or solve (2(x+3)^3 − 5 = 49). Use ^ for powers, root(5, 32) for a fifth root.</div>
+</section>
 <section id="casino" class="hidden">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><button class="small" id="cHome">Home</button></div>
   <div id="casinoMount"></div>
@@ -456,6 +477,7 @@ body.calc-open.paper-only .wrap{padding-bottom:440px}
 <div class="cd hidden" id="cd"></div>
 </div>
 
+<script src="solver.js"></script>
 <script src="casino.js"></script>
 <script src="profile.js"></script>
 <script>
@@ -838,10 +860,14 @@ const DAILY_BONUS=100,DAILY_STREAK_STEP=20,DAILY_BONUS_MAX=300,DAILY_MIN_ANSWERS
 function dailyAmount(streak){return Math.min(DAILY_BONUS_MAX,DAILY_BONUS+DAILY_STREAK_STEP*Math.max(0,(streak||1)-1))}
 function dailyReady(){return econ.daily!==dayKey(new Date())}
 const QUIZ_PASS_FRAC=1,QUIZ_MISS_XP=60; // QUIZ_MISS_XP: mastery a skill drops to when you miss it on the final quiz // share of final-quiz answers needed to pass (1 = must ace it)
+// Real-life cards pay once each, tracked in econ.rl so it syncs: COIN_RL_UNLOCK when the card unlocks, COIN_RL_VIEW the first time you open its answer
+const COIN_RL_UNLOCK=30,COIN_RL_VIEW=20;
 const COIN_PER_RIGHT=2,COIN_PER_LT=1,COIN_PER_MASTERY=1,COIN_MASTERED=50,COIN_QUIZ_PASS=500,TRAINING_MULT=1.5;
 let econ=LS.get("econ",{coins:0,owned:[],equipped:{},t:0});
-function normEcon(){if(!econ||typeof econ!=="object")econ={};econ.coins=Math.max(0,Math.floor(+econ.coins||0));delete econ.inv;econ.owned=Array.isArray(econ.owned)?econ.owned:[];econ.equipped=econ.equipped&&typeof econ.equipped==="object"?econ.equipped:{};econ.t=+econ.t||0;if(typeof econ.daily!=="string")econ.daily=""}
+function normEcon(){if(!econ||typeof econ!=="object")econ={};econ.coins=Math.max(0,Math.floor(+econ.coins||0));delete econ.inv;econ.owned=Array.isArray(econ.owned)?econ.owned:[];econ.equipped=econ.equipped&&typeof econ.equipped==="object"?econ.equipped:{};econ.t=+econ.t||0;if(typeof econ.daily!=="string")econ.daily="";if(!econ.rl||typeof econ.rl!=="object")econ.rl={}}
 normEcon();
+// Pay a real-life card reward once (kind "u" unlock, "v" view). Returns coins paid.
+function rlPay(key,kind){const id=kind+":"+key;if(econ.rl[id])return 0;econ.rl[id]=1;const n=kind==="u"?COIN_RL_UNLOCK:COIN_RL_VIEW;econ.coins+=n;saveEcon();try{$("hCoins").textContent=econ.coins.toLocaleString();$("casinoBtn").textContent=`🎰 Casino · ${econ.coins.toLocaleString()} coins`}catch(e){}return n}
 function saveEcon(){econ.t=Date.now();LS.set("econ",econ);persist()}
 let runs=LS.get("runs",0);
 let bestBy=LS.get("bestBy",null);if(!bestBy){bestBy={"5.1":{best:LS.get("best",0),dur:LS.get("bestDur",60)}};LS.set("bestBy",bestBy)}
@@ -849,7 +875,10 @@ let selDay=LS.get("selDay","5.2");
 function bestOf(d){return (bestBy[d]||{}).best||0}
 function durOf(d){return (bestBy[d]||{}).dur||60}
 let day=LS.get("day",{streak:0,last:null,freezes:0});
-const TOTAL=180,LT_AT=90,LT_WRONG_SHOW_MS=900; // LT_WRONG_SHOW_MS: a wrong lightning answer ends the round after showing the right answer this long
+// LT_WRONG_SHOW_MS: a wrong lightning answer shows the right answer this long, then the round ends
+const TOTAL=180,LT_AT=90,LT_WRONG_SHOW_MS=3000;
+// Review Rush: after a miss, that skill keeps coming back until you get it right this many times in a row
+const FIX_STREAK=2;
 
 let ac=null,sound=LS.get("sound",true);
 function beep(f,d=.09,type="sine",v=.14,delay=0){if(!sound||!ac)return;try{const t=ac.currentTime+delay,o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g).connect(ac.destination);o.start(t);o.stop(t+d)}catch(e){}}
@@ -1042,11 +1071,8 @@ const DAYS={"5.1":{n:1,t:"5.1 nth roots and rational exponents",mix:"Rush uses o
 "5.2":{n:2,t:"5.2 Properties of rational exponents and radicals",mix:"Rush uses only 5.2 questions",rules:`<div class="rules52 mono"><div>a<sup>m</sup> · a<sup>n</sup> = a<sup>m+n</sup></div><div>a<sup>m</sup> / a<sup>n</sup> = a<sup>m−n</sup></div><div>(a<sup>m</sup>)<sup>n</sup> = a<sup>mn</sup></div><div>ⁿ√a · ⁿ√b = ⁿ√(ab)</div></div>`}};
 const LATEST="5.2";
 function setDay(d){if(!DAYS[d])return;if(!dayUnlocked(d)){const pv=DAY_ORDER[DAY_ORDER.indexOf(d)-1];$("dnote").textContent=`Day ${DAYS[d].n} unlocks after you pass the Day ${DAYS[pv].n} final quiz. First master all ${LESSONS[pv].length} Day ${DAYS[pv].n} skills (${masteredCount(pv)} of ${LESSONS[pv].length} so far).`;beep(200,.12,"square",.05);return}selDay=d;LS.set("selDay",d);openSkill=null;beep(700,.05);home()}
-function renderReview(){
-  const box=$("revCard");box.innerHTML="";const d=dueReviews();
-  if(d.length){box.className="card revcard";box.innerHTML=`<div class="rv-t">${d.length} old skill${d.length>1?"s":""} ready for a quick review</div><div class="mute rv-s">${d.map(k=>TAGS[k]).join(" · ")}</div><div class="mute rv-s">Spaced review keeps them fresh for the unit test. Each right answer pushes the next review further out.</div>`;box.appendChild(mkBtn("big rvbtn",`Quick review · ${d.length} question${d.length>1?"s":""}`,()=>start({reviewDue:true})))}
-  else{const nr=nextReview();box.className="";if(nr)box.innerHTML=`<div class="mute rv-next">Next quick review: ${TAGS[nr.k]} ${inDays(nr.due)}</div>`}
-}
+// The quick-review card was removed at the student's request (Nov 16); spaced review data is kept but no longer offered.
+function renderReview(){const box=$("revCard");box.innerHTML="";box.className=""}
 // ---- Real life: one practical use per skill. A card unlocks when its skill is mastered. ----
 const RL_TEASER={"5.1":"Pianos, cameras, tsunamis and savings accounts all run on today's roots.","5.2":"Crash investigators, carpenters and biologists use today's rules."};
 const RL_ANIM_MS=650; // unlock animation length
@@ -1071,7 +1097,7 @@ function rlAsk(R0,key,inner){const A=R0.ask,box=document.createElement("div");bo
     hd.appendChild(mkBtn("small","▶ Replay",()=>api.play&&api.play()));
     const wait=anim?A.steps.length*380+350:150;setTimeout(()=>{scene.classList.remove("hidden");if(api.play&&ui.isConnected)api.play()},wait)};
   // No quiz here: the question is just shown, and one tap reveals the answer, the steps, then the play-out
-  ch.appendChild(mkBtn("big rl-show","Show me the answer",()=>{done[key]=1;LS.set("rlDone",done);reveal(true)}));
+  ch.appendChild(mkBtn("big rl-show",econ.rl["v:"+key]?"Show me the answer":`Show me the answer · +${COIN_RL_VIEW} 🪙`,()=>{done[key]=1;LS.set("rlDone",done);const n=rlPay(key,"v");if(n){popup(`+${n} 🪙`,"var(--hot)");beep(1320,.12,"triangle",.1)}reveal(true)}));
   if(done[key])reveal(false)}
 function rlSvg(el,vb){const v=document.createElementNS("http://www.w3.org/2000/svg","svg");v.setAttribute("viewBox",vb);v.setAttribute("class","rl-svg");el.appendChild(v);return v}
 function rlOut(el,cls){const d=document.createElement("div");d.className="rl-out"+(cls?" "+cls:"");el.appendChild(d);return d}
@@ -1230,6 +1256,8 @@ function renderReal(){const box=$("real");if(!box)return;const d=selDay,ks=LESSO
     c.querySelector(".rl-head").onclick=()=>openIt(!c.classList.contains("open"));openIt(wasOpen);
     box.appendChild(c);if(isNew)fresh.push(d+":"+k)});
   if(fresh.length&&hTab!=="real"){const tb=document.querySelector('#htabs [data-t="real"]');if(tb)tb.classList.add("newdot")}
+  // Unlock reward for every open card not paid yet (also covers cards unlocked before this existed)
+  {let got=0;ks.filter(open).forEach(k=>{if(REAL[k])got+=rlPay(d+":"+k,"u")});if(got){popup(`Real life unlocked<div style="font-size:16px">+${got} 🪙</div>`,"var(--hot)");beep(1047,.15,"triangle",.1)}}
   if(fresh.length){LS.set("rlSeen",seen.concat(fresh));
     box.querySelectorAll(".rl-card.new").forEach((c,i)=>{c.style.animationDelay=(i*120)+"ms";setTimeout(()=>c.classList.remove("new"),RL_ANIM_MS+i*120+1400)})}}
 
@@ -1425,7 +1453,7 @@ async function initCloud(){
     if(!$("home").classList.contains("hidden"))home();
   }catch(e){clearTimeout(timer);setSync("retry")}
 }
-function show(id){curScreen=id;["home","learn","game","end","train","casino","profile"].forEach(s=>$(s).classList.toggle("hidden",s!==id));setTimeout(musUpdate,0);const cv=id==="game"||id==="learn";$("calcBtn").classList.toggle("hidden",!cv);if(!cv&&calcOpen)toggleCalc(false);}
+function show(id){curScreen=id;["home","learn","game","end","train","casino","profile","check"].forEach(s=>$(s).classList.toggle("hidden",s!==id));setTimeout(musUpdate,0);const cv=id==="game"||id==="learn";$("calcBtn").classList.toggle("hidden",!cv);if(!cv&&calcOpen)toggleCalc(false);}
 
 function start(f){
   let focus=null,pool=null,label=null;
@@ -1453,7 +1481,7 @@ function frame(dt){
   if(st.done)return;musUpdate();
   if(st.quiz){const N=st.qlist.length;$("tm").textContent=`${Math.min(st.qi+1,N)}/${N}`;$("cb").textContent=`${Math.ceil(N*QUIZ_PASS_FRAC)}`;$("tf").style.width=(st.qi/N*100)+"%";$("tf").style.background="var(--root)";$("bn").textContent="Final quiz · no timer · no hints until you answer";$("vs").textContent="";return}
   if(st.mode==="lt"){
-    st.ltTime-=dt;$("ex").textContent=Math.max(0,Math.ceil(st.ltTime))+"s";
+    if(!st.ltWrong)st.ltTime-=dt;$("ex").textContent=Math.max(0,Math.ceil(st.ltTime))+"s";
     $("bn").textContent="Lightning round: tap fast";
     if(st.ltTime<=0)endLightning();
     return;
@@ -1495,13 +1523,14 @@ function next(){
   else if(st.reviewOnly){const d=dueReviews();if(!d.length){st.allDone=true;return finish()}k=pick(d);rv=true}
   else{
   if(!st.review)st.queue=st.queue.filter(q=>lvl(q.key)<3);
+  if(st.review&&st.fix){k=st.fix.key;rematch=true}else{
   const due=st.queue.findIndex(q=>q.at<=st.qn);
   if(due>=0){k=st.queue.splice(due,1)[0].key;rematch=true}
   else{const pool=playPool();if(!pool.length){st.allDone=true;return finish()}do{k=pick(pool)}while(k===lastKey&&pool.length>1)}
-  }
+  }}
   lastKey=k;
   const p=GEN[k]();st.cur={...p,key:k,rematch,rv};if(rv)st.revCount++;
-  $("tg").textContent=rv?"Quick review: "+TAGS[k]:rematch?"Rematch: "+TAGS[k]:TAGS[k];$("tg").classList.toggle("rm",rematch||rv);
+  $("tg").textContent=rv?"Quick review: "+TAGS[k]:st.fix&&st.fix.key===k?`Rematch: ${TAGS[k]} · ${st.fix.got} of ${FIX_STREAK} in a row`:rematch?"Rematch: "+TAGS[k]:TAGS[k];$("tg").classList.toggle("rm",rematch||rv);
   $("qt").innerHTML=p.q;$("ex").innerHTML=p.ex;setQM(k,false);if(st.quiz){$("qm").classList.add("hidden");$("tg").textContent=`Question ${st.qi+1}`}
   $("why").classList.add("hidden");$("go").classList.add("hidden");
   const box=$("opts");box.innerHTML="";
@@ -1621,7 +1650,9 @@ function resolve(ok){
     st.score+=pts;st.time=Math.min(TOTAL,st.time+1);
     const up=mult()>before;
     let extra="";
-    if(red)extra+='<div style="font-size:16px">rematch won</div>';
+    let fixMsg="";if(st.fix&&st.fix.key===mk){st.fix.got++;if(st.fix.got>=FIX_STREAK){st.fix=null;fixMsg="fixed · back to all skills"}else fixMsg=`${st.fix.got} of ${FIX_STREAK} in a row`}
+    if(fixMsg)extra+=`<div style="font-size:16px">${fixMsg}</div>`;
+    else if(red)extra+='<div style="font-size:16px">rematch won</div>';
     else if(speed>=45)extra+='<div style="font-size:16px">fast</div>';
     if(up)extra+=`<div style="font-size:20px">combo ×${mult()}</div>`;
     if(mg>0)extra+=`<div style="font-size:15px;color:var(--good)">+${mg} progress · ${mo.xp}/${MX}</div>`;
@@ -1637,7 +1668,7 @@ function resolve(ok){
   }else{
     $("qc").classList.remove("shake");void $("qc").offsetWidth;$("qc").classList.add("shake");
     st.time-=3;st.miss[st.cur.key]=(st.miss[st.cur.key]||0)+1;
-    st.queue.push({key:st.cur.key,at:st.qn+ri(2,4)});
+    if(st.review)st.fix={key:st.cur.key,got:0};else st.queue.push({key:st.cur.key,at:st.qn+ri(2,4)});
     let note="−3s";
     st.streak=0;if(mg<0)note+=` · −${-mg} mastery`
     if(revMsg)note+=" · "+revMsg;
@@ -1670,8 +1701,9 @@ function ltAnswer(v){
   if(ok){addCoins(COIN_PER_LT);st.score+=100;st.ltScore+=100;$("sc").textContent=st.score.toLocaleString();beep(900+st.ltScore/5,.06);flash("fok");setTimeout(ltNext,160)}
   else{bs[v?0:1].classList.add("no");beep(160,.15,"square",.07);flash("fbad");buzz(40);
     // A wrong answer ends the lightning round: show the right answer for a moment, then back to Rush.
-    $("why").innerHTML=st.lt.why;$("why").classList.remove("hidden");st.ltWrong=true;
-    setTimeout(()=>{if(st.mode==="lt")endLightning()},LT_WRONG_SHOW_MS)}
+    $("why").innerHTML=`<b>Not quite.</b> ${st.lt.why}`;$("why").classList.remove("hidden");st.ltWrong=true;const tok=st.ltTok=(st.ltTok||0)+1;
+    const go=()=>{if(st.mode==="lt"&&st.ltTok===tok)endLightning()};$("why").appendChild(mkBtn("big","Got it ›",go));
+    setTimeout(go,LT_WRONG_SHOW_MS)}
 }
 function endLightning(){
   st.mode="main";$("qc").classList.remove("ltcard");$("tg").classList.remove("rm");
@@ -1850,6 +1882,23 @@ function openProfile(){openMount("profile","profileMount","RRProfile","Profile i
 function renderProfBtn(){const b=$("profBtn");if(!b)return;let h="👤";
   try{if(window.RRProfile&&RRProfile.avatarSVG)h=RRProfile.avatarSVG({equipped:econ.equipped,size:34,crop:"head"})}catch(e){}
   b.innerHTML=h}
+// ---- Homework checker: type a problem, see the answer (solver.js). Visually quiet on purpose. ----
+const HK_KEYS=["√","∛","root(",  "^","(",")","x","=","/","−"];
+function hkRun(){const v=$("hkIn").value;LS.set("hkLast",v);const r=window.RRSolve?RRSolve.solve(v):{ok:false,msg:""};
+  $("hkTyped").innerHTML=r.ok?"Reading it as: "+r.typed:"";
+  if(!v.trim()){$("hkOut").innerHTML="";return}
+  if(!r.ok){$("hkOut").innerHTML=`<div class="hk-sub">${r.msg||"Keep typing…"}</div>`;return}
+  let h=`<div class="hk-ans">${r.answer}</div>`;
+  if(r.alt)h+=`<div class="hk-sub">= ${r.alt}</div>`;
+  if(r.decimal)h+=`<div class="hk-sub">${r.kind==="solve"?r.decimal:"≈ "+r.decimal}</div>`;
+  if(r.note)h+=`<div class="hk-sub">${r.note}</div>`;
+  if(r.steps&&r.steps.length)h+=`<details class="hk-st"><summary>Steps</summary><ol>${r.steps.map(s=>`<li>${s.m}<span>${s.c}</span></li>`).join("")}</ol></details>`;
+  $("hkOut").innerHTML=h}
+function hkIns(t){const i=$("hkIn"),a=i.selectionStart??i.value.length,b=i.selectionEnd??a;i.value=i.value.slice(0,a)+t+i.value.slice(b);const c=a+t.length;i.setSelectionRange(c,c);hkRun()}
+$("hkKeys").innerHTML="";HK_KEYS.forEach(k=>{const b=document.createElement("button");b.type="button";b.textContent=k==="root("?"ⁿ√":k;b.onpointerdown=e=>e.preventDefault();b.onclick=()=>hkIns(k==="root("?"root(":k===")"?")":k);$("hkKeys").appendChild(b)});
+$("hkIn").oninput=hkRun;
+function openCheck(){show("check");window.scrollTo(0,0);$("hkIn").value=LS.get("hkLast","");hkRun()}
+$("checkBtn").onclick=openCheck;$("kHome").onclick=home;
 $("casinoBtn").onclick=openCasino;$("coinChip").onclick=openCasino;$("profBtn").onclick=openProfile;$("cHome").onclick=home;$("pHome").onclick=home;
 home();
 initCloud();
