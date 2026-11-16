@@ -296,7 +296,7 @@
     ".cz-inl{animation:cz-inl .4s ease-out both}@keyframes cz-inl{from{transform:scale(1.25);opacity:0}to{transform:none;opacity:1}}",
     // lobby
     ".cz-room{display:flex;justify-content:center}",
-    ".cz-roomsvg{width:100%;height:auto;display:block;border-radius:14px;box-shadow:0 0 0 2px #7a5513,0 6px 24px rgba(0,0,0,.5);-webkit-tap-highlight-color:transparent}",
+    ".cz-roomsvg{width:100%;height:auto;max-width:100%;margin:0 auto;display:block;border-radius:14px;box-shadow:0 0 0 2px #7a5513,0 6px 24px rgba(0,0,0,.5);-webkit-tap-highlight-color:transparent}",
     ".cz-spot{cursor:pointer;outline:none}",
     ".cz-spot:focus-visible{outline:2px solid #ffe08a}",
     ".cz-spot:not(.can){opacity:.62}",
@@ -311,6 +311,19 @@
     "@keyframes cz-twinkle{0%,70%,100%{opacity:0;transform:scale(.3)}80%{opacity:.9;transform:scale(1)}90%{opacity:0;transform:scale(.5)}}",
     ".cz-drift{opacity:0;animation:cz-drift 13s ease-in-out infinite}",
     "@keyframes cz-drift{0%{opacity:0;transform:translateY(0)}10%,60%{opacity:.9}100%{opacity:0;transform:translateY(-46px)}}",
+    // patrons at the tables: a gentle bob, a hand that reaches for the table now and then
+    ".cz-pp{transform-box:fill-box;transform-origin:50% 100%;animation:cz-bob 3.2s ease-in-out infinite}",
+    "@keyframes cz-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-1.3px)}}",
+    ".cz-hd{transform-box:fill-box;transform-origin:50% 100%;animation:cz-look 7s ease-in-out infinite}",
+    "@keyframes cz-look{0%,40%,100%{transform:rotate(0)}48%,62%{transform:rotate(-9deg)}70%,88%{transform:rotate(7deg)}}",
+    ".cz-hand{transform-box:fill-box;animation:cz-reach 5s ease-in-out infinite}",
+    "@keyframes cz-reach{0%,55%,100%{transform:translate(0,0)}65%,80%{transform:translate(var(--rx,3px),-9px)}}",
+    // blurred, living casino behind a game
+    ".cz-bg{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;opacity:0;transition:opacity .5s;background:#3b0812}",
+    ".cz-bg.on{opacity:1}",
+    ".cz-bg svg{width:100%;height:100%;display:block;filter:blur(6px) brightness(.6) saturate(1.15);transform:scale(1.06)}",
+    ".cz-bg .cz-glow{opacity:.35}",
+    "@media (prefers-reduced-motion:reduce){.cz-pp,.cz-hd,.cz-hand{animation:none}}",
     ".cz-spin{transform-box:fill-box;transform-origin:center;animation:cz-rot 40s linear infinite}",
     "@keyframes cz-rot{to{transform:rotate(360deg)}}",
     // game shell
@@ -541,6 +554,7 @@
   // ---------- the casino room (lobby) ----------
   var SPOT_NAMES = { bj: "Blackjack", sl: "Slots", ro: "Roulette", hl: "Higher / Lower", ba: "Baccarat", vp: "Video Poker", cr: "Craps" };
   var LOBBY_H = 764;  // lobby drawing height (it is 360 wide)
+  var LOBBY_FIT_GAP = 32; // px kept free under the floor when it is shrunk to fit the screen (covers the page's bottom padding)
 
   function lobbySvg(can) {
     var i, k, x, n, s = [];
@@ -551,6 +565,16 @@
       return '<rect x="' + (cx - w / 2) + '" y="' + y + '" width="' + w + '" height="30" rx="8" fill="url(#czl-gold)" stroke="#6b4a10" stroke-width="1.5"/>' +
         '<text x="' + cx + '" y="' + (y + 13) + '" text-anchor="middle" font-size="11.5" font-weight="800" fill="#3a2408" font-family="inherit">' + name + "</text>" +
         '<text x="' + cx + '" y="' + (y + 25) + '" text-anchor="middle" font-size="9.5" font-weight="700" fill="#5a3b0c" font-family="inherit">min bet ' + MIN_BET + "</text>";
+    }
+    // A patron seen from behind: shoulders, head with hair, one hand that reaches for the table.
+    var PP = [["#2b6cb0", "#2a1a10", "#f1c7a0"], ["#c0392b", "#111", "#8d5a3b"], ["#1f8a5b", "#6b3f1f", "#e6b08a"], ["#7a4bc2", "#d9a441", "#f3d2b5"],
+      ["#e07b24", "#3a2414", "#c58c62"], ["#d6d6d6", "#1d1d1d", "#6e432a"], ["#e0557e", "#7a2a12", "#f1c7a0"], ["#25303d", "#b9b9b9", "#e8b894"]];
+    function person(x, y, i, sc, rx) {
+      var c = PP[i % PP.length], d = ((i * 0.83) % 3).toFixed(2), d2 = ((i * 1.37) % 5).toFixed(2);
+      return '<g transform="translate(' + x + " " + y + ") scale(" + (sc || 1) + ')"><g class="cz-pp" style="animation-delay:-' + d + 's">' +
+        '<circle class="cz-hand" style="animation-delay:-' + d2 + "s;--rx:" + (rx || 3) + 'px" cx="' + (rx < 0 ? -11 : 11) + '" cy="-6" r="3.3" fill="' + c[2] + '"/>' +
+        '<path d="M-14 6 Q-14 -8 0 -9 Q14 -8 14 6 Z" fill="' + c[0] + '" stroke="#000" stroke-opacity=".35" stroke-width="1"/>' +
+        '<g class="cz-hd" style="animation-delay:-' + d2 + 's"><circle cy="-15" r="7" fill="' + c[2] + '"/><path d="M-7 -15 A7 7 0 0 1 7 -15 L7 -12 Q0 -9 -7 -12 Z" fill="' + c[1] + '"/></g></g></g>';
     }
     s.push('<svg class="cz-roomsvg" viewBox="0 0 360 ' + LOBBY_H + '" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Root Rush Casino floor">');
     s.push("<defs>",
@@ -594,6 +618,7 @@
       s.push('<rect x="' + (x + 10) + '" y="150" width="58" height="12" rx="3" fill="#1b0509"/><circle cx="' + (x + 22) + '" cy="156" r="3" fill="#f0b72c"/><circle cx="' + (x + 33) + '" cy="157" r="3" fill="#f0b72c"/>');
       s.push('<line x1="' + (x + 83) + '" y1="102" x2="' + (x + 83) + '" y2="126" stroke="#d8d8d8" stroke-width="2.5"/><circle cx="' + (x + 83) + '" cy="98" r="5" fill="#e03030" stroke="#7a0a0a"/>');
     }
+    s.push(person(62, 176, 0, 1, 4), person(274, 176, 3, 1, -4));
     s.push(plaque(180, 170, 150, "SLOTS"));
     s.push("</g>");
 
@@ -608,6 +633,7 @@
     s.push('<g transform="translate(100 262)"><rect x="-17" y="0" width="15" height="21" rx="2" fill="#fff" transform="rotate(-6)"/><rect x="2" y="0" width="15" height="21" rx="2" fill="#fff" transform="rotate(8)"/><text x="-9.5" y="15" font-size="10" text-anchor="middle" transform="rotate(-6)">♠</text><text x="9.5" y="16" font-size="10" fill="#c0392b" text-anchor="middle" transform="rotate(8)">♦</text></g>');
     s.push('<ellipse cx="52" cy="266" rx="9" ry="5" fill="none" stroke="#e8c05a" stroke-dasharray="2 2"/><circle cx="52" cy="268" r="5" fill="#c0392b" stroke="#fff"/><circle cx="52" cy="264" r="5" fill="#2b6cb0" stroke="#fff"/><circle cx="52" cy="260" r="5" fill="#1c1c1c" stroke="#fff"/>');
     [[55, 314], [100, 322], [145, 314]].forEach(function (p) { s.push('<circle cx="' + p[0] + '" cy="' + p[1] + '" r="7.5" fill="#3b0a14" stroke="#e8c05a" stroke-width="1.5"/>'); });
+    s.push(person(55, 318, 1, 1, 4), person(145, 318, 4, 1, -4));
     s.push(plaque(100, 334, 124, "BLACKJACK"));
     s.push("</g>");
 
@@ -623,6 +649,7 @@
     }
     s.push('<circle cx="304" cy="262" r="4.5" fill="#e8c05a" stroke="#fff"/><circle cx="321" cy="274" r="4.5" fill="#2b6cb0" stroke="#fff"/>');
     [[225, 320], [276, 322], [327, 320]].forEach(function (p) { s.push('<circle cx="' + p[0] + '" cy="' + p[1] + '" r="6.5" fill="#3b0a14" stroke="#e8c05a" stroke-width="1.5"/>'); });
+    s.push(person(225, 324, 2, 1, 4), person(327, 324, 6, 1, -4));
     s.push(plaque(276, 334, 124, "ROULETTE"));
     s.push("</g>");
 
@@ -636,6 +663,7 @@
     s.push('<g transform="translate(184 394)"><rect width="22" height="30" rx="3" fill="#a01c34" stroke="#fff"/></g>');
     s.push('<text x="236" y="412" font-size="13" fill="#ffe08a" text-anchor="middle" font-weight="800" font-family="inherit">▲</text><text x="236" y="426" font-size="13" fill="#ffe08a" text-anchor="middle" font-weight="800" font-family="inherit">▼</text><text x="272" y="420" font-size="14" fill="#ffe08a" text-anchor="middle" font-weight="800" font-family="inherit">x50</text>');
     [[100, 446], [180, 450], [260, 446]].forEach(function (p) { s.push('<circle cx="' + p[0] + '" cy="' + p[1] + '" r="7" fill="#3b0a14" stroke="#e8c05a" stroke-width="1.5"/>'); });
+    s.push(person(260, 450, 5, 1, -4));
     s.push(plaque(180, 460, 150, "HIGHER / LOWER"));
     s.push("</g>");
 
@@ -649,6 +677,7 @@
     s.push('<g transform="translate(86 538)"><rect x="-17" y="0" width="16" height="22" rx="2" fill="#fff" transform="rotate(-6)"/><rect x="1" y="0" width="16" height="22" rx="2" fill="#fff" transform="rotate(6)"/><text x="9" y="15" font-size="10" fill="#c0392b" text-anchor="middle" transform="rotate(6)">♥</text><text x="-9" y="14" font-size="10" text-anchor="middle" transform="rotate(-6)">♠</text></g>');
     s.push('<g transform="translate(246 538)"><rect x="-17" y="0" width="16" height="22" rx="2" fill="#fff" transform="rotate(-6)"/><rect x="1" y="0" width="16" height="22" rx="2" fill="#fff" transform="rotate(6)"/><text x="9" y="15" font-size="10" text-anchor="middle" transform="rotate(6)">♣</text><text x="-9" y="14" font-size="10" fill="#c0392b" text-anchor="middle" transform="rotate(-6)">♦</text></g>');
     s.push('<circle cx="314" cy="548" r="5" fill="#1c1c1c" stroke="#fff"/><circle cx="314" cy="544" r="5" fill="#c0392b" stroke="#fff"/>');
+    s.push(person(72, 596, 7, 1, 3), person(290, 596, 2, 1, -3));
     s.push(plaque(180, 594, 150, "BACCARAT"));
     s.push("</g>");
 
@@ -679,6 +708,7 @@
     });
     s.push('<circle cx="312" cy="672" r="9" fill="#fff" stroke="#111" stroke-width="2"/><text x="312" y="675.5" text-anchor="middle" font-size="8.5" font-weight="900" fill="#111" font-family="inherit">ON</text>');
     s.push('<text x="264" y="703" text-anchor="middle" font-size="8" font-weight="900" fill="#f0cf74" letter-spacing="2" font-family="inherit">PASS LINE</text>');
+    s.push(person(336, 712, 4, 1, -5));
     s.push(plaque(264, 726, 124, "CRAPS"));
     s.push("</g>");
 
@@ -721,8 +751,8 @@
     var ba = { phase: "bet", on: "player", betOn: "player", bet: 0, res: null, msg: "", win: null, hist: [], visP: [], visB: [] };
     var cr = { phase: "bet", point: null, show: null, bet: 0, d: [4, 3], msg: "", win: null };
 
-    el.innerHTML = '<div class="cz"><div class="cz-head"><div id="cz-left"></div><div class="cz-plaque" id="cz-coins"></div></div><div class="cz-stage" id="cz-stage"></div></div>';
-    var rootEl = el.firstChild;
+    el.innerHTML = '<div class="cz-bg" aria-hidden="true"></div><div class="cz"><div class="cz-head"><div id="cz-left"></div><div class="cz-plaque" id="cz-coins"></div></div><div class="cz-stage" id="cz-stage"></div></div>';
+    var bgEl = el.firstChild, rootEl = el.children[1];
     var leftEl = rootEl.querySelector("#cz-left");
     var coinsEl = rootEl.querySelector("#cz-coins");
     var stage = rootEl.querySelector("#cz-stage");
@@ -1487,7 +1517,21 @@
       else if (view === "ba") { stage.innerHTML = baSkel(); baRestore(); }
       else if (view === "cr") { stage.innerHTML = crSkel(); crRestore(); }
       else { stage.innerHTML = hlSkel(); hlRestore(); }
+      // While a game is open, the casino floor keeps living behind it, blurred
+      if (view === "lobby") { bgEl.classList.remove("on"); bgEl.innerHTML = ""; fitLobby(); }
+      else if (!bgEl.innerHTML) { bgEl.innerHTML = lobbySvg(false).replace('class="cz-roomsvg"', 'preserveAspectRatio="xMidYMid slice"').replace(/ data-a="open"/g, ""); bgEl.classList.add("on"); }
     }
+    // Shrink the floor so the whole thing fits on screen without scrolling (LOBBY_FIT_GAP px left below it)
+    function fitLobby() {
+      var svg = stage.querySelector(".cz-roomsvg"); if (!svg || !globalThis.innerHeight) return;
+      svg.style.height = ""; svg.style.width = "";
+      // measure from the header and the stage's layout width: the stage itself may be mid zoom-animation (transformed)
+      var head = rootEl.querySelector(".cz-head"), mt = parseFloat(getComputedStyle(stage).marginTop) || 0;
+      var top = head.getBoundingClientRect().bottom + (globalThis.scrollY || 0) + mt, room = globalThis.innerHeight - top - LOBBY_FIT_GAP;
+      var full = stage.clientWidth * LOBBY_H / 360;
+      if (room > 200 && full > room) { svg.style.height = room + "px"; svg.style.width = (room * 360 / LOBBY_H) + "px"; }
+    }
+    try { globalThis.addEventListener("resize", function () { if (live() && view === "lobby") fitLobby(); }); } catch (e) { /* ignore */ }
     function go(v, from) {
       if (navBusy || !live() || v === view) return;
       if (v === "lobby" && locked()) return;

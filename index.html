@@ -245,6 +245,7 @@ body.fok{background:var(--goodbg)}body.fbad{background:var(--badbg)}
 .tp-sep{font-size:11px;color:var(--mute);text-transform:uppercase;letter-spacing:.5px;padding:6px 0 2px}
 .tp-new{animation:tpIn .35s ease}@keyframes tpIn{from{background:color-mix(in srgb,var(--hot) 25%,transparent)}to{background:transparent}}
 .wrap{padding-bottom:84px}
+.wrap:has(#casino:not(.hidden)){padding-bottom:0}
 body.calc-open .wrap{padding-bottom:420px}body.calc-open.tape-on .wrap{padding-bottom:600px}
 body.calc-open .calc-fab{display:none}
 .opt.sel,.seg.sel{border-color:var(--root);box-shadow:0 0 0 2px var(--root);background:color-mix(in srgb,var(--root) 14%,transparent)}
