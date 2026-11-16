@@ -299,7 +299,8 @@
     ".cz-roomsvg{width:100%;height:auto;max-width:100%;margin:0 auto;display:block;border-radius:14px;box-shadow:0 0 0 2px #7a5513,0 6px 24px rgba(0,0,0,.5);-webkit-tap-highlight-color:transparent}",
     ".cz-spot{cursor:pointer;outline:none}",
     ".cz-spot:focus-visible{outline:2px solid #ffe08a}",
-    ".cz-spot:not(.can){opacity:.62}",
+    ".cz-vis:not(.can){opacity:.62}",
+    ".cz-vis.can .cz-glow{opacity:.4;animation:cz-breathe 3.4s ease-in-out infinite}",
     ".cz-glow{opacity:0}",
     ".cz-spot.can .cz-glow{opacity:.4;animation:cz-breathe 3.4s ease-in-out infinite}",
     "@keyframes cz-breathe{0%,100%{opacity:.18}50%{opacity:.55}}",
@@ -324,6 +325,19 @@
     ".cz-bg svg{width:100%;height:100%;display:block;filter:blur(6px) brightness(.6) saturate(1.15);transform:scale(1.06)}",
     ".cz-bg .cz-glow{opacity:.35}",
     "@media (prefers-reduced-motion:reduce){.cz-pp,.cz-hd,.cz-hand{animation:none}}",
+    // first-person floor: lights, beams, wins, confetti
+    ".cz-bulb2{animation:cz-chase 2.4s linear infinite}",
+    ".cz-bok{animation:cz-bokp 2.6s ease-in-out infinite}@keyframes cz-bokp{0%,100%{opacity:.35}50%{opacity:.95}}",
+    ".cz-beam{animation:cz-sweep 9s ease-in-out infinite;mix-blend-mode:screen}@keyframes cz-sweep{0%,100%{transform:rotate(-16deg)}50%{transform:rotate(16deg)}}",
+    ".cz-top{animation:cz-topp 1.6s ease-in-out infinite}@keyframes cz-topp{0%,100%{opacity:.55}50%{opacity:1}}",
+    ".cz-scr{opacity:0;animation:cz-scrf 6s steps(1) infinite}@keyframes cz-scrf{0%,8%,16%,24%{opacity:.85}4%,12%,20%,28%,100%{opacity:0}}",
+    ".cz-burst{transform-box:fill-box;transform-origin:center;opacity:0;animation:cz-burstp 6.5s ease-out infinite}@keyframes cz-burstp{0%{opacity:0;transform:scale(.2) rotate(0)}4%{opacity:1;transform:scale(1.1) rotate(10deg)}14%{opacity:1;transform:scale(1) rotate(25deg)}20%,100%{opacity:0;transform:scale(1.25) rotate(40deg)}}",
+    ".cz-coin{opacity:0;animation:cz-coinp 6.5s ease-out infinite}@keyframes cz-coinp{0%{opacity:0;transform:translate(0,0)}3%{opacity:1}16%{opacity:1;transform:translate(var(--dx),-34px)}24%,100%{opacity:0;transform:translate(calc(var(--dx) * 1.4),10px)}}",
+    ".cz-conf{animation:cz-confp 8s linear infinite}@keyframes cz-confp{0%{transform:translate(0,0) rotate(0)}100%{transform:translate(18px,720px) rotate(720deg)}}",
+    ".cz-flk{animation:cz-flick 5s infinite}",
+    ".cz-spin2{transform-box:fill-box;transform-origin:center;animation:cz-rot 6s linear infinite}",
+    ".cz-dice{animation:cz-diceh 3.5s ease-in-out infinite}@keyframes cz-diceh{0%,70%,100%{transform:translateY(0)}80%{transform:translateY(-3px)}}",
+    "@media (prefers-reduced-motion:reduce){.cz-beam,.cz-conf,.cz-burst,.cz-coin,.cz-scr,.cz-bok,.cz-bulb2,.cz-dice{animation:none}.cz-burst,.cz-coin{opacity:0}}",
     ".cz-spin{transform-box:fill-box;transform-origin:center;animation:cz-rot 40s linear infinite}",
     "@keyframes cz-rot{to{transform:rotate(360deg)}}",
     // game shell
@@ -553,177 +567,250 @@
 
   // ---------- the casino room (lobby) ----------
   var SPOT_NAMES = { bj: "Blackjack", sl: "Slots", ro: "Roulette", hl: "Higher / Lower", ba: "Baccarat", vp: "Video Poker", cr: "Craps" };
-  var LOBBY_H = 764;  // lobby drawing height (it is 360 wide)
+  var LOBBY_H = 680;  // lobby drawing height (it is 360 wide)
+  // where each game is tapped on the floor drawing (x, y, w, h in the 360-wide drawing), later entries on top
+  var TAP_ZONES = [
+    ["sl", [[0, 140, 128, 150]]], ["vp", [[232, 140, 128, 150]]],
+    ["bj", [[70, 345, 220, 335], [0, 440, 360, 240]]],
+    ["hl", [[0, 290, 128, 150]]], ["ba", [[232, 290, 128, 150]]],
+    ["ro", [[100, 232, 79, 100]]], ["cr", [[181, 232, 79, 100]]]
+  ];
+  var JACKPOT_START = 1248903; // the jackpot sign starts here and ticks up while you watch
+  var JACKPOT_TICK_MS = 140;   // how often it ticks
   var LOBBY_FIT_GAP = 32; // px kept free under the floor when it is shrunk to fit the screen (covers the page's bottom padding)
 
+  // First-person casino floor: standing in the aisle looking forward. Simple perspective:
+  // a world point (X, Y, z) lands at (VX + X / z, VY + Y / z); the floor is Y = EYE.
   function lobbySvg(can) {
-    var i, k, x, n, s = [];
+    var s = [], i, k;
+    var VX = 180, VY = 250, EYE = 40, H = LOBBY_H;
+    function r1(n) { return Math.round(n * 10) / 10; }
+    function sx(X, z) { return r1(VX + X / z); }
+    function sy(Y, z) { return r1(VY + Y / z); }
+    // drawings sit in plain groups; taps go to the invisible zones laid on top at the end (TAP_ZONES)
+    function vis() { return '<g class="cz-vis' + (can ? " can" : "") + '">'; }
     function spotOpen(id) {
       return '<g class="cz-spot' + (can ? " can" : "") + '" data-a="open" data-v="' + id + '" role="button" tabindex="0" aria-label="' + SPOT_NAMES[id] + ", minimum bet " + MIN_BET + ' coins">';
     }
-    function plaque(cx, y, w, name) {
-      return '<rect x="' + (cx - w / 2) + '" y="' + y + '" width="' + w + '" height="30" rx="8" fill="url(#czl-gold)" stroke="#6b4a10" stroke-width="1.5"/>' +
-        '<text x="' + cx + '" y="' + (y + 13) + '" text-anchor="middle" font-size="11.5" font-weight="800" fill="#3a2408" font-family="inherit">' + name + "</text>" +
-        '<text x="' + cx + '" y="' + (y + 25) + '" text-anchor="middle" font-size="9.5" font-weight="700" fill="#5a3b0c" font-family="inherit">min bet ' + MIN_BET + "</text>";
+    // glowing neon word: white core, colored tube, soft glow
+    function neon(cx, y, txt, col, size, delay) {
+      return '<g class="cz-flk" style="animation-delay:' + delay + 's"><text x="' + cx + '" y="' + y + '" text-anchor="middle" font-size="' + size + '" font-weight="900" letter-spacing="1.2" fill="#fff" stroke="' + col + '" stroke-width="' + r1(size / 7) + '" paint-order="stroke" filter="url(#czl-neon)" font-family="inherit">' + txt + "</text></g>";
     }
-    // A patron seen from behind: shoulders, head with hair, one hand that reaches for the table.
     var PP = [["#2b6cb0", "#2a1a10", "#f1c7a0"], ["#c0392b", "#111", "#8d5a3b"], ["#1f8a5b", "#6b3f1f", "#e6b08a"], ["#7a4bc2", "#d9a441", "#f3d2b5"],
       ["#e07b24", "#3a2414", "#c58c62"], ["#d6d6d6", "#1d1d1d", "#6e432a"], ["#e0557e", "#7a2a12", "#f1c7a0"], ["#25303d", "#b9b9b9", "#e8b894"]];
+    // a player seen from behind (shoulders, head, a hand that reaches for the table)
     function person(x, y, i, sc, rx) {
       var c = PP[i % PP.length], d = ((i * 0.83) % 3).toFixed(2), d2 = ((i * 1.37) % 5).toFixed(2);
-      return '<g transform="translate(' + x + " " + y + ") scale(" + (sc || 1) + ')"><g class="cz-pp" style="animation-delay:-' + d + 's">' +
+      return '<g transform="translate(' + x + " " + y + ") scale(" + sc + ')"><g class="cz-pp" style="animation-delay:-' + d + 's">' +
         '<circle class="cz-hand" style="animation-delay:-' + d2 + "s;--rx:" + (rx || 3) + 'px" cx="' + (rx < 0 ? -11 : 11) + '" cy="-6" r="3.3" fill="' + c[2] + '"/>' +
-        '<path d="M-14 6 Q-14 -8 0 -9 Q14 -8 14 6 Z" fill="' + c[0] + '" stroke="#000" stroke-opacity=".35" stroke-width="1"/>' +
+        '<path d="M-14 8 Q-14 -8 0 -9 Q14 -8 14 8 Z" fill="' + c[0] + '" stroke="#000" stroke-opacity=".35" stroke-width="1"/>' +
         '<g class="cz-hd" style="animation-delay:-' + d2 + 's"><circle cy="-15" r="7" fill="' + c[2] + '"/><path d="M-7 -15 A7 7 0 0 1 7 -15 L7 -12 Q0 -9 -7 -12 Z" fill="' + c[1] + '"/></g></g></g>';
     }
-    s.push('<svg class="cz-roomsvg" viewBox="0 0 360 ' + LOBBY_H + '" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Root Rush Casino floor">');
+    // a dealer facing us: vest, white shirt, bow tie, face
+    function dealer(x, y, i, sc) {
+      var c = PP[(i + 3) % PP.length];
+      return '<g transform="translate(' + x + " " + y + ") scale(" + sc + ')"><g class="cz-pp" style="animation-delay:-' + (i * 0.7 % 3).toFixed(2) + 's">' +
+        '<path d="M-15 10 Q-15 -8 0 -9 Q15 -8 15 10 Z" fill="#15151b"/><path d="M-5 -9 L0 4 L5 -9 Z" fill="#fff"/><path d="M-4 -7 L0 -5 L4 -7 L4 -3 L0 -5 L-4 -3 Z" fill="#d0142c"/>' +
+        '<circle cy="-16" r="7.5" fill="' + c[2] + '"/><path d="M-7.5 -17 A7.5 7.5 0 0 1 7.5 -17 Q4 -21 -7.5 -17 Z" fill="' + c[1] + '"/>' +
+        '<circle cx="-2.6" cy="-16" r=".9" fill="#222"/><circle cx="2.6" cy="-16" r=".9" fill="#222"/><path d="M-2.5 -12.5 Q0 -11 2.5 -12.5" fill="none" stroke="#7a3a2a" stroke-width=".8"/></g></g>';
+    }
+    function chip(x, y, col, r) { return '<circle cx="' + x + '" cy="' + y + '" r="' + r + '" fill="' + col + '" stroke="#fff" stroke-width="' + r1(r * 0.3) + '" stroke-dasharray="' + r1(r * 0.5) + " " + r1(r * 0.4) + '"/>'; }
+
+    s.push('<svg class="cz-roomsvg" viewBox="0 0 360 ' + H + '" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Root Rush Casino floor">');
     s.push("<defs>",
-      '<pattern id="czl-carpet" width="30" height="30" patternUnits="userSpaceOnUse"><rect width="30" height="30" fill="#8a1426"/><path d="M15 2L28 15 15 28 2 15Z" fill="none" stroke="#d3a950" stroke-opacity=".5" stroke-width="1.1"/><path d="M15 9L21 15 15 21 9 15Z" fill="#650d1b"/><circle cx="0" cy="0" r="2.2" fill="#d3a950" fill-opacity=".45"/><circle cx="30" cy="0" r="2.2" fill="#d3a950" fill-opacity=".45"/><circle cx="0" cy="30" r="2.2" fill="#d3a950" fill-opacity=".45"/><circle cx="30" cy="30" r="2.2" fill="#d3a950" fill-opacity=".45"/></pattern>',
-      '<radialGradient id="czl-vig" cx="50%" cy="50%" r="75%"><stop offset="55%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#000" stop-opacity=".55"/></radialGradient>',
-      '<radialGradient id="czl-felt" cx="50%" cy="40%" r="70%"><stop offset="0" stop-color="#22995a"/><stop offset="1" stop-color="#0d5a31"/></radialGradient>',
-      '<radialGradient id="czl-felt2" cx="50%" cy="40%" r="70%"><stop offset="0" stop-color="#2a93ad"/><stop offset="1" stop-color="#0d4558"/></radialGradient>',
-      '<linearGradient id="czl-gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f9e08e"/><stop offset="1" stop-color="#b98a24"/></linearGradient>',
-      '<linearGradient id="czl-blue" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a5fd0"/><stop offset="1" stop-color="#14235a"/></linearGradient>',
-      '<linearGradient id="czl-wood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6b3f22"/><stop offset="1" stop-color="#2e170b"/></linearGradient>',
-      '<linearGradient id="czl-mach" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e0314a"/><stop offset="1" stop-color="#7a0c1e"/></linearGradient>',
+      '<linearGradient id="czl-ceil" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#14031f"/><stop offset=".7" stop-color="#3c0b48"/><stop offset="1" stop-color="#6a1550"/></linearGradient>',
+      '<linearGradient id="czl-floor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a0618"/><stop offset=".35" stop-color="#7a0f2a"/><stop offset="1" stop-color="#a3163a"/></linearGradient>',
+      '<linearGradient id="czl-shade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset=".35" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".45"/></linearGradient>',
+      '<linearGradient id="czl-beam" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>',
+      '<radialGradient id="czl-felt" cx="50%" cy="40%" r="70%"><stop offset="0" stop-color="#25b066"/><stop offset="1" stop-color="#0d5a31"/></radialGradient>',
+      '<radialGradient id="czl-felt2" cx="50%" cy="40%" r="70%"><stop offset="0" stop-color="#2fb3d1"/><stop offset="1" stop-color="#0d4558"/></radialGradient>',
       '<radialGradient id="czl-glow"><stop offset="0" stop-color="#ffe08a" stop-opacity=".9"/><stop offset="1" stop-color="#ffe08a" stop-opacity="0"/></radialGradient>',
-      '<filter id="czl-neon" x="-20%" y="-40%" width="140%" height="180%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>',
+      '<radialGradient id="czl-bokeh"><stop offset="0" stop-color="#fff" stop-opacity=".9"/><stop offset=".4" stop-color="#fff" stop-opacity=".35"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>',
+      '<linearGradient id="czl-gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f9e08e"/><stop offset="1" stop-color="#b98a24"/></linearGradient>',
+      '<filter id="czl-neon" x="-20%" y="-60%" width="140%" height="220%"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>',
+      '<filter id="czl-soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>',
       wheelDefs(), "</defs>");
-    // carpet, wall, trim
-    s.push('<rect width="360" height="' + LOBBY_H + '" fill="url(#czl-carpet)"/><rect width="360" height="' + LOBBY_H + '" fill="url(#czl-vig)"/>');
-    s.push('<rect width="360" height="66" fill="url(#czl-wood)"/><rect y="66" width="360" height="3" fill="url(#czl-gold)"/>');
-    for (i = 0; i < 9; i++) s.push('<rect x="' + (10 + i * 40) + '" y="10" width="22" height="50" rx="3" fill="#000" fill-opacity=".18"/>');
-    s.push('<circle cx="22" cy="40" r="6" fill="#ffe9a0"/><circle cx="22" cy="40" r="16" fill="url(#czl-glow)" opacity=".6"/><circle cx="338" cy="40" r="6" fill="#ffe9a0"/><circle cx="338" cy="40" r="16" fill="url(#czl-glow)" opacity=".6"/>');
-    s.push('<rect x="5" y="5" width="350" height="' + (LOBBY_H - 10) + '" rx="10" fill="none" stroke="url(#czl-gold)" stroke-width="3"/><rect x="10" y="10" width="340" height="' + (LOBBY_H - 20) + '" rx="7" fill="none" stroke="#e8c05a" stroke-opacity=".4" stroke-width="1"/>');
-    // neon sign
-    s.push('<g class="cz-neon"><rect x="52" y="9" width="256" height="50" rx="12" fill="#14060a" stroke="#ff5fa2" stroke-width="2" filter="url(#czl-neon)"/>' +
-      '<text x="180" y="35" text-anchor="middle" font-size="25" font-weight="900" letter-spacing="2.5" fill="#ff7ab5" stroke="#ffb0d3" stroke-width=".6" filter="url(#czl-neon)" font-family="inherit">ROOT RUSH</text>' +
-      '<text x="180" y="52" text-anchor="middle" font-size="12" font-weight="800" letter-spacing="8" fill="#6ff3ff" filter="url(#czl-neon)" font-family="inherit">CASINO</text></g>');
 
-    // slots
-    s.push(spotOpen("sl"));
-    s.push('<ellipse class="cz-glow" cx="180" cy="124" rx="170" ry="62" fill="url(#czl-glow)"/>');
-    s.push('<rect x="18" y="74" width="324" height="124" fill="#000" fill-opacity="0.001"/>');
-    var faces = [["🍒", "🍒", "🍋"], ["🔔", "💎", "🔔"], ["🍋", "🍒", "💎"]];
-    for (i = 0; i < 3; i++) {
-      x = 30 + i * 106;
-      s.push('<rect x="' + x + '" y="82" width="78" height="86" rx="9" fill="url(#czl-mach)" stroke="#e8c05a" stroke-width="2"/>');
-      for (k = 0; k < 6; k++) s.push('<circle class="cz-bulb" cx="' + (x + 9 + k * 12) + '" cy="89" r="2.4" style="animation-delay:' + ((k * 0.2 + i * 0.07).toFixed(2)) + 's"/>');
-      s.push('<rect x="' + (x + 8) + '" y="96" width="62" height="10" rx="3" fill="#2a0610"/><text x="' + (x + 39) + '" y="104.5" text-anchor="middle" font-size="8" font-weight="800" fill="#ffd96a" letter-spacing="2" font-family="inherit">777</text>');
-      s.push('<rect x="' + (x + 8) + '" y="109" width="62" height="34" rx="4" fill="#fff7dc"/>');
-      for (k = 0; k < 3; k++) {
-        s.push('<rect x="' + (x + 10 + k * 20) + '" y="111" width="18" height="30" rx="2" fill="#fff" stroke="#cfc4a0"/><text x="' + (x + 19 + k * 20) + '" y="132" text-anchor="middle" font-size="15">' + faces[i][k] + "</text>");
+    // ---- ceiling, back wall, floor ----
+    s.push('<rect width="360" height="' + VY + '" fill="url(#czl-ceil)"/>');
+    s.push('<rect y="' + VY + '" width="360" height="' + (H - VY) + '" fill="url(#czl-floor)"/>');
+    // ceiling light strips converging on the vanishing point
+    for (i = -6; i <= 12; i++) s.push('<line x1="' + (i * 30) + '" y1="0" x2="' + r1(VX + (i * 30 - VX) * 0.18) + '" y2="' + r1(VY * 0.82) + '" stroke="#ff9be0" stroke-opacity=".10" stroke-width="1"/>');
+    // rows of ceiling lights getting smaller into the distance
+    [0.32, 0.45, 0.65, 0.95, 1.4, 2.1].forEach(function (z, row) {
+      for (var X = -165; X <= 165; X += 55) {
+        var cx = sx(X, z), cy = sy(-62, z), r = r1(2.6 / z);
+        if (cx < -10 || cx > 370) continue;
+        s.push('<circle class="cz-bulb2" style="animation-delay:' + ((row * 0.3 + X / 300) % 2).toFixed(2) + 's" cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="#ffe7a8"/><circle cx="' + cx + '" cy="' + cy + '" r="' + r1(r * 3.2) + '" fill="url(#czl-glow)" opacity=".45"/>');
       }
-      s.push('<line x1="' + (x + 8) + '" y1="126" x2="' + (x + 70) + '" y2="126" stroke="#ff3b3b" stroke-width="1.2" opacity=".85"/>');
-      s.push('<rect x="' + (x + 10) + '" y="150" width="58" height="12" rx="3" fill="#1b0509"/><circle cx="' + (x + 22) + '" cy="156" r="3" fill="#f0b72c"/><circle cx="' + (x + 33) + '" cy="157" r="3" fill="#f0b72c"/>');
-      s.push('<line x1="' + (x + 83) + '" y1="102" x2="' + (x + 83) + '" y2="126" stroke="#d8d8d8" stroke-width="2.5"/><circle cx="' + (x + 83) + '" cy="98" r="5" fill="#e03030" stroke="#7a0a0a"/>');
+    });
+    // far end of the hall: a wall of tiny machine lights (bokeh)
+    s.push('<rect x="0" y="' + (VY - 30) + '" width="360" height="36" fill="#1a0322" opacity=".9"/>');
+    var BOK = ["#ff4fa3", "#ffd23f", "#3ff0ff", "#9b5cff", "#4dff88", "#ff7a2f"];
+    for (i = 0; i < 46; i++) {
+      var bx = (i * 37.7) % 360, by = VY - 26 + ((i * 13) % 26), br = 2 + (i % 4);
+      s.push('<circle class="cz-bok" style="animation-delay:' + ((i * 0.37) % 3).toFixed(2) + 's" cx="' + r1(bx) + '" cy="' + by + '" r="' + br + '" fill="' + BOK[i % BOK.length] + '" opacity=".75"/>');
     }
-    s.push(person(62, 176, 0, 1, 4), person(274, 176, 3, 1, -4));
-    s.push(plaque(180, 170, 150, "SLOTS"));
-    s.push("</g>");
+    // carpet: perspective lines and a gold-edged runner down the middle
+    for (i = -14; i <= 14; i++) s.push('<line x1="' + VX + '" y1="' + VY + '" x2="' + r1(VX + i * 60) + '" y2="' + H + '" stroke="#ffcf6a" stroke-opacity=".10" stroke-width="1"/>');
+    [0.1, 0.13, 0.17, 0.22, 0.29, 0.38, 0.5, 0.68, 0.95, 1.4, 2.2].forEach(function (z) { var y = sy(EYE, z); if (y < H) s.push('<line x1="0" y1="' + y + '" x2="360" y2="' + y + '" stroke="#ffcf6a" stroke-opacity=".09"/>'); });
+    s.push('<path d="M' + sx(-26, 3) + " " + sy(EYE, 3) + " L" + sx(26, 3) + " " + sy(EYE, 3) + " L" + sx(26, 0.06) + " " + sy(EYE, 0.06) + " L" + sx(-26, 0.06) + " " + sy(EYE, 0.06) + 'Z" fill="#4a0618" opacity=".55"/>');
+    s.push('<path d="M' + sx(-26, 3) + " " + sy(EYE, 3) + " L" + sx(-26, 0.06) + " " + sy(EYE, 0.06) + " M" + sx(26, 3) + " " + sy(EYE, 3) + " L" + sx(26, 0.06) + " " + sy(EYE, 0.06) + '" stroke="#ffcf6a" stroke-opacity=".5" stroke-width="1.5"/>');
 
-    // blackjack (half-moon)
-    s.push(spotOpen("bj"));
-    s.push('<ellipse class="cz-glow" cx="100" cy="268" rx="100" ry="76" fill="url(#czl-glow)"/>');
-    s.push('<rect x="10" y="206" width="180" height="158" fill="#000" fill-opacity="0.001"/>');
-    s.push('<path d="M18 218 A82 82 0 0 0 182 218 Z" fill="url(#czl-felt)" stroke="#5a3218" stroke-width="9" stroke-linejoin="round"/>');
-    s.push('<path d="M25 221 A75 75 0 0 0 175 221" fill="none" stroke="#e8c05a" stroke-width="1.2" stroke-opacity=".8"/>');
-    s.push('<path id="czl-bjarc" d="M38 236 Q100 268 162 236" fill="none"/><text font-size="8.5" font-weight="800" fill="#f0cf74" letter-spacing=".8" text-anchor="middle" font-family="inherit"><textPath href="#czl-bjarc" startOffset="50%">BLACKJACK PAYS 3 TO 2</textPath></text>');
-    s.push('<g transform="translate(100 224)"><rect x="-15" y="0" width="13" height="18" rx="2" fill="#fff" transform="rotate(-8)"/><rect x="2" y="0" width="13" height="18" rx="2" fill="#fff" transform="rotate(7)"/><text x="8.5" y="13" font-size="9" fill="#c0392b" text-anchor="middle" transform="rotate(7)">♥</text></g>');
-    s.push('<g transform="translate(100 262)"><rect x="-17" y="0" width="15" height="21" rx="2" fill="#fff" transform="rotate(-6)"/><rect x="2" y="0" width="15" height="21" rx="2" fill="#fff" transform="rotate(8)"/><text x="-9.5" y="15" font-size="10" text-anchor="middle" transform="rotate(-6)">♠</text><text x="9.5" y="16" font-size="10" fill="#c0392b" text-anchor="middle" transform="rotate(8)">♦</text></g>');
-    s.push('<ellipse cx="52" cy="266" rx="9" ry="5" fill="none" stroke="#e8c05a" stroke-dasharray="2 2"/><circle cx="52" cy="268" r="5" fill="#c0392b" stroke="#fff"/><circle cx="52" cy="264" r="5" fill="#2b6cb0" stroke="#fff"/><circle cx="52" cy="260" r="5" fill="#1c1c1c" stroke="#fff"/>');
-    [[55, 314], [100, 322], [145, 314]].forEach(function (p) { s.push('<circle cx="' + p[0] + '" cy="' + p[1] + '" r="7.5" fill="#3b0a14" stroke="#e8c05a" stroke-width="1.5"/>'); });
-    s.push(person(55, 318, 1, 1, 4), person(145, 318, 4, 1, -4));
-    s.push(plaque(100, 334, 124, "BLACKJACK"));
-    s.push("</g>");
+    // ---- sweeping spotlight beams ----
+    [[60, "#ff4fd8", 0], [180, "#3ff0ff", 2.2], [300, "#ffd23f", 4.1]].forEach(function (b) {
+      s.push('<g class="cz-beam" style="transform-origin:' + b[0] + 'px 0px;animation-delay:-' + b[2] + 's"><path d="M' + (b[0] - 4) + " 0 L" + (b[0] + 4) + " 0 L" + (b[0] + 70) + " " + (H * 0.9) + " L" + (b[0] - 70) + " " + (H * 0.9) + 'Z" fill="' + b[1] + '" opacity=".13"/></g>');
+    });
 
-    // roulette
-    s.push(spotOpen("ro"));
-    s.push('<ellipse class="cz-glow" cx="276" cy="262" rx="90" ry="70" fill="url(#czl-glow)"/>');
-    s.push('<rect x="196" y="206" width="158" height="158" fill="#000" fill-opacity="0.001"/>');
-    s.push('<rect x="208" y="216" width="136" height="92" rx="10" fill="url(#czl-felt)" stroke="#5a3218" stroke-width="7"/><rect x="214" y="222" width="124" height="80" rx="6" fill="none" stroke="#e8c05a" stroke-opacity=".7"/>');
-    s.push('<g transform="translate(246 262) scale(.29)"><circle r="108" fill="#4a2a14" stroke="#e8c05a" stroke-width="5"/><circle r="97" fill="#101010"/><g class="cz-spin">' + wheelInner() + "</g></g>");
-    s.push('<rect x="288" y="223" width="50" height="10" rx="2" fill="#0b7a48" stroke="#fff" stroke-opacity=".5" stroke-width=".6"/>');
-    for (n = 1; n <= 18; n++) {
-      s.push('<rect x="' + (288 + ((n - 1) % 3) * 17) + '" y="' + (235 + Math.floor((n - 1) / 3) * 11.5) + '" width="16" height="10.5" rx="2" fill="' + pocketFill(rouletteColor(n)) + '" stroke="#fff" stroke-opacity=".5" stroke-width=".6"/>');
+    // ---- the big sign + jackpot ticker ----
+    s.push('<rect x="58" y="22" width="244" height="106" rx="16" fill="#0d0216" stroke="#ff4fa3" stroke-width="2.5" filter="url(#czl-neon)"/>');
+    for (i = 0; i < 26; i++) s.push('<circle class="cz-bulb" style="animation-delay:' + (i * 0.08).toFixed(2) + 's" cx="' + (66 + i * 9.1) + '" cy="29" r="2.2"/><circle class="cz-bulb" style="animation-delay:' + (1.2 - i * 0.08).toFixed(2) + 's" cx="' + (66 + i * 9.1) + '" cy="121" r="2.2"/>');
+    s.push(neon(180, 66, "ROOT RUSH", "#ff2e93", 32, 0));
+    s.push('<text x="180" y="84" text-anchor="middle" font-size="12" font-weight="900" letter-spacing="9" fill="#bff9ff" stroke="#00d5ff" stroke-width="1.6" paint-order="stroke" filter="url(#czl-neon)" font-family="inherit">CASINO</text>');
+    s.push('<rect x="96" y="91" width="168" height="24" rx="6" fill="#000" stroke="#ffd23f" stroke-opacity=".8"/>');
+    s.push('<text x="104" y="107" font-size="8" font-weight="900" fill="#ffd23f" letter-spacing="1.5" font-family="inherit">JACKPOT</text>');
+    s.push('<text id="czl-jp" x="256" y="108.5" text-anchor="end" font-size="14" font-weight="900" fill="#ffe86b" stroke="#ff9d00" stroke-width=".8" paint-order="stroke" filter="url(#czl-neon)" font-family="inherit">' + JACKPOT_START.toLocaleString("en-US") + "</text>");
+
+    // ---- machine rows: slots on the left, video poker on the right ----
+    var SLOTC = ["#ff2e63", "#9b30ff", "#ffb800", "#00c2b8", "#ff6a00", "#ff3fd2", "#2f8cff"];
+    var VPC = ["#1d4fff", "#7a2bff", "#0aa0ff", "#2c2cc8", "#0fb5a8", "#5a3dff", "#1a7bff"];
+    var ROWZ = [2.4, 1.8, 1.35, 1.02, 0.78, 0.6, 0.47, 0.38];
+    function slotUnit(c, n, win) {
+      var sym = [["#e0142c", "#ffcd1f", "#e0142c"], ["#ffcd1f", "#3fd0ff", "#ffcd1f"], ["#e0142c", "#e0142c", "#e0142c"]][n % 3];
+      var u = '<ellipse class="cz-top" style="animation-delay:-' + (n * 0.4).toFixed(1) + 's" cx="13" cy="0" rx="11" ry="5" fill="' + SLOTC[(n + 3) % SLOTC.length] + '"/>' +
+        '<rect width="26" height="44" rx="2" fill="' + c + '"/><rect width="26" height="44" rx="2" fill="url(#czl-shade)"/>' +
+        '<rect x="2" y="2" width="22" height="4" rx="1" fill="#1a0010"/>';
+      for (var b = 0; b < 5; b++) u += '<circle class="cz-bulb" style="animation-delay:' + ((b * 0.2 + n * 0.13) % 1.2).toFixed(2) + 's" cx="' + (4.5 + b * 4.25) + '" cy="4" r="1.1"/>';
+      u += '<rect x="3" y="8" width="20" height="13" rx="1" fill="#fff6d6"/>';
+      for (b = 0; b < 3; b++) u += '<rect x="' + (3.8 + b * 6.4) + '" y="9" width="5.6" height="11" fill="#fff"/><circle cx="' + (6.6 + b * 6.4) + '" cy="14.5" r="1.9" fill="' + sym[b] + '"/>';
+      if (win) u += '<rect class="cz-scr" x="3" y="8" width="20" height="13" rx="1" fill="#ffe14a"/>';
+      u += '<line x1="3" y1="14.5" x2="23" y2="14.5" stroke="#ff2b2b" stroke-width=".4"/>' +
+        '<rect x="3" y="24" width="20" height="6" rx="1" fill="#1b0509"/><circle cx="7" cy="27" r="1.3" fill="#ffcd1f"/><circle cx="13" cy="27" r="1.3" fill="#3fd0ff"/><circle cx="19" cy="27" r="1.3" fill="#ff3b6b"/>' +
+        '<rect x="2" y="34" width="22" height="8" rx="1" fill="#000" opacity=".35"/>' +
+        '<line x1="27.5" y1="12" x2="27.5" y2="22" stroke="#ddd" stroke-width="1.1"/><circle cx="27.5" cy="11" r="1.8" fill="#e81b30"/>';
+      return u;
     }
-    s.push('<circle cx="304" cy="262" r="4.5" fill="#e8c05a" stroke="#fff"/><circle cx="321" cy="274" r="4.5" fill="#2b6cb0" stroke="#fff"/>');
-    [[225, 320], [276, 322], [327, 320]].forEach(function (p) { s.push('<circle cx="' + p[0] + '" cy="' + p[1] + '" r="6.5" fill="#3b0a14" stroke="#e8c05a" stroke-width="1.5"/>'); });
-    s.push(person(225, 324, 2, 1, 4), person(327, 324, 6, 1, -4));
-    s.push(plaque(276, 334, 124, "ROULETTE"));
-    s.push("</g>");
+    function vpUnit(c, n, win) {
+      var u = '<ellipse class="cz-top" style="animation-delay:-' + (n * 0.5).toFixed(1) + 's" cx="13" cy="0" rx="11" ry="5" fill="#3ff0ff"/>' +
+        '<rect width="26" height="44" rx="2" fill="' + c + '"/><rect width="26" height="44" rx="2" fill="url(#czl-shade)"/>' +
+        '<rect x="3" y="4" width="20" height="18" rx="1" fill="#0a1233" stroke="#ffd23f" stroke-width=".5"/>' +
+        '<line x1="5" y1="7" x2="21" y2="7" stroke="#ffd23f" stroke-width=".5" stroke-opacity=".7"/><line x1="5" y1="9" x2="21" y2="9" stroke="#ffd23f" stroke-width=".5" stroke-opacity=".5"/>';
+      for (var b = 0; b < 5; b++) u += '<rect x="' + (4.3 + b * 3.6) + '" y="12" width="3.1" height="6" rx=".4" fill="#fff"/><circle cx="' + (5.85 + b * 3.6) + '" cy="15" r=".8" fill="' + (b % 2 ? "#111" : "#d0142c") + '"/>';
+      if (win) u += '<rect class="cz-scr" x="3" y="4" width="20" height="18" rx="1" fill="#3ff0ff"/>';
+      for (b = 0; b < 5; b++) u += '<circle class="cz-bulb" style="animation-delay:' + ((b * 0.18 + n * 0.11) % 1.2).toFixed(2) + 's" cx="' + (5.5 + b * 3.75) + '" cy="27" r="1.2"/>';
+      u += '<rect x="2" y="32" width="22" height="10" rx="1" fill="#000" opacity=".3"/>';
+      return u;
+    }
+    var MW = 28, MH = 52; // machine size in world units
+    function row(id, X, unit, cols, label, lcol, lx, wins) {
+      s.push(vis());
+      var near = ROWZ[ROWZ.length - 1];
+      s.push('<ellipse class="cz-glow" cx="' + sx(X, 0.8) + '" cy="' + sy(10, 0.8) + '" rx="80" ry="90" fill="url(#czl-glow)"/>');
+      ROWZ.forEach(function (z, n) {
+        var w = MW / z, h = MH / z, x = sx(X, z) - w / 2, y = sy(EYE, z) - h;
+        s.push('<g transform="translate(' + r1(x) + " " + r1(y) + ") scale(" + (MW / 26 / z).toFixed(3) + " " + (MH / 44 / z).toFixed(3) + ')">' + unit(cols[n % cols.length], n, wins.indexOf(n) >= 0) + "</g>");
+      });
+      // big invisible hit area over the whole row
+      var x0 = Math.max(0, Math.min(sx(X, near) - MW / near / 2, sx(X, 2.4))), x1 = Math.min(360, Math.max(sx(X, near) + MW / near / 2, sx(X, 2.4)));
+      s.push('<rect x="' + r1(x0) + '" y="' + r1(sy(EYE, near) - MH / near - 30) + '" width="' + r1(x1 - x0) + '" height="' + r1(MH / near + 30) + '" fill="#000" fill-opacity="0.001"/>');
+      s.push(neon(lx, 200, label, lcol, X < 0 ? 17 : 13.5, X < 0 ? 1.1 : 3.3));
+      s.push("</g>");
+    }
+    row("sl", -72, slotUnit, SLOTC, "SLOTS", "#ff2e93", 50, [3, 5]);
+    row("vp", 72, vpUnit, VPC, "VIDEO POKER", "#00d5ff", 304, [4]);
 
-    // higher / lower
-    s.push(spotOpen("hl"));
-    s.push('<ellipse class="cz-glow" cx="180" cy="408" rx="150" ry="52" fill="url(#czl-glow)"/>');
-    s.push('<rect x="40" y="368" width="280" height="126" fill="#000" fill-opacity="0.001"/>');
-    s.push('<rect x="52" y="378" width="256" height="58" rx="29" fill="url(#czl-felt2)" stroke="#5a3218" stroke-width="8"/><rect x="60" y="386" width="240" height="42" rx="21" fill="none" stroke="#e8c05a" stroke-opacity=".7"/>');
-    s.push('<rect x="84" y="396" width="20" height="26" rx="3" fill="#a01c34" stroke="#fff" transform="translate(-2 2)"/><rect x="84" y="396" width="20" height="26" rx="3" fill="#a01c34" stroke="#fff"/>');
-    s.push('<g transform="translate(150 394)"><rect width="22" height="30" rx="3" fill="#fff"/><text x="11" y="14" font-size="11" font-weight="800" text-anchor="middle" fill="#1d1d1b">K</text><text x="11" y="26" font-size="11" text-anchor="middle" fill="#1d1d1b">♣</text></g>');
-    s.push('<g transform="translate(184 394)"><rect width="22" height="30" rx="3" fill="#a01c34" stroke="#fff"/></g>');
-    s.push('<text x="236" y="412" font-size="13" fill="#ffe08a" text-anchor="middle" font-weight="800" font-family="inherit">▲</text><text x="236" y="426" font-size="13" fill="#ffe08a" text-anchor="middle" font-weight="800" font-family="inherit">▼</text><text x="272" y="420" font-size="14" fill="#ffe08a" text-anchor="middle" font-weight="800" font-family="inherit">x50</text>');
-    [[100, 446], [180, 450], [260, 446]].forEach(function (p) { s.push('<circle cx="' + p[0] + '" cy="' + p[1] + '" r="7" fill="#3b0a14" stroke="#e8c05a" stroke-width="1.5"/>'); });
-    s.push(person(260, 450, 5, 1, -4));
-    s.push(plaque(180, 460, 150, "HIGHER / LOWER"));
-    s.push("</g>");
+    // ---- tables: far (roulette, craps), middle (higher/lower, baccarat), near (blackjack) ----
+    function at(X, z) { return 'transform="translate(' + sx(X, z) + " " + sy(EYE, z) + ") scale(" + (1 / z).toFixed(3) + ')"'; }
+    function glowAt(X, z, rx) { return '<ellipse class="cz-glow" cx="' + sx(X, z) + '" cy="' + r1(sy(EYE, z) - 10 / z) + '" rx="' + r1(rx / z) + '" ry="' + r1(rx * 0.6 / z) + '" fill="url(#czl-glow)"/>'; }
+    function hit(X, z, w, top) { return '<rect x="' + r1(sx(X, z) - w / 2 / z) + '" y="' + r1(sy(EYE, z) - top / z) + '" width="' + r1(w / z) + '" height="' + r1(top / z) + '" fill="#000" fill-opacity="0.001"/>'; }
+    function skirt(rx, top, col) { return '<path d="M' + (-rx) + " " + (-top) + " L" + (-rx + 2) + " 0 L" + (rx - 2) + " 0 L" + rx + " " + (-top) + 'Z" fill="' + (col || "#3a1d0c") + '"/>'; }
 
-    // baccarat (oval table)
-    s.push(spotOpen("ba"));
-    s.push('<ellipse class="cz-glow" cx="180" cy="552" rx="160" ry="56" fill="url(#czl-glow)"/>');
-    s.push('<rect x="30" y="500" width="300" height="134" fill="#000" fill-opacity="0.001"/>');
-    s.push('<rect x="40" y="506" width="280" height="76" rx="38" fill="url(#czl-felt)" stroke="#5a3218" stroke-width="8"/><rect x="48" y="514" width="264" height="60" rx="30" fill="none" stroke="#e8c05a" stroke-opacity=".7"/>');
-    s.push('<text x="100" y="531" text-anchor="middle" font-size="9" font-weight="800" fill="#8fc2ff" letter-spacing="1.2" font-family="inherit">PLAYER</text><text x="260" y="531" text-anchor="middle" font-size="9" font-weight="800" fill="#ff9aa5" letter-spacing="1.2" font-family="inherit">BANKER</text>');
-    s.push('<circle cx="180" cy="544" r="15" fill="none" stroke="#f0cf74" stroke-width="1.2"/><text x="180" y="548" text-anchor="middle" font-size="10" font-weight="900" fill="#f0cf74" font-family="inherit">TIE</text>');
-    s.push('<g transform="translate(86 538)"><rect x="-17" y="0" width="16" height="22" rx="2" fill="#fff" transform="rotate(-6)"/><rect x="1" y="0" width="16" height="22" rx="2" fill="#fff" transform="rotate(6)"/><text x="9" y="15" font-size="10" fill="#c0392b" text-anchor="middle" transform="rotate(6)">♥</text><text x="-9" y="14" font-size="10" text-anchor="middle" transform="rotate(-6)">♠</text></g>');
-    s.push('<g transform="translate(246 538)"><rect x="-17" y="0" width="16" height="22" rx="2" fill="#fff" transform="rotate(-6)"/><rect x="1" y="0" width="16" height="22" rx="2" fill="#fff" transform="rotate(6)"/><text x="9" y="15" font-size="10" text-anchor="middle" transform="rotate(6)">♣</text><text x="-9" y="14" font-size="10" fill="#c0392b" text-anchor="middle" transform="rotate(-6)">♦</text></g>');
-    s.push('<circle cx="314" cy="548" r="5" fill="#1c1c1c" stroke="#fff"/><circle cx="314" cy="544" r="5" fill="#c0392b" stroke="#fff"/>');
-    s.push(person(72, 596, 7, 1, 3), person(290, 596, 2, 1, -3));
-    s.push(plaque(180, 594, 150, "BACCARAT"));
-    s.push("</g>");
+    // roulette (far left)
+    var zR = 0.8, XR = -34;
+    s.push(vis(), glowAt(XR, zR, 30), hit(XR, zR, 52, 58));
+    s.push("<g " + at(XR, zR) + ">", dealer(0, -15, 1, 0.62), skirt(24, 12),
+      '<ellipse cx="0" cy="-12" rx="25" ry="8" fill="#5a3218"/><ellipse cx="0" cy="-12.6" rx="22.5" ry="6.6" fill="url(#czl-felt)"/>',
+      '<g transform="translate(-10 -12.6) scale(1 .42)"><g transform="scale(.07)"><circle r="108" fill="#4a2a14" stroke="#e8c05a" stroke-width="6"/><circle r="97" fill="#101010"/><g class="cz-spin2">' + wheelInner() + "</g></g></g>");
+    for (k = 0; k < 9; k++) s.push('<rect x="' + (2 + (k % 3) * 5.2) + '" y="' + (-16 + Math.floor(k / 3) * 2.4) + '" width="4.8" height="2.1" fill="' + (k % 2 ? "#141414" : "#c8102e") + '"/>');
+    s.push(chip(9, -12, "#2b6cb0", 1.3), chip(14, -13, "#ffd23f", 1.3), person(-14, 2, 6, 0.5, 3), person(14, 2, 0, 0.5, -3), "</g>");
+    s.push(neon(sx(XR, zR), r1(sy(EYE, zR) - 47 / zR), "ROULETTE", "#ff3b3b", 13, 0.6), "</g>");
 
-    // video poker machine
-    s.push(spotOpen("vp"));
-    s.push('<ellipse class="cz-glow" cx="98" cy="690" rx="90" ry="62" fill="url(#czl-glow)"/>');
-    s.push('<rect x="14" y="638" width="168" height="120" fill="#000" fill-opacity="0.001"/>');
-    s.push('<rect x="24" y="644" width="148" height="72" rx="10" fill="url(#czl-blue)" stroke="#e8c05a" stroke-width="2"/>');
-    s.push('<text x="98" y="657" text-anchor="middle" font-size="8.5" font-weight="900" fill="#ffd96a" letter-spacing="1.4" font-family="inherit">JACKS OR BETTER</text>');
-    s.push('<rect x="32" y="662" width="132" height="40" rx="4" fill="#0a1233" stroke="#e8c05a" stroke-opacity=".6"/>');
-    [["A", "♠", 0], ["K", "♥", 1], ["Q", "♥", 2], ["J", "♠", 3], ["10", "♥", 4]].forEach(function (c) {
-      var cx = 36 + c[2] * 25.6, red = c[1] === "♥";
-      s.push('<rect x="' + cx + '" y="666" width="22" height="32" rx="2" fill="#fff"/><text x="' + (cx + 11) + '" y="679" text-anchor="middle" font-size="10" font-weight="800" fill="' + (red ? "#c0392b" : "#1d1d1b") + '" font-family="inherit">' + c[0] + '</text><text x="' + (cx + 11) + '" y="692" text-anchor="middle" font-size="11" fill="' + (red ? "#c0392b" : "#1d1d1b") + '">' + c[1] + "</text>");
+    // craps (far right)
+    var zC = 0.8, XC = 34;
+    s.push(vis(), glowAt(XC, zC, 30), hit(XC, zC, 52, 58));
+    s.push("<g " + at(XC, zC) + ">", dealer(0, -15, 4, 0.62), skirt(25, 12, "#2a1308"),
+      '<rect x="-26" y="-21" width="52" height="15" rx="7" fill="#5a3218"/><rect x="-23.5" y="-19.5" width="47" height="12" rx="6" fill="url(#czl-felt)"/>',
+      '<path d="M-20 -10 Q0 -6 20 -10" fill="none" stroke="#ffe08a" stroke-width=".6"/>',
+      '<g class="cz-dice"><rect x="-6" y="-17" width="4.2" height="4.2" rx=".8" fill="#e8222f" transform="rotate(-14 -4 -15)"/><rect x="1" y="-16" width="4.2" height="4.2" rx=".8" fill="#e8222f" transform="rotate(18 3 -14)"/><circle cx="-4" cy="-15" r=".5" fill="#fff"/><circle cx="3" cy="-14" r=".5" fill="#fff"/></g>',
+      '<circle cx="15" cy="-15" r="2.2" fill="#fff" stroke="#111" stroke-width=".6"/>',
+      person(-16, 2, 2, 0.5, 3), person(0, 4, 5, 0.5, 3), person(16, 2, 7, 0.5, -3), "</g>");
+    s.push(neon(sx(XC, zC), r1(sy(EYE, zC) - 47 / zC), "CRAPS", "#3dff7a", 13, 2.4), "</g>");
+
+    // higher / lower (middle left)
+    var zH = 0.3, XH = -40;
+    s.push(vis(), glowAt(XH, zH, 26), hit(XH, zH, 46, 46));
+    s.push("<g " + at(XH, zH) + ">", dealer(0, -14, 6, 0.5), skirt(20, 11),
+      '<ellipse cx="0" cy="-11" rx="21" ry="6.5" fill="#5a3218"/><ellipse cx="0" cy="-11.5" rx="19" ry="5.3" fill="url(#czl-felt2)"/>',
+      '<rect x="-12" y="-14.5" width="4.5" height="6" rx=".6" fill="#a01c34" stroke="#fff" stroke-width=".4"/>',
+      '<rect x="-3" y="-15" width="5" height="6.6" rx=".6" fill="#fff"/><text x="-.5" y="-10.4" text-anchor="middle" font-size="4.2" font-weight="900" fill="#c0142c" font-family="inherit">K</text>',
+      '<rect x="5" y="-14.5" width="4.5" height="6" rx=".6" fill="#a01c34" stroke="#fff" stroke-width=".4"/>',
+      '<text x="14" y="-11" font-size="3.6" fill="#ffe08a" font-weight="900" font-family="inherit">▲▼</text>',
+      person(-11, 3, 3, 0.48, 3), person(11, 3, 1, 0.48, -3), "</g>");
+    s.push(neon(r1(Math.max(52, sx(XH, zH))), r1(sy(EYE, zH) - 32 / zH), "HIGHER · LOWER", "#b45cff", 11, 1.7), "</g>");
+
+    // baccarat (middle right)
+    var zB = 0.3, XB = 40;
+    s.push(vis(), glowAt(XB, zB, 26), hit(XB, zB, 46, 46));
+    s.push("<g " + at(XB, zB) + ">", dealer(0, -14, 2, 0.5), skirt(20, 11),
+      '<ellipse cx="0" cy="-11" rx="21" ry="6.5" fill="#5a3218"/><ellipse cx="0" cy="-11.5" rx="19" ry="5.3" fill="url(#czl-felt)"/>',
+      '<text x="-9" y="-12.5" text-anchor="middle" font-size="2.6" font-weight="900" fill="#9cd0ff" font-family="inherit">PLAYER</text><text x="9" y="-12.5" text-anchor="middle" font-size="2.6" font-weight="900" fill="#ffa3ad" font-family="inherit">BANKER</text>',
+      '<ellipse cx="0" cy="-11" rx="3" ry="1.6" fill="none" stroke="#ffe08a" stroke-width=".4"/>',
+      '<rect x="-12" y="-11.5" width="3" height="4" rx=".4" fill="#fff"/><rect x="-8.5" y="-11.5" width="3" height="4" rx=".4" fill="#fff"/><rect x="6" y="-11.5" width="3" height="4" rx=".4" fill="#fff"/><rect x="9.5" y="-11.5" width="3" height="4" rx=".4" fill="#fff"/>',
+      chip(-3, -9, "#c0392b", 1), chip(3, -9, "#111", 1),
+      person(-11, 3, 4, 0.48, 3), person(11, 3, 7, 0.48, -3), "</g>");
+    s.push(neon(r1(Math.min(310, sx(XB, zB))), r1(sy(EYE, zB) - 32 / zB), "BACCARAT", "#ffb21f", 12, 3.9), "</g>");
+
+    // blackjack (close up, right in front of you)
+    var zJ = 0.13;
+    s.push(vis(), glowAt(0, zJ, 24), hit(0, zJ, 46, 34));
+    s.push("<g " + at(0, zJ) + ">", dealer(0, -15.5, 0, 0.42),
+      '<path d="M-21 -15.5 A21 8.5 0 0 0 21 -15.5 Z" fill="#5a3218"/><path d="M-19.2 -15.2 A19.2 7.3 0 0 0 19.2 -15.2 Z" fill="url(#czl-felt)"/>',
+      '<path id="czl-bjarc" d="M-12 -12.8 Q0 -9.6 12 -12.8" fill="none"/><text font-size="1.25" font-weight="900" fill="#f0cf74" letter-spacing=".15" text-anchor="middle" font-family="inherit"><textPath href="#czl-bjarc" startOffset="50%">BLACKJACK PAYS 3 TO 2</textPath></text>',
+      '<rect x="-2.6" y="-15.2" width="2.3" height="3.2" rx=".3" fill="#fff" transform="rotate(-6 -1.5 -13.6)"/><rect x=".3" y="-15.2" width="2.3" height="3.2" rx=".3" fill="#a01c34" stroke="#fff" stroke-width=".15"/>',
+      '<rect x="-12" y="-11.4" width="2.3" height="3.2" rx=".3" fill="#fff" transform="rotate(10 -11 -10)"/><rect x="-9.8" y="-11.2" width="2.3" height="3.2" rx=".3" fill="#fff" transform="rotate(18 -9 -10)"/>',
+      '<rect x="-1.2" y="-10" width="2.3" height="3.2" rx=".3" fill="#fff"/><rect x="1.1" y="-9.9" width="2.3" height="3.2" rx=".3" fill="#fff" transform="rotate(8 2 -8.4)"/>',
+      '<rect x="9.4" y="-11.3" width="2.3" height="3.2" rx=".3" fill="#fff" transform="rotate(-14 10.5 -10)"/><rect x="11.6" y="-11.1" width="2.3" height="3.2" rx=".3" fill="#fff" transform="rotate(-6 12.7 -9.6)"/>',
+      chip(-8, -13.4, "#c0392b", 0.75), chip(-7.3, -13.6, "#2b6cb0", 0.75), chip(8, -13.4, "#1f8a5b", 0.75), chip(0, -7.4, "#ffd23f", 0.75),
+      person(-13, -0.5, 4, 0.38, 3), person(0, 1.8, 7, 0.38, 3), person(13, -0.5, 6, 0.38, -3), "</g>");
+    s.push(neon(VX, r1(sy(EYE, zJ) - 29 / zJ), "BLACKJACK", "#ffe14a", 19, 0.3), "</g>");
+
+    // ---- dopamine layer: win bursts, coins popping, confetti, sparkles ----
+    function burst(cx, cy, sc, delay, col) {
+      var b = '<g transform="translate(' + cx + " " + cy + ") scale(" + sc + ')"><g class="cz-burst" style="animation-delay:' + delay + 's">';
+      for (var a = 0; a < 12; a++) b += '<path d="M-2.2 0 L0 -26 L2.2 0Z" fill="' + (a % 2 ? col : "#fff7c2") + '" transform="rotate(' + a * 30 + ')"/>';
+      b += '<text y="4" text-anchor="middle" font-size="11" font-weight="900" fill="#fff" stroke="' + col + '" stroke-width="2.2" paint-order="stroke" font-family="inherit">WIN!</text></g>';
+      for (a = 0; a < 6; a++) b += '<circle class="cz-coin" style="animation-delay:' + (delay + 0.1 + a * 0.07).toFixed(2) + "s;--dx:" + ((a - 2.5) * 9) + 'px" r="3.2" fill="#ffd23f" stroke="#a87400" stroke-width=".9"/>';
+      return b + "</g>";
+    }
+    var zw = ROWZ[5];
+    s.push(burst(sx(-72, zw), r1(sy(EYE, zw) - MH / zw + 10), 0.9, 0.5, "#ff2e93"));
+    s.push(burst(sx(72, ROWZ[4]), r1(sy(EYE, ROWZ[4]) - MH / ROWZ[4] + 10), 0.75, 3.4, "#00d5ff"));
+    s.push(burst(sx(34, 0.8), r1(sy(EYE, 0.8) - 20 / 0.8), 0.6, 5.6, "#3dff7a"));
+    var CONF = ["#ff2e93", "#ffd23f", "#3ff0ff", "#9b5cff", "#4dff88", "#ff7a2f", "#fff"];
+    for (i = 0; i < 22; i++) {
+      s.push('<rect class="cz-conf" style="animation-delay:-' + ((i * 0.71) % 9).toFixed(2) + "s;animation-duration:" + (7 + (i % 5)) + 's" x="' + r1((i * 47.3 + 11) % 360) + '" y="-12" width="' + (3 + (i % 3)) + '" height="' + (5 + (i % 2) * 2) + '" rx="1" fill="' + CONF[i % CONF.length] + '"/>');
+    }
+    [[30, 150, 0], [330, 160, 1.3], [120, 210, 2.6], [250, 200, 3.4], [70, 420, 4.4], [300, 430, 5.2], [180, 300, 6]].forEach(function (p) {
+      s.push('<g transform="translate(' + p[0] + " " + p[1] + ')"><path class="cz-sp" style="animation-delay:' + p[2] + 's" d="M0-7 L1.6-1.6 7 0 1.6 1.6 0 7-1.6 1.6-7 0-1.6-1.6Z" fill="#fff6c8"/></g>');
     });
-    [48, 73, 98, 123, 148].forEach(function (bx) { s.push('<circle cx="' + bx + '" cy="709" r="3.6" fill="#f0b72c" stroke="#7a5513"/>'); });
-    s.push(plaque(98, 726, 124, "VIDEO POKER"));
-    s.push("</g>");
-
-    // craps
-    s.push(spotOpen("cr"));
-    s.push('<ellipse class="cz-glow" cx="264" cy="690" rx="90" ry="62" fill="url(#czl-glow)"/>');
-    s.push('<rect x="184" y="638" width="168" height="120" fill="#000" fill-opacity="0.001"/>');
-    s.push('<rect x="190" y="646" width="148" height="70" rx="10" fill="url(#czl-felt)" stroke="#5a3218" stroke-width="7"/><rect x="196" y="652" width="136" height="58" rx="6" fill="none" stroke="#e8c05a" stroke-opacity=".7"/>');
-    [[220, 664, -12, 3], [252, 670, 14, 4]].forEach(function (d) {
-      var dx = d[0], dy = d[1], pips = d[3] === 3 ? [[5, 5], [11, 11], [17, 17]] : [[6, 6], [16, 6], [6, 16], [16, 16]];
-      s.push('<g transform="translate(' + dx + " " + dy + ") rotate(" + d[2] + ')"><rect width="22" height="22" rx="4" fill="#d02a35" stroke="#7a0a12"/>' +
-        pips.map(function (p) { return '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="2.1" fill="#fff"/>'; }).join("") + "</g>");
-    });
-    s.push('<circle cx="312" cy="672" r="9" fill="#fff" stroke="#111" stroke-width="2"/><text x="312" y="675.5" text-anchor="middle" font-size="8.5" font-weight="900" fill="#111" font-family="inherit">ON</text>');
-    s.push('<text x="264" y="703" text-anchor="middle" font-size="8" font-weight="900" fill="#f0cf74" letter-spacing="2" font-family="inherit">PASS LINE</text>');
-    s.push(person(336, 712, 4, 1, -5));
-    s.push(plaque(264, 726, 124, "CRAPS"));
-    s.push("</g>");
-
-    // decor: plants, sparkles, drifting chips
-    [[26, 468], [334, 468]].forEach(function (p) {
-      s.push('<g transform="translate(' + p[0] + " " + p[1] + ')"><path d="M-9 4 L9 4 L6 18 L-6 18Z" fill="#6b3f22" stroke="#e8c05a" stroke-width="1"/><circle cx="0" cy="-4" r="9" fill="#1f7a3c"/><circle cx="-7" cy="0" r="6" fill="#2a9a4c"/><circle cx="7" cy="0" r="6" fill="#2a9a4c"/></g>');
-    });
-    [[70, 200, 0], [300, 196, 2.4], [150, 358, 4.1], [30, 270, 5.3], [210, 205, 6.2]].forEach(function (p) {
-      s.push('<g transform="translate(' + p[0] + " " + p[1] + ')"><path class="cz-sp" style="animation-delay:' + p[2] + 's" d="M0-6 L1.5-1.5 6 0 1.5 1.5 0 6-1.5 1.5-6 0-1.5-1.5Z" fill="#ffe9a0"/></g>');
-    });
-    [[46, 360, 1], [340, 380, 6.5], [190, 195, 9]].forEach(function (p) {
-      s.push('<g transform="translate(' + p[0] + " " + p[1] + ')"><g class="cz-drift" style="animation-delay:' + p[2] + 's"><circle r="4.5" fill="#c0392b" stroke="#fff" stroke-width="1.2"/><circle r="2" fill="none" stroke="#fff" stroke-dasharray="1 1.4"/></g></g>');
+    // vignette so the edges stay moody and the middle pops
+    s.push('<rect width="360" height="' + H + '" fill="url(#czl-vig)" pointer-events="none"/>');
+    // tap zones, later ones on top: small far tables last so they win where zones overlap
+    TAP_ZONES.forEach(function (t) {
+      s.push(spotOpen(t[0]) + t[1].map(function (r) { return '<rect x="' + r[0] + '" y="' + r[1] + '" width="' + r[2] + '" height="' + r[3] + '" fill="#000" fill-opacity="0.001"/>'; }).join("") + "</g>");
     });
     s.push("</svg>");
-    return s.join("");
+    return s.join("").replace("<defs>", '<defs><radialGradient id="czl-vig" cx="50%" cy="45%" r="75%"><stop offset="60%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#000" stop-opacity=".55"/></radialGradient>');
   }
 
   // ---------- UI ----------
@@ -1531,6 +1618,11 @@
       var full = stage.clientWidth * LOBBY_H / 360;
       if (room > 200 && full > room) { svg.style.height = room + "px"; svg.style.width = (room * 360 / LOBBY_H) + "px"; }
     }
+    var jp = JACKPOT_START, jpT = setInterval(function () {
+      if (!live()) return clearInterval(jpT);
+      jp += 1 + Math.floor(Math.random() * 37);
+      var t = el.querySelector("#czl-jp"); if (t) t.textContent = jp.toLocaleString("en-US");
+    }, JACKPOT_TICK_MS);
     try { globalThis.addEventListener("resize", function () { if (live() && view === "lobby") fitLobby(); }); } catch (e) { /* ignore */ }
     function go(v, from) {
       if (navBusy || !live() || v === view) return;
