@@ -41,6 +41,8 @@ Root Rush is a phone-first study game for an Algebra 2 class (St. Vrain Valley S
 
 - No black flash between pages (Nov 17): Home tabs only fade on a real tab switch (`.hpane.on.pin`), not when Home reappears; inside the casino, `go()` puts the blurred floor (`bgFill(true)`) behind the stage before it fades, and the lobby keeps it until its fade-in ends.
 
+- Nov 17 polish: app-wide motion (button press scale, `.scr-in` page slide that never starts below opacity .9, `okPop` right-answer glow, `#hCoins`/`#sc` count-up via MutationObserver, `TICK_MS`); Day 3 lessons animate their graph per step (`g53Anim`, `L3_MS`, `anim.frames` in `LEARN53`, graph pinned with `#lCard>#lAnim` sticky) with warm-up steps added inside lessons (not split: `learnedBy` stores lesson positions); casino art-deco polish layer at the end of the casino CSS (gold `.cz-turn` arrows, felt/rail/chips/cards/wheel/slots shading).
+
 ## Adding a new day (for example 5.3)
 1. Add generators to `GEN`, each with a `walk`.
 2. Add their keys to `TAGS`, `LESSONS["5.3"]`, and rule cards to `SKILLS` (with `L:"5.3"`).
