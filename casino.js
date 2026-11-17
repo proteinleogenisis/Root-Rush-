@@ -344,7 +344,7 @@
     ".cz-pano{display:flex;width:400%;transition:transform " + TURN_MS + "ms cubic-bezier(.2,.8,.2,1)}",
     ".cz-pv{width:25%;flex:none}",
     ".cz-pv .cz-roomsvg{box-shadow:none;border-radius:0}",
-    ".cz-turn{position:absolute;top:50%;transform:translateY(-50%);width:40px;height:64px;border:0;border-radius:12px;background:rgba(10,0,20,.55);color:#fff;font:inherit;font-size:28px;font-weight:900;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 1.5px rgba(255,214,107,.6);z-index:2}",
+    ".cz-turn{position:absolute;top:34%;transform:translateY(-50%);width:40px;height:64px;border:0;border-radius:12px;background:rgba(10,0,20,.55);color:#fff;font:inherit;font-size:28px;font-weight:900;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 1.5px rgba(255,214,107,.6);z-index:2}",
     ".cz-turn.l{left:6px}.cz-turn.r{right:6px}.cz-turn:disabled{opacity:0;pointer-events:none}",
     ".cz-look{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);display:flex;gap:6px;align-items:center;padding:6px 10px;border-radius:999px;background:rgba(10,0,20,.62);color:#fff;font-size:12px;font-weight:800;white-space:nowrap;z-index:2}",
     ".cz-look i{width:7px;height:7px;border-radius:50%;background:#fff;opacity:.35;display:inline-block}.cz-look i.on{opacity:1;background:#ffd66b}",
@@ -626,6 +626,7 @@
   var HERO_Z = 0.3, HERO_X = 25;  // the two featured machines in the left view: distance and how far from the middle
   var AISLE_X = 64;              // the rows of machines further back along the sides
   var TITLE_SCALE = 0.82, TITLE_BACK = 0.6; // game title size (x the old neon size) and how dark the panel behind it is
+  var SIDE_Z = 0.17, SIDE_X = 16, HL_SCALE = 0.58, BJ_SCALE = 0.75, SIDE_LABEL = 30; // straight ahead: blackjack and higher/lower side by side (distance, how far apart, table size, sign height)
   var LOOK = 1;               // which way you're looking: 0 left, 1 straight, 2 right, 3 the salon (kept while the app is open)
   // the back of the room (crowd, far machines) is blurred this much and covered by a haze this strong
   var DOF_FAR_BLUR = 3, DOF_HAZE = 0.45;
@@ -762,21 +763,21 @@
       s.push('<text id="czl-jp" x="256" y="108.5" text-anchor="end" font-size="14" font-weight="900" fill="#ffe86b" stroke="#ff9d00" stroke-width=".8" paint-order="stroke" filter="url(#czl-neon)" font-family="inherit">' + JACKPOT_START.toLocaleString("en-US") + "</text>");
 
       // ---- higher / lower: a card table further back with a big card and up/down arrows ----
-      var zH = 0.42;
-      s.push("<g " + at(0, zH) + ">", '<ellipse cx="0" cy="-2" rx="30" ry="8" fill="url(#czl-glow)" opacity=".5"/>', skirt(26, 13),
+      // blackjack (left) and higher/lower (right) side by side, same distance
+      var zH = SIDE_Z, zJ = SIDE_Z;
+      s.push("<g " + at(SIDE_X, zH) + '><g transform="scale(' + HL_SCALE + ')">', '<ellipse cx="0" cy="-2" rx="30" ry="8" fill="url(#czl-glow)" opacity=".5"/>', skirt(26, 13),
         '<ellipse cx="0" cy="-13" rx="27" ry="8" fill="#5a3218"/><ellipse cx="0" cy="-13.6" rx="24.5" ry="6.6" fill="url(#czl-felt2)"/>',
         // stand with the face-up card and the arrows, like a real game display
         '<rect x="-11" y="-44" width="22" height="30" rx="2.5" fill="#1a0a2e" stroke="#b45cff" stroke-width="1"/>',
         card(-6.5, -41, 13, "Q", true, 0),
         '<path d="M15 -36 L20 -29 L10 -29 Z" fill="#4dff88"/><path d="M15 -19 L20 -26 L10 -26 Z" fill="#ff5a6e"/>',
         '<path d="M-15 -36 L-10 -29 L-20 -29 Z" fill="#4dff88"/><path d="M-15 -19 L-10 -26 L-20 -26 Z" fill="#ff5a6e"/>',
-        card(-20, -16.5, 6, "", false, -8), card(-13.5, -16.5, 6, "", false, -4), stack(14, -12, "#7a4bc2", 2.6, 4), "</g>");
-      LBL.push(plate(VX, r1(sy(EYE, zH) - 50 / zH), "HIGHER · LOWER", "#b45cff", 13, 1.7));
-      zone("hl", 0, zH, 60, 56);
+        card(-20, -16.5, 6, "", false, -8), card(-13.5, -16.5, 6, "", false, -4), stack(14, -12, "#7a4bc2", 2.6, 4), "</g></g>");
+      LBL.push(plate(sx(SIDE_X, zH), r1(sy(EYE, zH) - SIDE_LABEL / zH), "HIGHER · LOWER", "#b45cff", 12, 1.7));
+      zone("hl", SIDE_X, zH, 32, 34);
 
-      // ---- blackjack, right in front of you: empty seats waiting for you ----
-      var zJ = 0.12;
-      s.push("<g " + at(0, zJ) + ">",
+      // ---- blackjack: empty seats waiting for you ----
+      s.push("<g " + at(-SIDE_X, zJ) + '><g transform="scale(' + BJ_SCALE + ')">',
         // the table's padded front and body down toward the floor
         '<path d="M-21 -15.5 A21 8.5 0 0 0 21 -15.5 L21 -10 A21 8.5 0 0 1 -21 -10 Z" fill="#2a1408"/>',
         '<path d="M-21 -15.5 A21 8.5 0 0 0 21 -15.5 L21 -13.6 A21 8.5 0 0 1 -21 -13.6 Z" fill="#6b3a1c"/>',
@@ -794,10 +795,10 @@
           card(r1(p[0] - 1.9), r1(p[1] - 1.4), 1.8, ["K", "9", "7"][j], j !== 1, p[2] * 0.6), card(r1(p[0] - 0.2), r1(p[1] - 1.2), 1.8, ["10", "A", "5"][j], j === 1, p[2] * 0.9),
           stack(p[0], r1(p[1] + 2.4), ["#c0392b", "#2b6cb0", "#1f8a5b"][j], 0.75, 3));
       });
-      s.push("</g>");
-      LBL.push(plate(VX, r1(sy(EYE, zJ) - 23.5 / zJ), "BLACKJACK", "#ffe14a", 18, 0.3));
-      zone("bj", 0, zJ, 44, 25);
-      s.push(burst(VX, r1(sy(EYE, zH) - 34 / zH), 0.7, 0.5, "#b45cff"));
+      s.push("</g></g>");
+      LBL.push(plate(sx(-SIDE_X, zJ), r1(sy(EYE, zJ) - SIDE_LABEL / zJ), "BLACKJACK", "#ffe14a", 12, 0.3));
+      zone("bj", -SIDE_X, zJ, 32, 34);
+      s.push(burst(sx(SIDE_X, zH), r1(sy(EYE, zH) - 24 / zH), 0.7, 0.5, "#b45cff"));
     }
 
     if (dir === "l") {
