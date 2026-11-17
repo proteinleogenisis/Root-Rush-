@@ -6,7 +6,7 @@
 (function () {
   "use strict";
   var NOREAL = "No real";
-  var VAL_TOL = 1e-9, DEC_TOL = 0.0051, PTS = 6;
+  var VAL_TOL = 1e-9, DEC_TOL = 0.0051, PTS = 16;
   var SUPN = { "⁰": "0", "¹": "1", "²": "2", "³": "3", "⁴": "4", "⁵": "5", "⁶": "6", "⁷": "7", "⁸": "8", "⁹": "9" };
 
   // The generator's answer HTML -> plain typed-style text
@@ -113,7 +113,7 @@
     s = String(s).replace(/[−–]/g, "-");
     var out = [];
     s.split(/\bor\b|,|\band\b/).forEach(function (piece) {
-      piece = piece.replace(/^\s*[a-z]\s*=\s*/i, "").trim();
+      piece = piece.replace(/^\s*[a-z](\s*\(\s*x\s*\))?\s*=\s*/i, "").trim();
       if (!piece) return;
       if (/^±/.test(piece)) { var r = piece.slice(1); out.push(r); out.push("-(" + r + ")"); }
       else out.push(piece);
@@ -122,7 +122,7 @@
   }
   function pointsFor(vs) { // fixed, spread-out sample points incl. negatives so |y| vs y is caught
     var names = Object.keys(vs), P = [];
-    for (var k = 0; k < PTS; k++) { var env = {}; names.forEach(function (v, j) { var x = 0.37 + ((k * 7 + j * 3) % 11) * 0.29; env[v] = (k + j) % 2 ? -x : x; }); P.push(env); }
+    for (var k = 0; k < PTS; k++) { var env = {}; names.forEach(function (v, j) { var x = 0.37 + ((k * 7 + j * 3) % 23) * 0.43; env[v] = (k + j) % 2 ? -x : x; }); P.push(env); }
     return P;
   }
   function sameVal(A, B, decimals) {
@@ -138,11 +138,22 @@
     return any;
   }
 
+  // Inequality answers (domain/range): "x ≥ −3"; also read the other way round ("−3 ≤ x")
+  var FLIP = { "≥": "≤", "≤": "≥", "<": ">", ">": "<" };
+  function rel(s) {
+    s = String(s).replace(/>=/g, "≥").replace(/<=/g, "≤");
+    var m = /^\s*([a-z])\s*([≥≤<>])\s*(.+)$/i.exec(s); if (m) return { v: m[1].toLowerCase(), op: m[2], r: m[3] };
+    m = /^\s*(.+?)\s*([≥≤<>])\s*([a-z])\s*$/i.exec(s); if (m) return { v: m[3].toLowerCase(), op: FLIP[m[2]], r: m[1] };
+    return null;
+  }
+  // The fixed start shown in front of the typing box: "g(x) = " or "y = " (the student types only the right side)
+  function prefix(c) { var m = /^\s*([a-z]\s*\(\s*x\s*\)|y)\s*=/i.exec(plain(c)); return m ? m[1].replace(/\s+/g, "") + " = " : ""; }
   function canType(c) {
     var s = plain(c); if (!s) return false;
     if (isNoReal(s)) return true;
     if (/[a-z]{3,}/i.test(s.replace(/\bor\b|\band\b/g, ""))) return false; // words
     if (/ \^ \(/.test(s)) return false; // "which keypresses" answers stay as choices
+    var R = rel(s); if (R) { try { parse(R.r); return true; } catch (e) { return false; } }
     try { var ps = parts(s); if (!ps.length) return false; ps.forEach(function (x) { var n = parse(x); var v = vars(n, {}); if (!Object.keys(v).length && isNaN(ev(n, {}))) throw 0; }); return true; } catch (e) { return false; }
   }
 
@@ -150,6 +161,12 @@
     var s = plain(c), u = String(typed || "").trim();
     if (!u) return { ok: false, empty: true, msg: "Type an answer first." };
     if (isNoReal(s) || isNoReal(u)) return { ok: isNoReal(s) && isNoReal(u) };
+    var R = rel(s);
+    if (R) {
+      var G = rel(u); if (!G) return { ok: false, retry: true, msg: "Write it as an inequality, like " + R.v + " ≥ 2." };
+      var rv, gv; try { rv = parse(R.r); } catch (e) { return { ok: false }; } try { gv = parse(G.r); } catch (e) { return { ok: false, retry: true, msg: "That can't be read." }; }
+      return { ok: G.v === R.v && G.op === R.op && sameVal(gv, rv, false) };
+    }
     var want, got;
     try { want = parts(s).map(parse); } catch (e) { return { ok: false }; }
     try { got = parts(u).map(parse); } catch (e) { return { ok: false, retry: true, msg: "That can't be read. Check the parentheses." }; }
@@ -193,5 +210,5 @@
     return out;
   }
 
-  globalThis.RRType = { canType: canType, check: check, render: render, plain: plain, parse: parse, NOREAL: NOREAL };
+  globalThis.RRType = { prefix: prefix, canType: canType, check: check, render: render, plain: plain, parse: parse, NOREAL: NOREAL };
 })();

@@ -28,6 +28,15 @@ yes("-243", "−243"); no("243", "−243");
 yes("3m^4n^4", "3m<sup>4</sup>n<sup>4</sup>"); no("3m^4n^3", "3m<sup>4</sup>n<sup>4</sup>"); no("81m^4n^4", "3m<sup>4</sup>n<sup>4</sup>");
 yes("k^6/(2|z|)", "k<sup>6</sup> / 2|z|"); yes("k^6/2|z|", "k<sup>6</sup> / 2|z|"); no("k^6/(2z)", "k<sup>6</sup> / 2|z|"); no("k^6/2", "k<sup>6</sup> / 2|z|");
 yes("x^4/3|y|", "x<sup>4</sup> / 3|y|");
+// Day 3: functions, inequalities
+for (const c of ["g(x) = −√(x − 3) + 3", "x ≥ −3", "y = ±√(25 − x^2)", "f(x) = ∛x"]) ok(T.canType(c), "canType " + c);
+yes("-√(x-3)+3", "g(x) = −√(x − 3) + 3"); yes("3-√(x-3)", "g(x) = −√(x − 3) + 3"); no("-√(x+3)+3", "g(x) = −√(x − 3) + 3"); no("√(x-3)+3", "g(x) = −√(x − 3) + 3");
+yes("√(-x)-2", "g(x) = √(−x) − 2"); no("-√x-2", "g(x) = √(−x) − 2"); no("√x-2", "g(x) = √(−x) − 2");
+yes("2∛x-2", "g(x) = 2∛x − 2"); no("2∛(x-2)", "g(x) = 2∛x − 2"); yes("∛(x+3)-1", "g(x) = ∛(x + 3) − 1"); no("∛(x+1)-3", "g(x) = ∛(x + 3) − 1");
+yes("x ≥ -3", "x ≥ −3"); yes("-3 ≤ x", "x ≥ −3"); no("x ≥ 3", "x ≥ −3"); no("x ≤ -3", "x ≥ −3"); retry("-3", "x ≥ −3");
+yes("±√(25-x^2)", "y = ±√(25 − x^2)"); no("√(25-x^2)", "y = ±√(25 − x^2)"); no("±√(5-x^2)", "y = ±√(25 − x^2)"); no("±√(x^2-25)", "y = ±√(25 − x^2)");
+yes("±√(x/2)", "y = ±√(x/2)"); no("±√(2x)", "y = ±√(x/2)"); yes("-√(9-x^2)", "y = −√(9 − x^2)");
+ok(T.prefix("g(x) = 2∛x − 2") === "g(x) = " && T.prefix("y = ±√(x/2)") === "y = " && T.prefix("x = ±2") === "", "prefix");
 // junk
 ok(T.check("((2", "2").retry, "unreadable asks again"); ok(T.check("", "2").empty, "empty");
 ok(T.render("2^(1/3)").includes("<sup>1/3</sup>"), "render sup");
