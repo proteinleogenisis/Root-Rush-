@@ -78,6 +78,14 @@ h1 span{color:var(--hot)}
 button{font:inherit;color:inherit;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .08s}
 button:active{transform:scale(.97)}
 .big{width:100%;background:var(--hot);border-color:var(--hot);color:#fff;font-size:20px;font-weight:700;padding:18px}
+.ty-show{display:flex;align-items:center;flex-wrap:wrap;min-height:56px;margin-top:10px;padding:8px 14px;border:2px solid var(--line);border-radius:12px;background:var(--card);font-size:24px;line-height:1.3}
+.ty-show sup{font-size:.62em}.ty-show.ok{border-color:var(--good);background:var(--goodbg)}.ty-show.no{border-color:var(--bad);background:var(--badbg)}
+.ty-ph{color:var(--mute);font-size:16px;font-family:system-ui,sans-serif}.ty-cur{display:inline-block;width:2px;height:1.1em;background:var(--root);margin-left:2px;animation:tyBlink 1s steps(1) infinite}
+.ty-show.ok .ty-cur,.ty-show.no .ty-cur{display:none}@keyframes tyBlink{50%{opacity:0}}
+.ty-msg{min-height:20px;margin:6px 2px 0;font-size:14px;color:var(--hot)}.ty-msg b{color:var(--ink)}
+.ty-pad{display:grid;gap:6px;margin-top:6px}.ty-row{display:flex;gap:6px}.ty-k{flex:1;min-height:46px;padding:0;font-size:20px;font-family:ui-monospace,Menlo,monospace}
+.ty-k.ty-wide{font-size:15px;font-family:inherit}.ty-k.ty-del{color:var(--bad)}.ty-pad.done{opacity:.35;pointer-events:none}
+.ty-go{width:100%;margin-top:8px}
 .opt{display:flex;gap:12px;align-items:center;width:100%;text-align:left;margin-top:10px;font-size:17px;min-height:56px}
 .opt kbd{font-family:inherit;font-size:12px;color:var(--mute);border:1px solid var(--line);border-radius:6px;padding:2px 7px}
 .opt.ok{background:var(--goodbg);border-color:var(--good);color:var(--good)}
@@ -537,6 +545,7 @@ body.calc-open.paper-only .wrap{padding-bottom:440px}
 </div>
 
 <script src="solver.js"></script>
+<script src="typed.js"></script>
 <script src="casino.js"></script>
 <script src="profile.js"></script>
 <script>
@@ -591,17 +600,18 @@ const GEN={
 entry(){
   if(Math.random()<.4){const b=pick([20,35,50,85,120,187,240,300]),n=pick([3,4,5,6]),m=pick([1,2,3]);const v=b**(m/n),c=v.toFixed(2);
     return{walk:[[`${b}<sup>${m}/${n}</sup>`,"Use the calculator"],[`${b} ^ (${m} ÷ ${n})`,"Type it with the fraction in parentheses"],[`≈ ${c}`,"Round to two decimals"]],
-    q:`Use the calculator: ${b}<sup>${m}/${n}</sup> ≈ ?`,ex:`${b}${sup(m,n)}`,c,w:uniq(c,[(b**m/n).toFixed(2),(b**(n/m)).toFixed(2),(b*m/n).toFixed(2),(b**(1/n)).toFixed(2),(v+1).toFixed(2)]),
+    q:`Use the calculator: ${b}<sup>${m}/${n}</sup> ≈ ?`,ex:`${b}${sup(m,n)}`,c,w:uniq(c,[(b**m/n).toFixed(2),(b**(1/n)*m).toFixed(2),(b**(m/(n+1))).toFixed(2),(b**(m/(n-1))).toFixed(2),(b**(1/n)).toFixed(2),(b**(n/m)).toFixed(2),(b*m/n).toFixed(2)]),
     why:`Type ${b} ^ (${m} ÷ ${n}). Without the parentheses the calculator gives ${(b**m/n).toFixed(2)}.`};}
   const b=pick([8,16,27,32,64,81,125,243]),n=ri(2,5);let m=ri(1,4);if(m===n)m=n+1;
   return{walk:[[`${b}<sup>${m}/${n}</sup>`,"The exponent is the whole fraction, so it has to stay together"],[`${b} ^ (${m}/${n})`,"Put the fraction in parentheses"],[`${b} ^ ${m} / ${n} = ${+(b**m/n).toFixed(2)}`,"Without them the calculator does the power first, then divides. Wrong"],[`${b} ^ (${m}/${n}) ≈ ${+(b**(m/n)).toFixed(2)}`,"With them you get the right value"]],q:`Which keypresses give ${b}<sup>${m}/${n}</sup>?`,ex:`${b}${sup(m,n)}`,
-  c:`${b} ^ (${m}/${n})`,w:[`${b} ^ ${m} / ${n}`,`${b} ^ (${n}/${m})`,`${b} × ${m} / ${n}`],
+  c:`${b} ^ (${m}/${n})`,w:[`${b} ^ ${m} / ${n}`,`${b} ^ (${n}/${m})`,`${b} × (${m}/${n})`],
   why:`A fraction exponent needs parentheses. Without them the calculator does ${b}<sup>${m}</sup> first, then divides by ${n}.<span class="mono">${b} ^ (${m}/${n}) ✓</span>And the fraction stays in its original order: ${P("top")} over ${R("bottom")}.`};
 },
 bottom(){
   const r=ri(2,5),n=r===5?ri(2,3):ri(2,4);let m=ri(1,3);if(m===n)m=n===3?2:3;
   const b=r**n,ans=r**m;
-  const w=new Set();[r*m,r**(m+1),Math.round(b*m/n),r+m,ans*r,ans+r,ans*2,ans+1,b,ans+2,ans+3].forEach(v=>{if(v!==ans&&v>0&&w.size<3)w.add(v)});
+  // real slips: root times power, forgot the power, forgot the root, power times index, wrong power on the root
+  const w=new Set();[r*m,r,b,ans*n,r**(n-m>0?n-m:m+1),r**(m+1),Math.round(b*m/n),r+m,ans+r,b-1,ans+n,ans+r+m].forEach(v=>{if(v!==ans&&v>0&&w.size<3)w.add(v)});
   return{walk:[[`${b}<sup>${P(m)}/${R(n)}</sup>`,`Bottom ${n} = the root, top ${m} = the power`],[`(${R(rad(n,b))})<sup>${P(m)}</sup>`,"Root first, then the power"],[`${r}<sup>${m}</sup>`,`${rad(n,b)} = ${r} because ${r}<sup>${n}</sup> = ${b}`],[`${ans}`,`${r}<sup>${m}</sup> = ${ans}`]],q:`What does ${b}<sup>${m}/${n}</sup> equal?`,ex:`${b}${sup(m,n)}`,c:String(ans),w:[...w].map(String),
   why:`The ${R("bottom")} is the root, the ${P("top")} is the power. Root first keeps it small:<span class="mono">${R(n===2?"√":n+"th root of")} ${b} = ${r}</span><span class="mono">${r}${P("^"+m)} = ${ans}</span>`};
 },
@@ -626,19 +636,20 @@ iso(){
   const a=ri(2,6),n=ri(2,4),r=ri(2,n===4?3:5),c=ri(4,60),d=a*r**n+c,rt=ROOT[n];
   return{walk:[[`${a}x<sup>${n}</sup> + ${c} = ${d}`,"Goal: get x<sup>"+n+"</sup> by itself first"],[`${a}x<sup>${n}</sup> = ${d-c}`,`Subtract ${c} from both sides`],[`x<sup>${n}</sup> = ${r**n}`,`Divide both sides by ${a}`],[`x = ${n%2===0?"±":""}${r}`,`Now take the ${rt} root`]],words:1,q:`${a}x<sup>${n}</sup> + ${c} = ${d}. What do you do?`,ex:`${a}x<sup>${P(n)}</sup> + ${c} = ${d}`,
   c:`Subtract ${c}, divide by ${a}, then take the ${rt} root`,
-  w:[`Take the ${rt} root, then subtract ${c} and divide by ${a}`,`Divide by ${a}, subtract ${c}, then take the ${rt} root`,`Subtract ${c}, divide by ${a}, then raise to the ${NTH[n]} power`],
+  w:shuffle([`Take the ${rt} root, then subtract ${c} and divide by ${a}`,`Divide by ${a}, subtract ${c}, then take the ${rt} root`,`Subtract ${c}, multiply by ${a}, then take the ${rt} root`,`Subtract ${c}, take the ${rt} root, then divide by ${a}`]).slice(0,3),
   why:`Get x<sup>${n}</sup> alone first: undo the + ${c}, then the × ${a}, and the ${P("power")} goes last:<span class="mono">x^${n} = (${d} − ${c}) / ${a} = ${r**n}</span><span class="mono">x = ${R(rt+" root")} of ${r**n} = ${r}</span>If you divide first, the ${c} gets divided too, so it's not ${c} anymore. ${n%2===0?`The power is even, so the full answer is x = ±${r}.`:""}`};
 },
 shift(){
   const n=pick([3,5]),h=ri(2,15),k=ri(20,400),rt=ROOT[n];
   return{walk:[[`(x + ${h})<sup>${n}</sup> = ${k}`,"The power was the last thing done to x, so undo it first"],[`x + ${h} = ${k}<sup>1/${n}</sup> ≈ ${(k**(1/n)).toFixed(2)}`,`Take the ${rt} root`],[`x ≈ ${(k**(1/n)-h).toFixed(2)}`,`Then subtract ${h}`]],words:1,q:`(x + ${h})<sup>${n}</sup> = ${k}. What do you do?`,ex:`(x + ${h})<sup>${P(n)}</sup> = ${k}`,
-  c:`Take the ${rt} root, then subtract ${h}`,w:[`Subtract ${h}, then take the ${rt} root`,`Take the ${rt} root, then add ${h}`,`Raise both sides to the ${NTH[n]} power, then subtract ${h}`],
+  c:`Take the ${rt} root, then subtract ${h}`,w:shuffle([`Subtract ${h}, then take the ${rt} root`,`Take the ${rt} root, then add ${h}`,`Subtract ${h} from ${k}, then take the ${rt} root`,`Divide ${k} by ${n}, then subtract ${h}`]).slice(0,3),
   why:`Undo things in reverse order. The ${P("power")} happened last, so the root goes first, then subtract ${h}:<span class="mono">x + ${h} = ${k} ^ (1/${n}) ≈ ${(k**(1/n)).toFixed(2)}</span><span class="mono">x ≈ ${(k**(1/n)-h).toFixed(2)}</span>`};
 },
 order(){
   const a=ri(2,5),n=pick([2,3]),h=ri(2,9),c=ri(10,40),r=ri(1,4),d=a*r**n+c,rt=ROOT[n];
   const steps=[`Subtract ${c}`,`Divide by ${a}`,`Take the ${rt} root`,`Subtract ${h}`];
-  const decoy=pick([`Add ${c}`,`Raise to the ${NTH[n]} power`,`Add ${h}`,`Multiply by ${a}`]);
+  // decoys look like real steps: wrong operation on the right number, or the wrong kind of root
+  const decoy=pick([`Add ${c}`,`Divide by ${c}`,`Subtract ${a}`,`Add ${h}`,`Multiply by ${a}`,`Take the ${ROOT[n===2?3:2]} root`].filter(t=>!steps.includes(t)));
   return{walk:[[`${a}(x + ${h})<sup>${n}</sup> + ${c} = ${d}`,"Peel from the outside in"],[`${a}(x + ${h})<sup>${n}</sup> = ${d-c}`,`Step 1: subtract ${c}`],[`(x + ${h})<sup>${n}</sup> = ${r**n}`,`Step 2: divide by ${a}. Now the power is alone`],[`x + ${h} = ${n===2?"±":""}${r}`,`Step 3: take the ${rt} root`],[`x = ${n===2?`${r-h} or ${-r-h}`:r-h}`,`Step 4: subtract ${h}`]],type:"order",win:9,q:`Tap the steps in order to get x alone`,ex:`${a}(x + ${h})<sup>${P(n)}</sup> + ${c} = ${d}`,
   steps,tiles:shuffle([...steps,decoy]),
   why:`Peel it from the outside in. The last thing done to x gets undone first:<span class="mono">(x + ${h})^${n} = (${d} − ${c}) / ${a} = ${r**n}</span><span class="mono">x + ${h} = ${r}  →  x = ${r-h}</span>${n===2?`Even power, so x + ${h} = −${r} works too: x = ${-r-h}.`:""}`};
@@ -675,20 +686,20 @@ rules(){
   if(v===1){const n=pick([2,3,4,5,6]);let p=ri(1,n+1),q=ri(1,n+1);if(p===q)q=p+1;
     const c=xp(b,p+q,n);
     return{walk:[[`${xp(b,p,n)} · ${xp(b,q,n)}`,"Same base, multiplying"],[`${b}<sup>${p}/${n} + ${q}/${n}</sup>`,"Add the exponents"],[c,`${p}/${n} + ${q}/${n} = ${p+q}/${n}`]],q:`Simplify ${xp(b,p,n)} · ${xp(b,q,n)}`,ex:`${xp(b,p,n)} · ${xp(b,q,n)}`,c,
-    w:uniq(c,[xp(b,p*q,n*n),xp(b,p+q,2*n),xp(b,p,q*n),xp(b,Math.abs(p-q)||n+1,n),xp(b*b,p+q,n)]),
+    w:uniq(c,[xp(b,p*q,n*n),xp(b,p+q,2*n),xp(b,Math.abs(p-q),n),xp(b*b,p+q,n),xp(b,p,q*n),xp(b,p+q,n*n)]),
     why:`Same base, multiplying → ${P("add")} the exponents:<span class="mono">${p}/${n} + ${q}/${n} = ${p+q}/${n}</span>`};}
   if(v===2){const n=pick([2,3,4,5,6]);const whole=Math.random()<.5;const p=whole?n:ri(2,n+3);const q=ri(1,p-1);
     const top=whole?`${b}`:xp(b,p,n),c=xp(b,p-q,n);
     return{walk:[[`${top} ÷ ${xp(b,q,n)}`,"Same base, dividing"+(whole?`. ${b} is ${b}<sup>${n}/${n}</sup>`:"")],[`${b}<sup>${p}/${n} − ${q}/${n}</sup>`,"Subtract the exponents"],[c,`${p}/${n} − ${q}/${n} = ${p-q}/${n}`]],q:`Simplify ${top} ÷ ${xp(b,q,n)}`,ex:`<span style="display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle"><span>${top}</span><span style="border-top:2px solid currentColor;padding-top:2px">${xp(b,q,n)}</span></span>`,c,
-    w:uniq(c,[xp(b,p+q,n),xp(b,p,q),xp(b,q-p,n),`1<sup>${p-q}/${n}</sup>`,xp(b,p*q,n*n)]),
+    w:uniq(c,[xp(b,p+q,n),xp(b,p,q),xp(b,q-p,n),xp(b,p-q,n*n),xp(b,p*q,n*n),xp(b,p-q,2*n)]),
     why:`Same base, dividing → ${P("subtract")} the exponents.${whole?` ${b} is ${b}<sup>${n}/${n}</sup>.`:""}<span class="mono">${p}/${n} − ${q}/${n} = ${p-q}/${n}</span>`};}
   if(v===3){const m=ri(2,4),n=pick([2,3,4,5]),c=xp(b,m,n);
     return{walk:[[`(${b}<sup>${m}</sup>)<sup>1/${n}</sup>`,"A power raised to a power"],[`${b}<sup>${m} × 1/${n}</sup>`,"Multiply the exponents"],[c,`${m} × 1/${n} = ${m}/${n}`]],q:`Simplify (${b}<sup>${m}</sup>)<sup>1/${n}</sup>`,ex:`(${b}<sup>${m}</sup>)<sup>1/${n}</sup>`,c,
-    w:uniq(c,[xp(b,m*n+1,n),xp(b,n,m),xp(b,1,m*n),xp(b,m*n,1)]),
+    w:uniq(c,[xp(b,m*n+1,n),xp(b,n,m),xp(b,1,m*n),xp(b,m*n,1),xp(b,m+n,n)]),
     why:`Power of a power → ${P("multiply")} the exponents:<span class="mono">${m} × 1/${n} = ${m}/${n}</span>`};}
   if(v===4){const n=pick([2,3,4,5]);let m=ri(1,n+1);if(m===n)m=n+1;const pos=xp(b,m,n),c=`1 / ${pos}`;
     return{walk:[[`${b}<sup>−${m}/${n}</sup>`,"The minus sign is in the exponent"],[`1 / ${pos}`,"A negative exponent flips it under 1"],[`still positive`,"It doesn't make the answer negative"]],q:`Which is the same as ${b}<sup>−${m}/${n}</sup>?`,ex:`${b}<sup>−${m}/${n}</sup>`,c,
-    w:uniq(c,[`−${pos}`,`−1 / ${pos}`,xp(b,n,m)]),
+    w:uniq(c,shuffle([`−${pos}`,`−1 / ${pos}`,`1 / ${xp(b,n,m)}`,pos])),
     why:`A negative exponent means ${R("flip it")} under 1. It does not make the answer negative.<span class="mono">${b}^(−${m}/${n}) = 1 / ${b}^(${m}/${n})</span>`};}
   if(v===5){const pr=pick([[6,2],[12,4],[10,5],[15,5],[8,2],[14,7],[20,4]]);const sw=Math.random()<.5;const a=sw?pr[1]:pr[0],d=sw?pr[0]:pr[1];
     const g=gcd(a,d),A=a/g,D=d/g,c=A===1?`${D}`:D===1?`1/${A}`:`${D}/${A}`;
@@ -698,7 +709,7 @@ rules(){
     why:`Same power on top and bottom, so it's (${a}/${d})³ = (${fr(A,D)})³. Multiply exponents: 3 × (−1/3) = −1, and a −1 power flips the fraction:<span class="mono">(${fr(A,D)})^(−1) = ${c}</span>`};}
   const k=pick([2,3,4,5]),c=xp(b,1,k);
   return{walk:[[`(${b}<sup>1/2</sup> · ${b}<sup>−3/2</sup>)<sup>−1/${k}</sup>`,"Inside the parentheses first"],[`(${b}<sup>−1</sup>)<sup>−1/${k}</sup>`,"Same base, multiplying: 1/2 + (−3/2) = −1"],[c,`Power of a power: −1 × (−1/${k}) = 1/${k}`]],q:`Simplify (${b}<sup>1/2</sup> · ${b}<sup>−3/2</sup>)<sup>−1/${k}</sup>`,ex:`(${b}<sup>1/2</sup> · ${b}<sup>−3/2</sup>)<sup>−1/${k}</sup>`,c,
-  w:uniq(c,[xp(b,-1,k),xp(b,3,4*k),xp(b,-3,4*k),xp(b,k,1)]),
+  w:uniq(c,[xp(b,-1,k),xp(b,-2,k),xp(b,3,4*k),xp(b,-(k+1),k),xp(b,k+1,k)]),
   why:`Inside first: same base, multiplying → add: 1/2 + (−3/2) = −1. Then power of a power → multiply:<span class="mono">−1 × (−1/${k}) = 1/${k}</span>`};
 },
 radmul(){
@@ -706,24 +717,24 @@ radmul(){
     const top=`∛${a} · ∛${b}`,bot=`${sp(6)}√${c} · ${sp(6)}√${c}`;
     return{walk:[[`(${top}) / (${bot})`,"Simplify the top and bottom separately first"],[`∛${T}`,`Top: same index, so ∛(${a} · ${b}) = ∛${T}`],[`${sp(6)}√${c*c} = ∛${c}`,`Bottom: ${sp(6)}√(${c}·${c}) = ${sp(6)}√${c*c}, and ${c*c} = ${c}², so ${sp(6)}√${c}² = ∛${c}`],[`∛(${T} ÷ ${c}) = ∛${r**3}`,"Now both are cube roots, so divide under one root"],[ans,`∛${r**3} = ${r}`]],
     q:`Simplify (${top}) / (${bot})`,ex:`<span style="display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;font-size:.85em"><span>${top}</span><span style="border-top:2px solid currentColor;padding-top:2px">${bot}</span></span>`,c:ans,
-    w:uniq(ans,[String(r**3),`∛${T}`,String(r*c),`∛${r}`,String(r+1)]),
+    w:uniq(ans,[String(r**3),String(r*c),String(r**2),String(T),String(r+c),String(c*r*r)]),
     why:`Turn ${sp(6)}√${c} · ${sp(6)}√${c} into ${sp(6)}√${c*c} = ∛${c}, so top and bottom are both cube roots. Then ∛${T} ÷ ∛${c} = ∛${r**3} = ${r}.`};}
   const n=pick([2,2,3,4]);
   if(Math.random()<.65){const r=n===2?ri(4,15):n===3?ri(2,6):ri(2,4),T=r**n;
     let divs=[];for(let d=2;d<T;d++)if(T%d===0&&Math.round(d**(1/n))**n!==d)divs.push(d);
     if(!divs.length)for(let d=2;d<T;d++)if(T%d===0)divs.push(d);
     let a=pick(divs),b=T/a;if(a>b)[a,b]=[b,a];const c=String(r);
-    return{walk:[[`${rad(n,a)} · ${rad(n,b)}`,"Same index, so they can combine"],[rad(n,`(${a} · ${b})`),"Multiply under one root"],[rad(n,T),`${a} · ${b} = ${T}`],[c,`${r}<sup>${n}</sup> = ${T}`]],q:`Simplify ${rad(n,a)} · ${rad(n,b)}`,ex:`${rad(n,a)} · ${rad(n,b)}`,c,w:uniq(c,[rad(n,a+b),String(T),rad(n*2,T),String(r+1),String(a*b*2)]),
+    return{walk:[[`${rad(n,a)} · ${rad(n,b)}`,"Same index, so they can combine"],[rad(n,`(${a} · ${b})`),"Multiply under one root"],[rad(n,T),`${a} · ${b} = ${T}`],[c,`${r}<sup>${n}</sup> = ${T}`]],q:`Simplify ${rad(n,a)} · ${rad(n,b)}`,ex:`${rad(n,a)} · ${rad(n,b)}`,c,w:uniq(c,[String(a+b),String(T),String(r*n),String(r**2),String(r+n),String(a*b-r)]),
     why:`Same index, so multiply them under one root:<span class="mono">${rad(n,a)} · ${rad(n,b)} = ${rad(n,T)} = ${r}</span>This only works when the indexes match.`};}
   const a=pick([2,3,5]),r=n===2?ri(2,6):n===3?ri(2,4):ri(2,3),b=a*r**n,c=`1/${r}`;
-  return{walk:[[`${rad(n,a)} / ${rad(n,b)}`,"Same index, so they can combine"],[rad(n,`(${a}/${b})`),"Divide under one root"],[rad(n,`(1/${r**n})`),`Reduce the fraction: ${a}/${b} = 1/${r**n}`],[c,`${rad(n,1)} = 1 and ${rad(n,r**n)} = ${r}`]],q:`Simplify ${rad(n,a)} / ${rad(n,b)}`,ex:`${rad(n,a)} / ${rad(n,b)}`,c,w:uniq(c,[String(r),`1/${r**n}`,rad(n,b-a),`1/${r*2}`]),
+  return{walk:[[`${rad(n,a)} / ${rad(n,b)}`,"Same index, so they can combine"],[rad(n,`(${a}/${b})`),"Divide under one root"],[rad(n,`(1/${r**n})`),`Reduce the fraction: ${a}/${b} = 1/${r**n}`],[c,`${rad(n,1)} = 1 and ${rad(n,r**n)} = ${r}`]],q:`Simplify ${rad(n,a)} / ${rad(n,b)}`,ex:`${rad(n,a)} / ${rad(n,b)}`,c,w:uniq(c,[`1/${r**n}`,`1/${r*n}`,`1/${b-a}`,`1/${a*r}`,`1/${r+n}`,`1/${b}`,`1/${a+b}`]),
   why:`Same index, so divide under one root:<span class="mono">${rad(n,a+"/"+b)} = ${rad(n,"(1/"+r**n+")")} = 1/${r}</span>`};
 },
 simp(){
   const n=pick([2,2,3]),p=n===2?ri(2,7):ri(2,4),s=pick(n===2?[2,3,5,6,7,10,11]:[2,3,4,5,6,7,9]),x=p**n*s,c=`${p}${rad(n,s)}`;
   const{f,groups,left}=pairParts(x,n),word=n===2?"pair":"group of three",out=groups.length>1?`${groups.join(" and ")} come out: ${groups.join(" · ")} = ${p}`:`${groups[0]} comes out`;
   return{walk:[[rad(n,x),`Break ${x} into small numbers. No list to remember`],[`${x} = ${f.join(" · ")}`,"Halve it while it's even, then try 3, 5, 7 until nothing's left to split"],[pairHtml(x,n),`Circle every ${word} of matching numbers`],[`${p} outside, ${s} inside`,`${out}. ${left.length?`No partner for ${left.join(" · ")}, so ${s} stays inside`:""}`],[c,"Outside number in front, leftovers under the root"]],
-  q:`Write ${rad(n,x)} in simplest form`,ex:rad(n,x),c,w:uniq(c,[`${s}${rad(n,p)}`,`${p**n}${rad(n,s)}`,`${p}${rad(n,p*s)}`,`${p*s}`,`${p+1}${rad(n,s)}`]),
+  q:`Write ${rad(n,x)} in simplest form`,ex:rad(n,x),c,w:uniq(c,[`${s}${rad(n,p)}`,`${p**n}${rad(n,s)}`,`${p}${rad(n,p*s)}`,`${p*s}${rad(n,s)}`,`${p+1}${rad(n,s)}`]),
   why:`<b>Pair method:</b> break ${x} into small numbers, then every ${word} of matching numbers escapes the ${n===2?"square":"cube"} root as one number. Leftovers stay inside.<span class="mono">${x} = ${pairHtml(x,n)}</span><span class="mono">${rad(n,x)} = ${c}</span>`};
 },
 vars(){
@@ -731,7 +742,7 @@ vars(){
     const inside=`${v(pr[0],n*a1)} / ${C}${v(pr[1],n*a2)}`,c=`${v(pr[0],a1)} / ${k}${a2===1?`|${pr[1]}|`:v(pr[1],a2)}`;
     return{walk:[[rad(n,"("+inside+")"),"Take the root of the top and the bottom separately"],[`top: ${v(pr[0],n*a1)} → ${v(pr[0],a1)}`,`${n*a1} ÷ ${n} = ${a1}. Divide the exponent, don't root it (on a calculator: ${n*a1} ÷ ${n}, not ${n*a1} ^ (1 ÷ ${n}))`],[`bottom: ${rad(n,C)} = ${k},  ${v(pr[1],n*a2)} → ${a2===1?`|${pr[1]}|`:v(pr[1],a2)}`,a2===1?`${n}÷${n} = 1, and an even root of an even power needs | | so it stays positive`:`${n*a2} ÷ ${n} = ${a2}`],[c,"Put it back together"]],
     q:`Simplify ${rad(n,"("+inside+")")}`,ex:rad(n,"("+inside+")"),c,
-    w:uniq(c,[`${v(pr[0],a1)} / ${C}${v(pr[1],a2)}`,`${v(pr[0],n*a1)} / ${k}${v(pr[1],a2)}`,`${k}${v(pr[0],a1)} / ${v(pr[1],a2)}`,`${v(pr[0],a1+1)} / ${k}${v(pr[1],a2)}`]),
+    w:(vb=>uniq(c,[`${v(pr[0],a1)} / ${C}${vb(a2)}`,`${v(pr[0],n*a1)} / ${k}${vb(a2)}`,`${k}${v(pr[0],a1)} / ${vb(a2)}`,`${v(pr[0],a1)} / ${k}${vb(n*a2)}`]))(e=>e===1?`|${pr[1]}|`:v(pr[1],e)),
     why:`Root of the top and bottom separately. Divide each exponent by ${n}, and ${rad(n,C)} = ${k}.${a2===1?` When an even root leaves an odd power, use | | (like |${pr[1]}|). Check what your teacher wants.`:""}`};}
   const n=pick([2,3,4,5]),pr=pick([["x","y"],["r","t"],["m","n"],["a","b"],["k","z"]]),k=n<=3?ri(2,5):ri(2,3),C=k**n;
   let a1=ri(1,4),a2=ri(1,3);if(n%2===0){a1=2*ri(1,2);a2=2*ri(1,2)}
@@ -739,17 +750,17 @@ vars(){
   const mk=(cf,e1,e2)=>fr?`${cf}${v(pr[0],e1)} / ${v(pr[1],e2)}`:`${cf}${v(pr[0],e1)}${v(pr[1],e2)}`;
   const inside=mk(C,n*a1,n*a2),c=mk(k,a1,a2);
   return{walk:[[rad(n,"("+inside+")"),"Take the root of each piece"],[`${rad(n,C)} = ${k}`,"The number"],[`${pr[0]}: ${n*a1} ÷ ${n} = ${a1},  ${pr[1]}: ${n*a2} ÷ ${n} = ${a2}`,`Divide each exponent by the index ${n}. Only the number gets rooted. On a calculator that's ${n*a1} ÷ ${n}, not ${n*a1} ^ (1 ÷ ${n})`],[c,"Put it back together"]],q:`Simplify ${rad(n,"("+inside+")")}`,ex:rad(n,"("+inside+")"),c,
-  w:uniq(c,[mk(C,a1,a2),mk(k,n*a1,n*a2),mk(Math.round(C/n),a1,a2),mk(k+1,a1,a2),mk(k,a1+1,a2)]),
+  w:uniq(c,[mk(C,a1,a2),mk(k,n*a1,n*a2),mk(k,a1,n*a2),mk(k,n*a1,a2),mk(Math.round(C/n),a1,a2),mk(k,a1+n,a2)]),
   why:`Take the ${ROOT[n]} root of each piece. Number: ${rad(n,C)} = ${k}. Variables: ${R("divide each exponent by "+n)}:<span class="mono">${n*a1} ÷ ${n} = ${a1},  ${n*a2} ÷ ${n} = ${a2}</span>`};
 },
 like(){
-  if(Math.random()<.72){const n=pick([2,3,4,6]),s=pick([2,3,5,7,12,14]),a=ri(2,12),b=ri(2,12),minus=Math.random()<.4,res=minus?a-b:a+b,ef=Math.random()<.3;
+  if(Math.random()<.72){const n=pick([2,3,4,6]),s=pick([2,3,5,7,12,14]),a=ri(2,12),minus=Math.random()<.4;let b=ri(2,12);if(minus&&a===b)b=a>2?a-1:a+1;const res=minus?a-b:a+b,ef=Math.random()<.3;
     const term=(cf,ss=s,nn=n)=>ef?`${co(cf)}(${ss}<sup>1/${nn}</sup>)`:`${co(cf)}${rad(nn,ss)}`,c=res===0?"0":term(res);
     return{walk:[[`${term(a)} ${minus?"−":"+"} ${term(b)}`,"Same index and same radicand, so these are like terms"],[`(${a} ${minus?"−":"+"} ${b})${ef?`(${s}<sup>1/${n}</sup>)`:rad(n,s)}`,"Combine only the numbers in front"],[c,"The radical stays exactly the same"]],q:`Simplify ${term(a)} ${minus?"−":"+"} ${term(b)}`,ex:`${term(a)} ${minus?"−":"+"} ${term(b)}`,c,
-    w:uniq(c,[term(res,2*s),term(a*b),term(res,s,2*n),term(res,s*s),term(res+1)]),
+    w:uniq(c,[term(res,s+s),term(a*b),term(res,s,2*n),term(res,s*s),term(minus?a+b:Math.abs(a-b)||a*b),term(res,s,n+1),term(res,s+1)]),
     why:`Same index and same radicand, so they're like terms. Combine the numbers in front and ${R("keep the radical the same")}:<span class="mono">${a} ${minus?"−":"+"} ${b} = ${res}</span>Never add the radicands.`};}
-  const s=pick([2,3,5,7]),a=ri(2,9),b=ri(2,9),c="They can't be combined";
-  return{walk:[[`${a}√${s} + ${b}∛${s}`,"Check the index of each root"],["2 vs 3","A square root and a cube root are different indexes"],["Stays as is","Only like radicals (same index AND radicand) combine"]],words:1,q:`Simplify ${a}√${s} + ${b}∛${s}`,ex:`${a}√${s} + ${b}∛${s}`,c,w:[`${a+b}√${s}`,`${a+b}${rad(5,s)}`,`${a+b}${rad(6,s)}`],
+  const s=pick([2,3,5,7]),a=ri(2,9),b=ri(2,9),c="Can't be combined: the indexes (2 and 3) are different";
+  return{walk:[[`${a}√${s} + ${b}∛${s}`,"Check the index of each root"],["2 vs 3","A square root and a cube root are different indexes"],["Stays as is","Only like radicals (same index AND radicand) combine"]],words:1,q:`Simplify ${a}√${s} + ${b}∛${s}`,ex:`${a}√${s} + ${b}∛${s}`,c,w:[`${a+b}√${s}: the radicands match, so the numbers in front add`,`${a+b}${rad(5,s)}: the numbers add and the indexes add (2 + 3 = 5)`,`${a+b}∛${s}: the numbers add and the larger index wins`],
   why:`Like radicals need the ${R("same index")} AND the same radicand. A square root and a cube root aren't like terms, so it stays as is.`};
 },
 spot2(){
@@ -780,12 +791,13 @@ const pw=(b,e)=>e==="1"?String(b):b+"<sup>"+e+"</sup>";
 const frac=(n,d)=>{const g=gcd(n,d);n/=g;d/=g;if(d<0){n=-n;d=-d}return d===1?sgn(n):sgn(n)+"/"+d};
 const HW={
 hw_entry(){if(Math.random()<.5){const n=pick([3,4,5]),b=ri(20,900),v=b**(1/n),c=v.toFixed(2);
-    return{q:`Evaluate with a calculator. Round to two decimals: ${rad(n,b)}`,ex:rad(n,b),c,w:uniq(c,[(b/n).toFixed(2),Math.sqrt(b).toFixed(2),(b**(1/(n+1))).toFixed(2),(v+1).toFixed(2)]),
+    return{q:`Evaluate with a calculator. Round to two decimals: ${rad(n,b)}`,ex:rad(n,b),c,w:uniq(c,[(b**(1/(n+1))).toFixed(2),(b**(1/(n-1))).toFixed(2),Math.sqrt(b).toFixed(2),(b/n).toFixed(2),(b**(1/n)*n).toFixed(2)]),
     walk:[[rad(n,b),`A ${ROOT[n]} root is the power 1/${n}`],[`${b} ^ (1 ÷ ${n})`,"Type it with the fraction in parentheses"],[`≈ ${c}`,"Round to two decimals"]],
     why:`Type ${b} ^ (1 ÷ ${n}) ≈ ${c}.`}}
-  const b=ri(6,300),n=pick([3,4,5,6]),m=pick([2,3,5]),neg=Math.random()<.3,e=neg?-m/n:m/n,v=b**e,c=v.toFixed(2);
+  let b,n,m,neg,e,v,c;do{b=ri(6,300);n=pick([3,4,5,6]);m=pick([2,3,5]);neg=Math.random()<.3;e=neg?-m/n:m/n;v=b**e;c=v.toFixed(2)}while(m===n||(neg&&v<.05));
   return{q:`Evaluate with a calculator. Round to two decimals: ${b}<sup>${neg?"−":""}${m}/${n}</sup>`,ex:`${b}<sup>${neg?"−":""}${P(m)}/${R(n)}</sup>`,c,
-    w:uniq(c,[(neg?b**-m/n:b**m/n).toFixed(2),(b**(neg?-n/m:n/m)).toFixed(2),(neg?-(b**(m/n)):b*m/n).toFixed(2),(b**(1/n)).toFixed(2),(v+1).toFixed(2)]),
+    w:uniq(c,neg?[(b**-m/n).toFixed(2),(b**(m/n)).toFixed(2),(-(b**(m/n))).toFixed(2),(b**(-m/(n+1))).toFixed(2),(b**(-m/(n-1))).toFixed(2),(m*b**(-1/n)).toFixed(2),(b**(-1/n)).toFixed(2),(v*2).toFixed(2)]
+      :[(b**m/n).toFixed(2),(b**(1/n)*m).toFixed(2),(b**(m/(n+1))).toFixed(2),(b**(m/(n-1))).toFixed(2),(b**(1/n)).toFixed(2),(b*m/n).toFixed(2),(b**(n/m)).toFixed(2)]),
     walk:[[`${b}<sup>${neg?"−":""}${m}/${n}</sup>`,"Use the calculator"],[`${b} ^ (${neg?"−":""}${m} ÷ ${n})`,"The whole fraction goes in parentheses"],[`≈ ${c}`,"Round to two decimals"]],
     why:`Type ${b} ^ (${neg?"−":""}${m} ÷ ${n}). Without the parentheses you get ${(neg?b**-m/n:b**m/n).toFixed(2)}.`}},
 hw_iso(){const a=ri(2,6),n=pick([2,3,4,5]),even=n%2===0,r=ri(2,n>=4?3:5),c=ri(3,40),neg=Math.random()<.3,k=neg?-(r**n):r**n,d=a*k+c,xn=pw("x",String(n));
@@ -796,30 +808,30 @@ hw_iso(){const a=ri(2,6),n=pick([2,3,4,5]),even=n%2===0,r=ri(2,n>=4?3:5),c=ri(3,
 hw_shift(){const n=pick([2,2,3,4]),even=n%2===0,r=ri(2,n===4?3:7),h=ri(1,9),plus=Math.random()<.5,neg=!even&&Math.random()<.4,k=neg?-(r**n):r**n;
   const inner=plus?`x + ${h}`:`x − ${h}`,sh=plus?-h:h,root=neg?-r:r;
   const cc=even?`x = ${sgn(r+sh)} or x = ${sgn(-r+sh)}`:`x = ${sgn(root+sh)}`;
-  const wr=even?[`x = ${sgn(r+sh)}`,`x = ${sgn(r-sh)} or x = ${sgn(-r-sh)}`,`x = ${sgn(k+sh)} or x = ${sgn(-k+sh)}`,`x = ±${sgn(r+sh)}`]:[`x = ${sgn(root-sh)}`,`x = ${sgn(-root+sh)}`,`x = ${sgn(k+sh)}`,`x = ±${sgn(root+sh)}`];
+  const wr=even?[`x = ${sgn(r-sh)} or x = ${sgn(-r-sh)}`,`x = ${sgn(r+sh)} or x = ${sgn(-r-sh)}`,`x = ${sgn(r)} or x = ${sgn(-r)}`,`x = ${sgn(k+sh)} or x = ${sgn(-k+sh)}`]:[`x = ${sgn(root-sh)}`,`x = ${sgn(-root+sh)}`,`x = ${sgn(root)}`,`x = ${sgn(k+sh)}`,`x = ${sgn(root+2*sh)}`];
   return{q:`Solve (${inner})<sup>${n}</sup> = ${sgn(k)}`,ex:`(${inner})<sup>${P(n)}</sup> = ${sgn(k)}`,c:cc,w:uniq(cc,wr),
   walk:[[`${inner} = ${even?"±"+r:sgn(root)}`,`Take the ${ROOT[n]} root first`+(even?" (even: ±)":"")],[cc,plus?`Subtract ${h}`:`Add ${h}`]],
   why:`Undo the power first: ${inner} = ${even?"±"+r:sgn(root)}. Then ${plus?"subtract":"add"} ${h}: ${cc}.`}},
 hw_order(){const a=ri(2,4),n=pick([2,3]),r=ri(1,4),h=ri(2,9),c=ri(5,40),d=a*r**n+c;
   const cc=n===3?`x = ${sgn(r-h)}`:`x = ${sgn(r-h)} or x = ${sgn(-r-h)}`;
-  const wr=n===3?[`x = ${sgn(r+h)}`,`x = ${sgn(-r-h)}`,`x = ${sgn(r*a-h)}`,`x = ${sgn(r**3-h)}`,`x = ${sgn(h-r)}`,`x = ${sgn(r-h+1)}`]:[`x = ${sgn(r-h)}`,`x = ${sgn(r+h)} or x = ${sgn(-r+h)}`,`x = ${sgn(r*r-h)} or x = ${sgn(-r*r-h)}`,`x = ${sgn(r*a-h)} or x = ${sgn(-r*a-h)}`];
+  const wr=n===3?[`x = ${sgn(r+h)}`,`x = ${sgn(h-r)}`,`x = ${sgn(-r-h)}`,`x = ${sgn(r**3-h)}`,`x = ${sgn(r)}`]:[`x = ${sgn(r+h)} or x = ${sgn(-r+h)}`,`x = ${sgn(r-h)} or x = ${sgn(h-r)}`,`x = ${sgn(r+h)} or x = ${sgn(-r-h)}`,`x = ${sgn(r*r-h)} or x = ${sgn(-r*r-h)}`,`x = ${sgn(r)} or x = ${sgn(-r)}`];
   return{q:`Solve ${a}(x + ${h})<sup>${n}</sup> + ${c} = ${d}`,ex:`${a}(x + ${h})<sup>${P(n)}</sup> + ${c} = ${d}`,c:cc,w:uniq(cc,wr),
   walk:[[`${a}(x + ${h})<sup>${n}</sup> = ${d-c}`,`Subtract ${c}`],[`(x + ${h})<sup>${n}</sup> = ${r**n}`,`Divide by ${a}`],[`x + ${h} = ${n===2?"±":""}${r}`,`Take the ${ROOT[n]} root`],[cc,`Subtract ${h}`]],
   why:`Peel from the outside in: subtract ${c}, divide by ${a}, ${ROOT[n]} root, subtract ${h}.`+(n===2?" Even power, so two answers.":"")}},
 mx_negfrac(){const n=pick([3,5]),r=ri(2,n===5?2:4),m=pick(n===5?[2,3,4]:[2,4,5]),b=r**n,val=(-r)**m;
-  return{q:`Evaluate (−${b})<sup>${m}/${n}</sup>`,ex:`(−${b})<sup>${P(m)}/${R(n)}</sup>`,c:sgn(val),w:uniq(sgn(val),[sgn(-val),sgn(Math.round(-b*m/n)),sgn(r**m*(m%2?1:-1)),sgn(-r*m),sgn(val*r)]),
+  return{q:`Evaluate (−${b})<sup>${m}/${n}</sup>`,ex:`(−${b})<sup>${P(m)}/${R(n)}</sup>`,c:sgn(val),w:uniq(sgn(val),[sgn(-val),sgn(-r*m),sgn((-r)**(m+1)),sgn((-r)**(m-1)),sgn(Math.round(-b*m/n)),sgn(-b)]),
   walk:[[`(−${b})<sup>${m}/${n}</sup>`,`Bottom ${n} = the root, top ${m} = the power`],[`(${rad(n,"−"+b)})<sup>${m}</sup>`,`Root first. The root is odd, so a negative is fine`],[`(−${r})<sup>${m}</sup>`,`${rad(n,"−"+b)} = −${r}`],[sgn(val),m%2?`Odd power keeps the minus`:`Even power makes it positive`]],
   why:`Root first: ${rad(n,"−"+b)} = −${r}. Then the power: (−${r})<sup>${m}</sup> = ${sgn(val)}. ${m%2?"An odd power keeps the minus.":"An even power makes it positive."}`}},
 mz_negexp(){const r=ri(2,5),b=r*r,m=pick([1,3]),v=r**m,c=`1/${v}`;
-  return{q:`Evaluate ${b}<sup>−${m}/2</sup>`,ex:`${b}<sup>−${m}/2</sup>`,c,w:uniq(c,[`−${v}`,String(v),`1/${Math.round(b*m/2)}`,`−1/${v}`,`1/${b**m}`]),
+  return{q:`Evaluate ${b}<sup>−${m}/2</sup>`,ex:`${b}<sup>−${m}/2</sup>`,c,w:uniq(c,[`1/${Math.round(b*m/2)}`,`−1/${v}`,`1/${r*m}`,`1/${b**m}`,`1/${r**(m+1)}`,`1/${v+1}`]),
   walk:[[`${b}<sup>−${m}/2</sup> = 1 / ${b}<sup>${m}/2</sup>`,"Negative exponent: flip it"],[`1 / (√${b})<sup>${m}</sup>`,"Bottom 2 = square root"],[`1 / ${r}<sup>${m}</sup> = ${c}`,`√${b} = ${r}`]],
   why:`The minus means flip: 1 / ${b}<sup>${m}/2</sup>. √${b} = ${r}, to the ${m} is ${v}. So ${c}. A negative exponent never makes the answer negative.`}},
 mz_mulsimp(){const o=pick([[6,12,6,2],[10,15,5,6],[8,6,4,3],[3,15,3,5],[12,10,2,30],[5,10,5,2],[2,24,4,3],[6,15,3,10]]),c=`${o[2]}√${o[3]}`;
-  return{q:`Multiply, then write in simplest form: √${o[0]} · √${o[1]}`,ex:`√${o[0]} · √${o[1]}`,c,w:uniq(c,[`√${o[0]*o[1]}`,`${o[2]*o[2]}√${o[3]}`,`${o[2]}√${o[3]*2}`,`${o[2]+1}√${o[3]}`]),
+  return{q:`Multiply, then write in simplest form: √${o[0]} · √${o[1]}`,ex:`√${o[0]} · √${o[1]}`,c,w:uniq(c,[`${o[2]*o[2]}√${o[3]}`,`${o[3]}√${o[2]}`,`${o[2]}√${o[2]*o[3]}`,`${o[2]}√${o[3]*2}`,`${o[2]+1}√${o[3]}`]),
   walk:[[`√${o[0]*o[1]}`,"Same index: multiply under one root"],[`√(${o[2]*o[2]} · ${o[3]})`,`Find a pair: ${o[0]*o[1]} = ${o[2]}·${o[2]}·${o[3]}`],[c,`The pair of ${o[2]}s comes out as one ${o[2]}`]],
   why:`√${o[0]} · √${o[1]} = √${o[0]*o[1]}. ${o[0]*o[1]} = ${o[2]}·${o[2]}·${o[3]}, so the pair comes out: ${c}. √${o[0]*o[1]} is equal but not in simplest form.`}},
 mz_explike(){const s=pick([2,3,5,7]),a=ri(2,6),b=ri(2,6),c=`${a+b}√${s}`;
-  return{q:`Simplify ${a} · ${s}<sup>1/2</sup> + ${b}√${s}`,ex:`${a}·${s}<sup>1/2</sup> + ${b}√${s}`,c,w:uniq(c,[`${a+b}√${2*s}`,`${a*b}√${s}`,"Can't be combined",`${a+b}·${s}`]),
+  return{q:`Simplify ${a} · ${s}<sup>1/2</sup> + ${b}√${s}`,ex:`${a}·${s}<sup>1/2</sup> + ${b}√${s}`,c,w:uniq(c,[`${a+b}√${2*s}`,`${a*b}√${s}`,`${a+b}√${s*s}`,`${a+b}${rad(4,s)}`,`${a+b}${rad(3,s)}`,`${a+b+1}√${s}`]),
   walk:[[`${s}<sup>1/2</sup> = √${s}`,"A 1/2 power is a square root"],[`${a}√${s} + ${b}√${s}`,"Now they're like radicals"],[c,`${a} + ${b} = ${a+b}`]],
   why:`${s}<sup>1/2</sup> is just √${s}, so these are like radicals: ${a}√${s} + ${b}√${s} = ${c}.`}}
 };
@@ -950,7 +962,7 @@ const COIN_RL_UNLOCK=30,COIN_RL_VIEW=20;
 // Casino winnings, the daily bonus and real-life rewards are not boosted, so the casino can't snowball. (Rebirth was removed.)
 const STAGE_BOOST=0.5;
 function coinMult(stage){const m=1+STAGE_BOOST*(stage==null?(econ.stage||0):stage);return Math.round(m*100)/100}
-const COIN_PER_RIGHT=2,COIN_PER_LT=1,COIN_PER_MASTERY=1,COIN_MASTERED=50,COIN_QUIZ_PASS=500,TRAINING_MULT=1.5;
+const COIN_PER_RIGHT=5,COIN_PER_LT=1,COIN_PER_MASTERY=1,COIN_MASTERED=50,COIN_QUIZ_PASS=500,TRAINING_MULT=1.5;
 let econ=LS.get("econ",{coins:0,owned:[],equipped:{},t:0});
 function normEcon(){if(!econ||typeof econ!=="object")econ={};econ.coins=Math.max(0,Math.floor(+econ.coins||0));delete econ.inv;econ.owned=Array.isArray(econ.owned)?econ.owned:[];econ.equipped=econ.equipped&&typeof econ.equipped==="object"?econ.equipped:{};econ.t=+econ.t||0;if(typeof econ.daily!=="string")econ.daily="";if(!econ.rl||typeof econ.rl!=="object")econ.rl={};
   // Coin ledger (Nov 16): coins = base + every device's (earned - spent). Each device only adds to its own counters,
@@ -972,6 +984,11 @@ function econSettle(){if(!econ.led)return;const me=econ.led[DEV]||(econ.led[DEV]
 // Merge another device's econ into ours without losing either side's coins
 function econMerge(o){
   if(!o||typeof o!=="object")return;econSettle();
+  // Coin reset (Nov 17): an account reset stamps econ.rst. A save from before the newer reset only shares its
+  // real-life claims and daily bonus day; a newer reset wipes this device's coins and stage first, then merges as usual.
+  {const orst=+o.rst||0,mrst=+econ.rst||0;
+   if(orst<mrst){if(o.rl&&typeof o.rl==="object")for(const k in o.rl)if(o.rl[k])econ.rl[k]=1;LS.set("econ",econ);return}
+   if(orst>mrst){econ={rst:orst,rl:econ.rl,daily:econ.daily,migr:true,led:{},base:0,bt:0,stage:0,reb:0,mref:0,owned:[],equipped:{},coins:0,t:0};normEcon()}}
   if(!o.led||typeof o.led!=="object"){if((+o.t||0)>(econ.t||0)){const keep={stage:econ.stage,migr:econ.migr,mref:econ.mref};econ=JSON.parse(JSON.stringify(o));normEcon();econ.stage=Math.max(econ.stage,keep.stage);econ.migr=econ.migr||keep.migr;econ.mref=Math.max(econ.mref,keep.mref);econ.coins=econDerived();LS.set("econ",econ);econMigrate()}return}
   if((+o.bt||0)>econ.bt){econ.base=Math.floor(+o.base||0);econ.bt=+o.bt||0}
   for(const d in o.led){const x=o.led[d]||{},m=econ.led[d]||(econ.led[d]={e:0,s:0});m.e=Math.max(m.e,+x.e||0);m.s=Math.max(m.s,+x.s||0)}
@@ -1680,6 +1697,7 @@ function next(){
     p.segs.forEach((s,i)=>row.appendChild(mkBtn("seg",`<span>${s}</span><span>–</span><span>${s+1}</span>`,()=>pickIdx(i))));
     box.appendChild(row);
     const ax=document.createElement("div");ax.className="nl-axis";box.appendChild(ax);
+  }else if(typable(p,k)){typeBox(p,k)
   }else{
     const opts=shuffle([p.c,...p.w.slice(0,3)]);st.cur.opts=opts;
     opts.forEach((o,i)=>box.appendChild(mkBtn("opt "+(p.words?"words":"mono"),`<kbd>${i+1}</kbd><span>${o}</span>`,()=>pickIdx(i))));
@@ -1698,6 +1716,48 @@ function quizSelect(i){
   row.appendChild(mkBtn("big qconf-yes",i==="idk"?"Yes, show me":"Yes, lock it in",()=>{const k=st.sel;st.sel=null;c.remove();if(k==="idk")idk(true);else pickIdx(k,true)}));
   row.appendChild(mkBtn("qconf-no","Pick again",()=>{st.sel=null;bs.forEach(b=>b.classList.remove("sel"));c.remove()}));
   c.appendChild(row);beep(600,.04,"sine",.05);setTimeout(()=>c.scrollIntoView({behavior:"smooth",block:"nearest"}),30)}
+// Typed answers (Nov 17, the student's request): a question whose answer is math is typed on a keypad, not tapped.
+// typed.js (RRType) checks it: same value AND written as simply as the answer (an unsimplified right value is a free retry).
+// Word answers, step order and the number line stay as choices, plus the skills listed here.
+const TYPE_ANSWERS=true;
+const TYPE_CHOICE_KEYS=["entry"];   // "which keypresses" questions stay multiple choice
+const noRealMemo={};
+function noRealKey(k){if(!(k in noRealMemo)){let f=false;for(let i=0;i<40&&!f;i++){try{f=/real/i.test(String(GEN[k]().c))}catch(e){}}noRealMemo[k]=f}return noRealMemo[k]}
+function typable(p,k){return TYPE_ANSWERS&&!!window.RRType&&!p.type&&!p.words&&!TYPE_CHOICE_KEYS.includes(k)&&RRType.canType(p.c)}
+function typeBox(p,k){
+  st.cur.typed=true;st.ty="";const box=$("opts"),pc=RRType.plain(p.c),pe=RRType.plain(p.ex||"")+" "+RRType.plain(p.q||""),eq=/=/.test(pc);
+  const letters=eq?[]:[...new Set((RRType.plain(p.ex||"").match(/(?<![a-z])[a-z](?![a-z])/gi)||[]).map(x=>x.toLowerCase()))].slice(0,5);
+  const rows=[["7","8","9","(",")"],["4","5","6","√","∛"],["1","2","3","^","/"],["0",".","−","±","⌫"]];
+  const extra=[...letters];if(/\|/.test(pc+pe))extra.push("|");if(/∜/.test(pc+pe))extra.push("∜");if(eq)extra.push("or");if(noRealKey(k))extra.push("No real");
+  if(extra.length)rows.push(extra);
+  box.innerHTML=`<div class="ty-show mono" id="tyShow"></div><div class="ty-msg" id="tyMsg"></div><div class="ty-pad" id="tyPad"></div>`;
+  const pad=$("tyPad");rows.forEach(r=>{const row=document.createElement("div");row.className="ty-row";r.forEach(v=>row.appendChild(mkBtn("ty-k"+(v==="⌫"?" ty-del":v.length>2?" ty-wide":""),v,()=>typeKey(v))));pad.appendChild(row)});
+  box.appendChild(mkBtn("big ty-go",st.quiz?"Lock it in":"Check",typeSubmit));tyDraw()}
+function tyDraw(){const el=$("tyShow");if(el)el.innerHTML=(st.ty?RRType.render(st.ty):'<span class="ty-ph">Type your answer</span>')+'<span class="ty-cur"></span>'}
+function typeKey(v){
+  if(st.locked||st.done||st.paused||st.mode!=="main"||!st.cur||!st.cur.typed)return;
+  if(st.ty==="No real"&&v!=="No real")st.ty="";
+  if(v==="⌫")st.ty=/, $/.test(st.ty)?st.ty.slice(0,-2):st.ty.slice(0,-1);
+  else if(v==="No real")st.ty=st.ty==="No real"?"":"No real";
+  else if(v==="or")st.ty+=", ";
+  else if(v==="−")st.ty+="-";
+  else if(st.ty.length<40)st.ty+=v;
+  $("tyMsg").textContent="";beep(500+Math.min(st.ty.length,12)*25,.03,"sine",.04);tyDraw()}
+function typeSubmit(){
+  if(st.locked||st.done||st.paused||st.mode!=="main"||!st.cur||!st.cur.typed)return;
+  const p=st.cur,r=RRType.check(st.ty,p.c);
+  if(r.empty||r.retry){const m=$("tyMsg");m.textContent=r.msg||"";const sh=$("tyShow");sh.classList.remove("shake");void sh.offsetWidth;sh.classList.add("shake");beep(260,.08,"sine",.06);return}
+  st.pk={text:RRType.render(st.ty)};typeReveal(r.ok);resolve(r.ok)}
+function typeReveal(ok){const sh=$("tyShow"),m=$("tyMsg");if(!sh)return;sh.classList.add(ok?"ok":"no");$("tyPad").classList.add("done");
+  if(!ok)m.innerHTML=`Answer: <b class="mono">${st.cur.c}</b>`;const g=document.querySelector(".ty-go");if(g)g.classList.add("hidden")}
+// typing on a real keyboard (iPad keyboard, computer)
+function typeKeyEv(e){const k=e.key;
+  if(k==="Enter"){e.preventDefault();typeSubmit();return true}
+  if(k==="Backspace"){e.preventDefault();typeKey("⌫");return true}
+  if(k==="-"){typeKey("−");return true}
+  if(k===","){typeKey("or");return true}
+  if(/^[0-9.()^/|a-z]$/i.test(k)&&!e.metaKey&&!e.ctrlKey){typeKey(k.toLowerCase());return true}
+  return false}
 function pickIdx(i,sure){
   if(st.locked||st.done||st.paused||st.mode!=="main")return;
   const p=st.cur,bs=[...$("opts").querySelectorAll(p.type==="line"?".seg":".opt")];if(!bs[i])return;
@@ -1726,6 +1786,7 @@ function idk(sure){
   if(st.locked||st.done||st.paused||st.mode!=="main"||!st.cur)return;const p=st.cur;
   if(st.quiz&&QUIZ_CONFIRM&&sure!==true&&p.type!=="order")return quizSelect("idk");
   if(p.type==="order"){const slots=[...$("slots").children];p.steps.forEach((x,i)=>{if(i>=st.seq.length){slots[i].textContent=x;slots[i].classList.add("fix")}});st.pk={idk:true,pos:st.seq.length}}
+  else if(p.typed){st.pk={idk:true};typeReveal(false)}
   else{const bs=[...$("opts").querySelectorAll(p.type==="line"?".seg":".opt")],ci=p.type==="line"?p.segs.indexOf(p.ans):p.type==="spot"?p.bad:p.opts.indexOf(p.c);if(bs[ci])bs[ci].classList.add("ok");st.pk={idk:true}}
   resolve(false)}
 $("idk").onclick=()=>idk();
@@ -1739,7 +1800,7 @@ function showWalk(){
   else if(p.type==="spot")head=pk.i>p.bad?`Good eye: line ${pk.i+1} <b>is</b> wrong. But it's only wrong because it uses the mistake from line ${p.bad+1}. The question asks where the mistake <b>first</b> happens, which is line ${p.bad+1}.`
     :`Line ${pk.i+1} is actually fine. The first mistake is in line ${p.bad+1}.`;
   else if(p.type==="line")head=`You picked ${p.segs[pk.i]}–${p.segs[pk.i]+1}. It's between ${p.ans} and ${p.ans+1}.`;
-  else head=`You picked <b>${pk.text}</b>. The answer is <b>${p.c}</b>.`;
+  else head=`You ${p.typed?"wrote":"picked"} <b>${pk.text}</b>. The answer is <b>${p.c}</b>.`;
   st.wkAll=steps;st.wkHere=here;st.wkN=Math.min(1,steps.length);
   $("why").innerHTML=`<div class="wk-head">${head}</div><div class="l-h" style="margin-top:12px">Step by step</div><div id="wkSteps"></div><div id="wkCtl"></div><div id="wkSum" class="hidden wk-sum">${p.why}</div><div class="mute" style="font-size:13px;margin-top:8px">This type comes back as a rematch in a few questions.</div>`;
   renderWalkSteps();
@@ -1932,6 +1993,7 @@ document.addEventListener("keydown",e=>{
   if(!$("game").classList.contains("hidden")){
     if(st.mode==="lt"){if(e.key==="1"||e.key==="ArrowLeft"||e.key==="t")ltAnswer(true);else if(e.key==="2"||e.key==="ArrowRight"||e.key==="f")ltAnswer(false);return}
     if(e.key==="Enter"&&$("qConfirm")){$("qConfirm").querySelector(".qconf-yes").click();return}
+    if(st.cur&&st.cur.typed&&st.mode==="main"&&!st.locked&&!st.paused&&typeKeyEv(e))return;
     if(e.key==="0"||e.key==="?"){idk();return}
     if(e.key>="1"&&e.key<="5"){const i=+e.key-1;if(st.cur&&st.cur.type==="order"){const t=[...document.querySelectorAll(".tile")][i];if(t)t.click()}else pickIdx(i)}
     else if(e.key==="Enter"&&!$("go").classList.contains("hidden")){if(!wkNext())$("go").click()}
