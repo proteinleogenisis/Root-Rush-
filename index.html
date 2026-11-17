@@ -985,7 +985,7 @@ function econMerge(o){
 normEcon();setTimeout(econMigrate,0);
 // Pay a real-life card reward once (kind "u" unlock, "v" view). Returns coins paid.
 // Free coins waiting in Real life for day d: cards that are open but not yet paid (unlock "u" or first look at the answer "v")
-function rlUnclaimed(d){return (LESSONS[d]||[]).filter(k=>REAL[k]&&(lvl(k)===3||dayPassed(d))).filter(k=>!econ.rl["u:"+d+":"+k]||!econ.rl["v:"+d+":"+k]).length}
+function rlUnclaimed(d){return (LESSONS[d]||[]).filter(k=>REAL[k]&&(lvl(k)===3||dayPassed(d))).filter(k=>!econ.rl["u:"+d+":"+k]||(!econ.rl["v:"+d+":"+k]&&!LS.get("rlDone",{})[d+":"+k])).length}
 // A small blinking coin marks where those coins are: on another day's button, or on this day's Real life tab
 function coinPings(){try{document.querySelectorAll("#dsw button").forEach((b,i)=>{const d=DAY_ORDER[i];b.classList.toggle("ping",d!==selDay&&dayUnlocked(d)&&rlUnclaimed(d)>0)});
   const tb=document.querySelector('#htabs [data-t="real"]');if(tb)tb.classList.toggle("ping",rlUnclaimed(selDay)>0)}catch(e){}}
@@ -1380,7 +1380,7 @@ function renderReal(){const box=$("real");if(!box)return;const d=selDay,ks=LESSO
     box.appendChild(c);if(isNew)fresh.push(d+":"+k)});
   if(fresh.length&&hTab!=="real"){const tb=document.querySelector('#htabs [data-t="real"]');if(tb)tb.classList.add("newdot")}
   // Unlock reward for every open card not paid yet (also covers cards unlocked before this existed)
-  {let got=0;ks.filter(open).forEach(k=>{if(REAL[k])got+=rlPay(d+":"+k,"u")});if(got){popup(`Real life unlocked<div style="font-size:16px">+${got} 🪙</div>`,"var(--hot)");beep(1047,.15,"triangle",.1)}}
+  {let got=0;const rd=LS.get("rlDone",{});ks.filter(open).forEach(k=>{if(REAL[k]){got+=rlPay(d+":"+k,"u");if(rd[d+":"+k])got+=rlPay(d+":"+k,"v")}});if(got){popup(`Real life unlocked<div style="font-size:16px">+${got} 🪙</div>`,"var(--hot)");beep(1047,.15,"triangle",.1)}}
   if(fresh.length){LS.set("rlSeen",seen.concat(fresh));
     box.querySelectorAll(".rl-card.new").forEach((c,i)=>{c.style.animationDelay=(i*120)+"ms";setTimeout(()=>c.classList.remove("new"),RL_ANIM_MS+i*120+1400)})}}
 
