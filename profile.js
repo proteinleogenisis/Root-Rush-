@@ -462,13 +462,22 @@
     ".pf-nb{flex:1;min-width:0}.pf-nlab{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}",
     ".pf-nname{font-size:20px;font-weight:700;line-height:1.15}.pf-nline{font-size:13px;color:var(--mute);margin-top:2px}",
     ".pf-ngets{font-size:12px;margin-top:6px;line-height:1.35}",
-    ".pf-ladder{display:flex;flex-direction:column;gap:6px}",
-    ".pf-rung{display:flex;align-items:center;gap:10px;padding:6px 10px 6px 6px;border:1px solid var(--line);border-radius:12px;background:var(--card)}",
-    ".pf-rav{width:44px;height:44px;flex:none;border-radius:10px;overflow:hidden}.pf-rav svg{display:block;width:100%;height:100%}",
+    ".pf-top2{grid-template-columns:140px minmax(0,1fr)}",
+    ".pf-h small{font-size:12px;font-weight:400;color:var(--mute)}",
+    ".pf-ladder{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}",
+    ".pf-rung{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 4px;border:1px solid var(--line);border-radius:12px;background:var(--card);text-align:center;min-width:0}",
+    ".pf-rung b{font-size:11px;line-height:1.15;min-height:2.3em;display:flex;align-items:center}",
+    ".pf-nav{position:relative}.pf-next.locked .pf-nav svg{filter:grayscale(1) brightness(.7)}.pf-nlk{position:absolute;right:6px;bottom:6px;font-size:20px}",
+    ".pf-next.locked{border-style:dashed;border-color:var(--line)}",
+    ".pf-wrap .pf-h{margin:12px 2px 6px}",
+    ".pf-lk{position:absolute;right:-4px;bottom:-4px;font-size:13px;filter:none}",
+    ".pf-rav{position:relative;width:40px;height:40px;flex:none;border-radius:10px}.pf-rav svg{display:block;width:100%;height:100%;border-radius:10px}",
     ".pf-rb{flex:1;min-width:0;display:flex;flex-direction:column}.pf-rb b{font-size:14px}.pf-rb small{font-size:11px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
     ".pf-rp{font-size:13px;font-family:\"JetBrains Mono\",ui-monospace,monospace;white-space:nowrap}",
     ".pf-rung.now{border-color:var(--pow,#1D9E75);box-shadow:0 0 0 1px var(--pow,#1D9E75)}.pf-rung.now .pf-rp{color:var(--pow,#1D9E75);font-weight:700}",
-    ".pf-rung.done{opacity:.65}.pf-rung.done .pf-rp{color:var(--good,#97C459)}.pf-rung.lock .pf-rav{filter:grayscale(.85) brightness(.8)}",
+    ".pf-rung.done .pf-rp{color:var(--good,#97C459)}",
+    ".pf-rung.lock{opacity:.42}.pf-rung.lock .pf-rav svg{filter:grayscale(1) brightness(.75)}.pf-rung.lock b,.pf-rung.lock .pf-rp{color:var(--mute)}",
+    ".pf-rung.lock.next{opacity:.7;border-style:dashed}",
     "@media (prefers-reduced-motion:reduce){.pf-pop,.pf-spk,.pf-msg.bad{animation:none}.pf-card{transition:none}}"
   ].join("\n");
 
@@ -488,16 +497,16 @@
     function render() {
       var n = cur(), coins = Number(api.coins()) || 0, S = STAGES[n], last = STAGES.length - 1, h = [];
       h.push('<div class="pf-wrap">');
-      h.push('<div class="pf-top"><div class="pf-av' + (pop ? " pf-pop" : "") + '">' + avatarSVG({ equipped: stageLook(n), size: 200 }) + "</div>");
+      h.push('<div class="pf-top pf-top2"><div class="pf-av' + (pop ? " pf-pop" : "") + '">' + avatarSVG({ equipped: stageLook(n), size: 140 }) + "</div>");
       h.push('<div class="pf-side"><div class="pf-lvl">Stage ' + (n + 1) + " of " + STAGES.length + '</div><div class="pf-sname">' + S.name + '</div><div class="pf-sline">' + S.line + "</div>" +
         (num("rebirths", 0) ? '<div class="pf-reb">Rebirth ' + num("rebirths", 0) + " · Rush coins ×" + num("coinMult", 1) + "</div>" : "") +
         '<div class="pf-sbar"><i style="width:' + Math.round(n / last * 100) + '%"></i></div>' +
         '<div class="pf-money"><small>coins</small><b>' + fmt(coins) + " 🪙</b></div></div></div>");
       pop = false;
-      h.push('<div class="pf-msg' + (msg ? " " + msg.kind : "") + '">' + (msg ? msg.text : "") + "</div>");
+      if (msg) h.push('<div class="pf-msg ' + msg.kind + '">' + msg.text + "</div>");
       if (n < last) {
         var N = STAGES[n + 1], can = coins >= N.price, gets = stageGets(n + 1);
-        h.push('<div class="pf-next"><div class="pf-nav">' + avatarSVG({ equipped: stageLook(n + 1), size: 120 }) + '</div><div class="pf-nb">' +
+        h.push('<div class="pf-next' + (can ? "" : " locked") + '"><div class="pf-nav">' + avatarSVG({ equipped: stageLook(n + 1), size: 96 }) + (can ? "" : '<span class="pf-nlk">🔒</span>') + '</div><div class="pf-nb">' +
           '<div class="pf-nlab">Next life</div><div class="pf-nname">' + N.name + '</div><div class="pf-nline">' + N.line + "</div>" +
           (gets.length ? '<div class="pf-ngets">New: ' + gets.join(", ") + "</div>" : "") +
           '<button class="pf-btn ' + (can ? "buy" : "poor") + '" data-act="up">' + (can ? "Move up · " + fmt(N.price) + " 🪙" : fmt(N.price - coins) + " more 🪙 to go") + "</button></div></div>");
@@ -508,12 +517,13 @@
           " Casino wins don't get the boost.</div>" +
           '<button class="pf-btn ' + (sure ? "buy" : "") + '" data-act="rebirth">' + (sure ? "Tap again: lose all coins and restart" : "♻ Rebirth" + (same ? "" : " · coins ×" + nm)) + "</button></div></div>");
       }
-      // the whole ladder, top first
-      h.push('<div class="pf-h">The ladder</div><div class="pf-ladder">');
-      for (var i = last; i >= 0; i--) {
-        var cls = i < n ? "done" : i === n ? "now" : "lock";
-        h.push('<div class="pf-rung ' + cls + '"><div class="pf-rav">' + avatarSVG({ equipped: stageLook(i), size: 44, crop: "head" }) + '</div><div class="pf-rb"><b>' + STAGES[i].name + "</b><small>" + STAGES[i].line + "</small></div>" +
-          '<div class="pf-rp">' + (i <= n ? (i === n ? "You" : "✓") : fmt(STAGES[i].price) + " 🪙") + "</div></div>");
+      // the whole ladder as a compact grid, Homeless first; everything above you is grayed out and locked
+      h.push('<div class="pf-h">The ladder <small>' + (n + 1) + " / " + STAGES.length + '</small></div><div class="pf-ladder">');
+      for (var i = 0; i <= last; i++) {
+        var cls = i < n ? "done" : i === n ? "now" : i === n + 1 ? "lock next" : "lock";
+        h.push('<div class="pf-rung ' + cls + '"><div class="pf-rav">' + avatarSVG({ equipped: stageLook(i), size: 40, crop: "head" }) + (i > n ? '<span class="pf-lk">🔒</span>' : "") + "</div>" +
+          '<b>' + STAGES[i].name + "</b>" +
+          '<div class="pf-rp">' + (i < n ? "✓" : i === n ? "You" : fmt(STAGES[i].price)) + "</div></div>");
       }
       h.push("</div></div>");
       el.innerHTML = h.join("");
