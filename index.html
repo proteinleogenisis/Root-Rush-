@@ -256,6 +256,11 @@ body.fok{background:var(--goodbg)}body.fbad{background:var(--badbg)}
 .brandrow{display:flex;justify-content:space-between;align-items:center;flex:1 1 100%}
 .brandr{display:flex;align-items:center;gap:8px}.profbtn{width:34px;height:34px;padding:0;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:16px;background:var(--card);border:1px solid var(--line);cursor:pointer}.profbtn svg{width:34px;height:34px;display:block}
 .coinchip{font:inherit;font-size:13px;cursor:pointer;color:var(--ink)}
+.ping{position:relative}.ping::before{content:"";position:absolute;top:-6px;right:-5px;width:16px;height:16px;border-radius:50%;z-index:2;
+  background:radial-gradient(circle at 35% 35%,#fff3b0,#f5c518 45%,#b8860b);box-shadow:0 0 0 1.5px var(--bg),0 0 8px rgba(245,197,24,.8);animation:coinBlink 1.1s ease-in-out infinite}
+.htabs .ping.newdot::after{display:none}
+@keyframes coinBlink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.8)}}
+@media (prefers-reduced-motion:reduce){.ping::before{animation:none}}
 .ic{width:20px;height:20px;flex:none;display:inline-block;vertical-align:-4px}
 .ibtn{width:38px;height:38px;padding:0;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--card);border:1px solid var(--line);color:var(--ink)}
 .ibtn.off{color:var(--mute)}
@@ -979,7 +984,12 @@ function econMerge(o){
   econ.t=Math.max(econ.t||0,+o.t||0);econ.coins=econDerived();if(econ.coins<0)econSettle();LS.set("econ",econ);econMigrate()}
 normEcon();setTimeout(econMigrate,0);
 // Pay a real-life card reward once (kind "u" unlock, "v" view). Returns coins paid.
-function rlPay(key,kind){const id=kind+":"+key;if(econ.rl[id])return 0;econ.rl[id]=1;const n=kind==="u"?COIN_RL_UNLOCK:COIN_RL_VIEW;econ.coins+=n;saveEcon();try{$("hCoins").textContent=econ.coins.toLocaleString();tile("casinoBtn","chip","Casino",`${econ.coins.toLocaleString()} coins`)}catch(e){}return n}
+// Free coins waiting in Real life for day d: cards that are open but not yet paid (unlock "u" or first look at the answer "v")
+function rlUnclaimed(d){return (LESSONS[d]||[]).filter(k=>REAL[k]&&(lvl(k)===3||dayPassed(d))).filter(k=>!econ.rl["u:"+d+":"+k]||!econ.rl["v:"+d+":"+k]).length}
+// A small blinking coin marks where those coins are: on another day's button, or on this day's Real life tab
+function coinPings(){try{document.querySelectorAll("#dsw button").forEach((b,i)=>{const d=DAY_ORDER[i];b.classList.toggle("ping",d!==selDay&&dayUnlocked(d)&&rlUnclaimed(d)>0)});
+  const tb=document.querySelector('#htabs [data-t="real"]');if(tb)tb.classList.toggle("ping",rlUnclaimed(selDay)>0)}catch(e){}}
+function rlPay(key,kind){const id=kind+":"+key;if(econ.rl[id])return 0;econ.rl[id]=1;const n=kind==="u"?COIN_RL_UNLOCK:COIN_RL_VIEW;econ.coins+=n;saveEcon();setTimeout(coinPings,0);try{$("hCoins").textContent=econ.coins.toLocaleString();tile("casinoBtn","chip","Casino",`${econ.coins.toLocaleString()} coins`)}catch(e){}return n}
 function saveEcon(){econSettle();econ.t=Date.now();LS.set("econ",econ);persist()}
 let runs=LS.get("runs",0);
 let bestBy=LS.get("bestBy",null);if(!bestBy){bestBy={"5.1":{best:LS.get("best",0),dur:LS.get("bestDur",60)}};LS.set("bestBy",bestBy)}
@@ -1396,7 +1406,7 @@ function home(){
   const dr=dailyReady(),nextStreak=done?day.streak:(day.last&&daysBetween(day.last,dayKey(new Date()))===1?day.streak+1:1);
   $("goalTxt").innerHTML=dr?`Daily bonus: finish a Rush for <b>+${dailyAmount(nextStreak)}</b> coins`+(done?" (streak is safe)":""):`Daily bonus collected. Streak safe today. Tomorrow: +${dailyAmount(day.streak+1)} coins`;
   $("goal").classList.toggle("done",!dr);$("goalBox").textContent=!dr?"✓":"";
-  ensureDue();renderReview();renderSkills();renderSpark();renderRoad();renderReal();setTab(hTab);{const ks=LESSONS[selDay],rk=ks.filter(k=>REAL[k]);$("tbReal").textContent=`${rk.filter(k=>lvl(k)===3||dayPassed(selDay)).length}/${rk.length}`;$("tbSk").textContent=`${masteredCount(selDay)}/${ks.length}`}
+  ensureDue();renderReview();renderSkills();renderSpark();renderRoad();renderReal();setTab(hTab);coinPings();{const ks=LESSONS[selDay],rk=ks.filter(k=>REAL[k]);$("tbReal").textContent=`${rk.filter(k=>lvl(k)===3||dayPassed(selDay)).length}/${rk.length}`;$("tbSk").textContent=`${masteredCount(selDay)}/${ks.length}`}
   const L=LRN(),ld=LD();
   $("learnTxt").textContent=`${ld.length} of ${L.length} lessons done`;$("learnBar").style.width=(ld.length/L.length*100)+"%";
   tile("learnBtn","book",ld.length<L.length?"Learn":"Review",ld.length===0?`${selDay} · ${L.length} min`:ld.length<L.length?`lesson ${Math.max(0,L.findIndex((_,j)=>!ld.includes(j)))+1}`:`${selDay} lessons`);$("learnBtn").classList.toggle("todo",ld.length<L.length);
