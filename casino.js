@@ -644,8 +644,11 @@
   // People only stand in the blurred back of the room; the games in focus are left clear.
   var SCENE_DIRS = ["l", "c", "r", "v"];
   var SCENE_NAMES = { l: "Slots · Video poker", c: "Blackjack · Higher/Lower", r: "Roulette · Craps · Baccarat", v: "High-Limit Salon" };
-  function sceneSvg(dir, can, tall) {
+  // tall: drawing height that matches a tall phone; wide: drawing width that matches a wide screen (iPad landscape).
+  // The games stay in the middle 360; extra width is more room on both sides (X0 .. X0 + WU).
+  function sceneSvg(dir, can, tall, wide) {
     var s = [], i, k, BACK = [], H = LOBBY_H, TH = Math.max(LOBBY_H, tall || LOBBY_H), PAD = Math.round((TH - LOBBY_H) * FULL_TOP_SHARE);
+    var WU = Math.max(360, Math.round(wide || 360)), PX = (WU - 360) / 2, X0 = -PX, XR = 360 + PX, MW2 = WU / 360;
     var VX = 180, VY = 250, EYE = 40;
     function r1(n) { return Math.round(n * 10) / 10; }
     function sx(X, z) { return r1(VX + X / z); }
@@ -697,7 +700,7 @@
       return b + "</g>";
     }
 
-    s.push('<svg class="cz-roomsvg" viewBox="0 ' + (-PAD) + " 360 " + TH + '" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Casino floor, looking ' + (dir === "l" ? "left" : dir === "r" ? "right" : "straight ahead") + '">');
+    s.push('<svg class="cz-roomsvg" viewBox="' + X0 + " " + (-PAD) + " " + WU + " " + TH + '" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Casino floor, looking ' + (dir === "l" ? "left" : dir === "r" ? "right" : "straight ahead") + '">');
     s.push("<defs>",
       '<radialGradient id="czl-vig" cx="50%" cy="45%" r="75%"><stop offset="60%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#000" stop-opacity=".55"/></radialGradient>',
       '<linearGradient id="czl-ceil" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#14031f"/><stop offset=".7" stop-color="#3c0b48"/><stop offset="1" stop-color="#6a1550"/></linearGradient>',
@@ -713,36 +716,36 @@
       wheelDefs(), "</defs>");
 
     // ---- room shell: ceiling with light rows, floor with carpet lines ----
-    s.push('<rect y="' + (-PAD) + '" width="360" height="' + (VY + PAD) + '" fill="#14031f"/><rect width="360" height="' + VY + '" fill="url(#czl-ceil)"/><rect y="' + VY + '" width="360" height="' + (TH - PAD - VY) + '" fill="url(#czl-floor)"/>');
-    for (i = -6; i <= 12; i++) s.push('<line x1="' + (i * 30) + '" y1="0" x2="' + r1(VX + (i * 30 - VX) * 0.18) + '" y2="' + r1(VY * 0.82) + '" stroke="#ff9be0" stroke-opacity=".10"/>');
+    s.push('<rect x="' + X0 + '" y="' + (-PAD) + '" width="' + WU + '" height="' + (VY + PAD) + '" fill="#14031f"/><rect x="' + X0 + '" width="' + WU + '" height="' + VY + '" fill="url(#czl-ceil)"/><rect x="' + X0 + '" y="' + VY + '" width="' + WU + '" height="' + (TH - PAD - VY) + '" fill="url(#czl-floor)"/>');
+    for (i = Math.floor(X0 / 30) - 6; i <= Math.ceil(XR / 30) + 6; i++) s.push('<line x1="' + (i * 30) + '" y1="0" x2="' + r1(VX + (i * 30 - VX) * 0.18) + '" y2="' + r1(VY * 0.82) + '" stroke="#ff9be0" stroke-opacity=".10"/>');
     [0.32, 0.45, 0.65, 0.95, 1.4].forEach(function (z, row) {
-      for (var X = -165; X <= 165; X += 55) {
+      for (var X = -165 - Math.ceil(PX * z / 55) * 55; X <= 165 + Math.ceil(PX * z / 55) * 55; X += 55) {
         var cx = sx(X, z), cy = sy(-62, z), r = r1(2.6 / z);
-        if (cx < -10 || cx > 370) continue;
+        if (cx < X0 - 10 || cx > XR + 10) continue;
         s.push('<circle class="cz-bulb2" style="animation-delay:' + ((row * 0.3 + X / 300 + 4) % 2).toFixed(2) + 's" cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="#ffe7a8"/><circle cx="' + cx + '" cy="' + cy + '" r="' + r1(r * 3.2) + '" fill="url(#czl-glow)" opacity=".45"/>');
       }
     });
-    for (i = -14; i <= 14; i++) s.push('<line x1="' + VX + '" y1="' + VY + '" x2="' + r1(VX + i * 60 * (TH - PAD - VY) / (H - VY)) + '" y2="' + (TH - PAD) + '" stroke="#ffcf6a" stroke-opacity=".09"/>');
-    [0.1, 0.13, 0.17, 0.22, 0.29, 0.38, 0.5, 0.68, 0.95, 1.4].forEach(function (z) { var y = sy(EYE, z); if (y < H) s.push('<line x1="0" y1="' + y + '" x2="360" y2="' + y + '" stroke="#ffcf6a" stroke-opacity=".08"/>'); });
+    for (i = -14 - Math.ceil(PX / 40); i <= 14 + Math.ceil(PX / 40); i++) s.push('<line x1="' + VX + '" y1="' + VY + '" x2="' + r1(VX + i * 60 * (TH - PAD - VY) / (H - VY)) + '" y2="' + (TH - PAD) + '" stroke="#ffcf6a" stroke-opacity=".09"/>');
+    [0.1, 0.13, 0.17, 0.22, 0.29, 0.38, 0.5, 0.68, 0.95, 1.4].forEach(function (z) { var y = sy(EYE, z); if (y < H) s.push('<line x1="' + X0 + '" y1="' + y + '" x2="' + XR + '" y2="' + y + '" stroke="#ffcf6a" stroke-opacity=".08"/>'); });
 
     // ---- the blurred back of the room: machine lights, distant tables, and the crowd ----
     var seed = dir === "l" ? 3 : dir === "r" ? 7 : 1;
     var BOK = ["#ff4fa3", "#ffd23f", "#3ff0ff", "#9b5cff", "#4dff88", "#ff7a2f"];
-    BACK.push('<rect x="0" y="' + (VY - 46) + '" width="360" height="52" fill="#1a0322"/>');
-    for (i = 0; i < 16; i++) { // far machine cabinets
-      var mx = r1(((i * 23.3 + seed * 11) % 372) - 6), mh = 30 + ((i * 7 + seed) % 14);
+    BACK.push('<rect x="' + X0 + '" y="' + (VY - 46) + '" width="' + WU + '" height="52" fill="#1a0322"/>');
+    for (i = 0; i < Math.round(16 * MW2); i++) { // far machine cabinets
+      var mx = r1(X0 + ((i * 23.3 + seed * 11) % (WU + 12)) - 6), mh = 30 + ((i * 7 + seed) % 14);
       BACK.push('<rect x="' + mx + '" y="' + (VY + 4 - mh) + '" width="15" height="' + mh + '" rx="2" fill="' + BOK[(i + seed) % BOK.length] + '" opacity=".85"/><rect x="' + (mx + 3) + '" y="' + (VY + 9 - mh) + '" width="9" height="7" fill="#fff6d6" opacity=".9"/>');
     }
-    for (i = 0; i < 40; i++) BACK.push('<circle cx="' + r1((i * 37.7 + seed * 19) % 360) + '" cy="' + (VY - 42 + ((i * 13) % 30)) + '" r="' + (2 + (i % 4)) + '" fill="' + BOK[i % BOK.length] + '" opacity=".8"/>');
+    for (i = 0; i < Math.round(40 * MW2); i++) BACK.push('<circle cx="' + r1(X0 + (i * 37.7 + seed * 19) % WU) + '" cy="' + (VY - 42 + ((i * 13) % 30)) + '" r="' + (2 + (i % 4)) + '" fill="' + BOK[i % BOK.length] + '" opacity=".8"/>');
     [[-60, 1.5], [55, 1.6]].forEach(function (t, j) { // two distant tables
       var tx = sx(t[0] + seed * 4 - 12, t[1]), ty = sy(EYE, t[1]);
       BACK.push('<ellipse cx="' + tx + '" cy="' + r1(ty - 8) + '" rx="' + r1(22 / t[1]) + '" ry="' + r1(7 / t[1]) + '" fill="#0d6a3a" stroke="#5a3218" stroke-width="2"/>');
     });
-    for (i = 0; i < 17; i++) { // the crowd: guests standing around, small and soft
-      var gz = 1.05 + ((i * 0.37 + seed * 0.13) % 0.9), gX = ((i * 47 + seed * 23) % 300) - 150;
+    for (i = 0; i < Math.round(17 * MW2); i++) { // the crowd: guests standing around, small and soft
+      var gz = 1.05 + ((i * 0.37 + seed * 0.13) % 0.9), gX = ((i * 47 + seed * 23) % (300 * MW2)) - 150 * MW2;
       BACK.push(guest(sx(gX, gz), sy(EYE, gz), i + seed, r1(0.85 / gz * 100) / 100));
     }
-    s.push('<g class="cz-far"><g filter="url(#czl-dof2)">' + BACK.join("") + '</g><rect x="0" y="' + (VY - 70) + '" width="360" height="130" fill="url(#czl-haze)"/></g>');
+    s.push('<g class="cz-far"><g filter="url(#czl-dof2)">' + BACK.join("") + '</g><rect x="' + X0 + '" y="' + (VY - 70) + '" width="' + WU + '" height="130" fill="url(#czl-haze)"/></g>');
 
     // two slow light beams
     [[70, "#ff4fd8", 0], [290, "#3ff0ff", 4.1]].forEach(function (b) {
@@ -899,7 +902,7 @@
 
     if (dir === "v") {
       // ---- the High-Limit Salon: dark wood, gold, a lit back bar full of bottles, a marble bar with empty stools ----
-      s.push('<rect y="' + (-PAD) + '" width="360" height="' + TH + '" fill="#0b0408" opacity=".55"/>');
+      s.push('<rect x="' + X0 + '" y="' + (-PAD) + '" width="' + WU + '" height="' + TH + '" fill="#0b0408" opacity=".55"/>');
       s.push(heading(64, "HIGH-LIMIT SALON", "FINE SPIRITS · RARE VINTAGES"));
       // chandelier
       s.push('<g opacity=".95"><line x1="180" y1="' + (-PAD) + '" x2="180" y2="96" stroke="#c9a24a" stroke-width="1.2"/><path d="M140 104 Q180 128 220 104" fill="none" stroke="#d9b86a" stroke-width="1.6"/><path d="M152 112 Q180 132 208 112" fill="none" stroke="#d9b86a" stroke-width="1.2"/>');
@@ -922,9 +925,9 @@
         }
       });
       // the bar counter: marble top, dark wood front with gold rail and panels
-      s.push('<path d="M-10 392 L370 392 L370 408 L-10 408 Z" fill="url(#czl-marble)"/><rect x="-10" y="406" width="380" height="3" fill="#8f7a55"/>',
-        '<rect x="-10" y="409" width="380" height="118" fill="url(#czl-wood2)"/><rect x="-10" y="452" width="380" height="5" rx="2" fill="#d9b86a"/>');
-      for (i = 0; i < 6; i++) s.push('<rect x="' + (6 + i * 60) + '" y="418" width="48" height="28" rx="3" fill="none" stroke="#c9a24a" stroke-opacity=".55"/><rect x="' + (6 + i * 60) + '" y="466" width="48" height="50" rx="3" fill="none" stroke="#c9a24a" stroke-opacity=".55"/>');
+      s.push('<path d="M' + (X0 - 10) + ' 392 L' + (XR + 10) + ' 392 L' + (XR + 10) + ' 408 L' + (X0 - 10) + ' 408 Z" fill="url(#czl-marble)"/><rect x="' + (X0 - 10) + '" y="406" width="' + (WU + 20) + '" height="3" fill="#8f7a55"/>',
+        '<rect x="' + (X0 - 10) + '" y="409" width="' + (WU + 20) + '" height="118" fill="url(#czl-wood2)"/><rect x="' + (X0 - 10) + '" y="452" width="' + (WU + 20) + '" height="5" rx="2" fill="#d9b86a"/>');
+      for (i = Math.floor((X0 - 6) / 60); i < Math.ceil((XR - 6) / 60); i++) s.push('<rect x="' + (6 + i * 60) + '" y="418" width="48" height="28" rx="3" fill="none" stroke="#c9a24a" stroke-opacity=".55"/><rect x="' + (6 + i * 60) + '" y="466" width="48" height="50" rx="3" fill="none" stroke="#c9a24a" stroke-opacity=".55"/>');
       // drinks waiting on the bar
       s.push('<g transform="translate(70 392)"><path d="M-9 -26 L9 -26 L1 -12 L1 -2 L6 0 L-6 0 L-1 -2 L-1 -12 Z" fill="#9fd8ff" fill-opacity=".55" stroke="#fff" stroke-width=".8"/><circle cx="2" cy="-21" r="2.2" fill="#6b8e23"/></g>',
         '<g transform="translate(150 392)"><path d="M-4 -34 L4 -34 L3 -12 L1 -10 L1 -2 L5 0 L-5 0 L-1 -2 L-1 -10 L-3 -12 Z" fill="#ffe08a" fill-opacity=".75" stroke="#fff" stroke-width=".8"/><circle cx="0" cy="-26" r=".9" fill="#fff"/><circle cx="1" cy="-20" r=".7" fill="#fff"/></g>',
@@ -943,9 +946,9 @@
     }
     // confetti, a couple of sparkles, the vignette, the labels, and the tap zones on top
     var CONF = ["#ff2e93", "#ffd23f", "#3ff0ff", "#9b5cff", "#4dff88", "#ff7a2f", "#fff"];
-    for (i = 0; i < CONFETTI_N; i++) s.push('<rect class="cz-conf" style="animation-delay:-' + ((i * 0.71 + seed) % 9).toFixed(2) + "s;animation-duration:" + (7 + (i % 5)) + 's" x="' + r1((i * 47.3 + 11 + seed * 31) % 360) + '" y="-12" width="' + (3 + (i % 3)) + '" height="' + (5 + (i % 2) * 2) + '" rx="1" fill="' + CONF[i % CONF.length] + '"/>');
+    for (i = 0; i < CONFETTI_N; i++) s.push('<rect class="cz-conf" style="animation-delay:-' + ((i * 0.71 + seed) % 9).toFixed(2) + "s;animation-duration:" + (7 + (i % 5)) + 's" x="' + r1(X0 + (i * 47.3 + 11 + seed * 31) % WU) + '" y="-12" width="' + (3 + (i % 3)) + '" height="' + (5 + (i % 2) * 2) + '" rx="1" fill="' + CONF[i % CONF.length] + '"/>');
     [[30, 150, 0], [330, 160, 2.6]].forEach(function (p) { s.push('<g transform="translate(' + p[0] + " " + p[1] + ')"><path class="cz-sp" style="animation-delay:' + p[2] + 's" d="M0-7 L1.6-1.6 7 0 1.6 1.6 0 7-1.6 1.6-7 0-1.6-1.6Z" fill="#fff6c8"/></g>'); });
-    s.push('<rect y="' + (-PAD) + '" width="360" height="' + TH + '" fill="url(#czl-vig)" pointer-events="none"/>');
+    s.push('<rect x="' + X0 + '" y="' + (-PAD) + '" width="' + WU + '" height="' + TH + '" fill="url(#czl-vig)" pointer-events="none"/>');
     s.push(LBL.join(""));
     ZONES.forEach(function (zn2) { s.push(spotOpen(zn2[0]) + '<rect x="' + zn2[1] + '" y="' + zn2[2] + '" width="' + zn2[3] + '" height="' + zn2[4] + '" fill="#000" fill-opacity="0.001"/></g>'); });
     s.push("</svg>");
@@ -1050,13 +1053,15 @@
     function lobbyHtml() {
       var can = canBet();
       return '<div class="cz-room"><div class="cz-pano" style="transform:translateX(-' + (LOOK * 100 / SCENE_DIRS.length) + '%)">' +
-        SCENE_DIRS.map(function (d) { return '<div class="cz-pv">' + sceneSvg(d, can, fullTall()) + "</div>"; }).join("") + "</div>" +
+        SCENE_DIRS.map(function (d) { return '<div class="cz-pv">' + sceneSvg(d, can, fullTall(), fullWide()) + "</div>"; }).join("") + "</div>" +
         '<button class="cz-turn l" data-a="turn" data-v="-1" aria-label="Look left"><span style="display:flex"><svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M15 4 L7 12 L15 20" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button><button class="cz-turn r" data-a="turn" data-v="1" aria-label="Look right"><span style="display:flex;transform:scaleX(-1)"><svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M15 4 L7 12 L15 20" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>' +
         '<div class="cz-look" aria-live="polite"></div></div>';
     }
     // phones: the floor fills the whole screen; returns the drawing height that matches the screen's shape (0 = not full screen)
     function isFull() { return !!(globalThis.innerWidth && globalThis.innerWidth <= FULL_MAX_W); }
     function fullTall() { return isFull() ? Math.round(360 * globalThis.innerHeight / globalThis.innerWidth) : 0; }
+    // a screen wider than the drawing's shape (iPad, landscape): draw more room on the sides instead of dark bars
+    function fullWide() { return isFull() ? Math.round(LOBBY_H * globalThis.innerWidth / globalThis.innerHeight) : 0; }
     var drawnTall = 0;
     // ===== the salon bar =====
     function buzzNow() { try { return api.buzz ? api.buzz() : 0; } catch (e) { return 0; } }
@@ -1793,7 +1798,7 @@
       else { stage.innerHTML = hlSkel(); hlRestore(); }
       // While a game is open, the casino floor keeps living behind it, blurred
       try { document.body.classList.toggle("cz-fs", view === "lobby" && isFull()); } catch (e) { /* ignore */ }
-      if (view === "lobby") { drawnTall = fullTall(); bgEl.classList.remove("on"); bgEl.innerHTML = ""; fitLobby(); lookUpdate(); }
+      if (view === "lobby") { drawnTall = fullTall() + fullWide(); bgEl.classList.remove("on"); bgEl.innerHTML = ""; fitLobby(); lookUpdate(); }
       else if (!bgEl.innerHTML) { bgEl.innerHTML = lobbySvg(false).replace('class="cz-roomsvg"', 'preserveAspectRatio="xMidYMid slice"').replace(/ data-a="open"/g, ""); bgEl.classList.add("on"); }
     }
     // Shrink the floor so the whole thing fits on screen without scrolling (LOBBY_FIT_GAP px left below it)
@@ -1813,7 +1818,7 @@
       jp += 1 + Math.floor(Math.random() * 37);
       var t = el.querySelector("#czl-jp"); if (t) t.textContent = jp.toLocaleString("en-US");
     }, JACKPOT_TICK_MS);
-    try { globalThis.addEventListener("resize", function () { if (!live() || view !== "lobby") return; if (Math.abs(fullTall() - drawnTall) > 8) render(); else fitLobby(); }); } catch (e) { /* ignore */ }
+    try { globalThis.addEventListener("resize", function () { if (!live() || view !== "lobby") return; if (Math.abs(fullTall() + fullWide() - drawnTall) > 8) render(); else fitLobby(); }); } catch (e) { /* ignore */ }
     function go(v, from) {
       if (navBusy || !live() || v === view) return;
       if (v === "lobby" && locked()) return;

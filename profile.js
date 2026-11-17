@@ -473,6 +473,8 @@
     ".pf-nboost{margin:6px 0 2px;padding:6px 8px;border-radius:8px;background:color-mix(in srgb,var(--hot,#D85A30) 12%,transparent);font-size:12px;line-height:1.35}",
     ".pf-nboost b{display:block;color:var(--hot,#D85A30);font-size:13px}.pf-nboost small{display:block;color:var(--mute);font-size:11px;margin-top:1px}",
     ".pf-rx{font-size:10px;font-weight:700;color:var(--hot,#D85A30)}",
+    ".pf-rung.done,.pf-rung.now{cursor:pointer}.pf-rung.peek{border-color:var(--root,#7F77DD);box-shadow:0 0 0 2px var(--root,#7F77DD);opacity:1}",
+    ".pf-past .pf-sname{color:var(--root,#7F77DD)}.pf-now{margin-top:6px;align-self:flex-start;padding:5px 10px;border-radius:8px;border:1px solid var(--root,#7F77DD);background:transparent;color:var(--root,#7F77DD);font:inherit;font-size:12px;font-weight:700}",
     ".pf-lk{position:absolute;right:-4px;bottom:-4px;font-size:13px;filter:none}",
     ".pf-rav{position:relative;width:40px;height:40px;flex:none;border-radius:10px}.pf-rav svg{display:block;width:100%;height:100%;border-radius:10px}",
     ".pf-rb{flex:1;min-width:0;display:flex;flex-direction:column}.pf-rb b{font-size:14px}.pf-rb small{font-size:11px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
@@ -494,16 +496,19 @@
       st.textContent = CSS;
       document.head.appendChild(st);
     }
-    var msg = null, pop = false;
+    var msg = null, pop = false, peek = null; // peek: a past stage you tapped on the ladder to look back at
     function num(f, d) { try { return api[f] ? Number(api[f]()) : d; } catch (e) { return d; } }
     function multAt(st) { try { return api.multAt ? Number(api.multAt(st)) : 1; } catch (e) { return 1; } }
     var BOOSTS = "On Rush answers, lightning, mastery and quiz. Not casino, daily or real life.";
     function cur() { return clampStage(api.stage ? api.stage() : 0); }
     function render() {
-      var n = cur(), coins = Number(api.coins()) || 0, S = STAGES[n], last = STAGES.length - 1, h = [];
+      var n = cur(), coins = Number(api.coins()) || 0, last = STAGES.length - 1, h = [];
+      if (peek !== null && (peek > n || peek === n)) peek = null;
+      var shown = peek === null ? n : peek, S = STAGES[shown];
       h.push('<div class="pf-wrap">');
-      h.push('<div class="pf-top pf-top2"><div class="pf-av' + (pop ? " pf-pop" : "") + '">' + avatarSVG({ equipped: stageLook(n), size: 140 }) + "</div>");
-      h.push('<div class="pf-side"><div class="pf-lvl">Stage ' + (n + 1) + " of " + STAGES.length + '</div><div class="pf-sname">' + S.name + '</div><div class="pf-sline">' + S.line + "</div>" +
+      h.push('<div class="pf-top pf-top2"><div class="pf-av' + (pop ? " pf-pop" : "") + '">' + avatarSVG({ equipped: stageLook(shown), size: 140 }) + "</div>");
+      h.push('<div class="pf-side' + (peek === null ? "" : " pf-past") + '"><div class="pf-lvl">' + (peek === null ? "Stage " + (n + 1) + " of " + STAGES.length : "Back then · stage " + (shown + 1)) + '</div><div class="pf-sname">' + S.name + '</div><div class="pf-sline">' + S.line + "</div>" +
+        (peek === null ? "" : '<button class="pf-now" data-act="now">Back to now</button>') +
         '<div class="pf-reb">Rush coins ×' + num("coinMult", 1) + "</div>" +
         '<div class="pf-sbar"><i style="width:' + Math.round(n / last * 100) + '%"></i></div>' +
         '<div class="pf-money"><small>coins</small><b>' + fmt(coins) + " 🪙</b></div></div></div>");
@@ -521,8 +526,8 @@
       // the whole ladder as a compact grid, Homeless first; everything above you is grayed out and locked
       h.push('<div class="pf-h">The ladder <small>' + (n + 1) + " / " + STAGES.length + '</small></div><div class="pf-ladder">');
       for (var i = 0; i <= last; i++) {
-        var cls = i < n ? "done" : i === n ? "now" : i === n + 1 ? "lock next" : "lock";
-        h.push('<div class="pf-rung ' + cls + '"><div class="pf-rav">' + avatarSVG({ equipped: stageLook(i), size: 40, crop: "head" }) + (i > n ? '<span class="pf-lk">🔒</span>' : "") + "</div>" +
+        var cls = (i < n ? "done" : i === n ? "now" : i === n + 1 ? "lock next" : "lock") + (i === peek ? " peek" : "");
+        h.push('<div class="pf-rung ' + cls + '"' + (i <= n ? ' data-act="peek" data-i="' + i + '" role="button" tabindex="0" aria-label="Look at ' + STAGES[i].name + '"' : "") + '><div class="pf-rav">' + avatarSVG({ equipped: stageLook(i), size: 40, crop: "head" }) + (i > n ? '<span class="pf-lk">🔒</span>' : "") + "</div>" +
           '<b>' + STAGES[i].name + "</b>" +
           '<div class="pf-rp">' + (i < n ? "✓" : i === n ? "You" : fmt(STAGES[i].price)) + ' <span class="pf-rx">×' + multAt(i) + "</span></div></div>");
       }
@@ -534,6 +539,13 @@
     el.onclick = function (e) {
       var tg = e.target && e.target.closest ? e.target.closest("[data-act]") : null;
       if (!tg || !el.contains(tg)) return;
+      var act = tg.getAttribute("data-act");
+      if (act === "peek" || act === "now") {
+        var i = act === "now" ? null : Number(tg.getAttribute("data-i"));
+        peek = i === null || i === cur() || i === peek ? null : i; pop = true; snd("click"); render();
+        if (peek !== null) { var top = el.querySelector(".pf-top"); if (top && top.scrollIntoView) top.scrollIntoView({ behavior: "smooth", block: "start" }); }
+        return;
+      }
       if (tg.getAttribute("data-act") !== "up") return;
       var n = cur(); if (n >= STAGES.length - 1) return;
       var N = STAGES[n + 1];
