@@ -75,8 +75,8 @@ body.cz-fs .wrap{zoom:1}
 h1{font-size:44px;font-weight:700;letter-spacing:-1px;line-height:1}
 h1 span{color:var(--hot)}
 .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px}
-button{font:inherit;color:inherit;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .08s}
-button:active{transform:scale(.97)}
+button{font:inherit;color:inherit;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .1s ease-out,background-color .22s ease,border-color .22s ease,color .22s ease,opacity .2s ease}
+button:active{transform:scale(.96)}
 .big{width:100%;background:var(--hot);border-color:var(--hot);color:#fff;font-size:20px;font-weight:700;padding:18px}
 .ty-show{display:flex;align-items:center;flex-wrap:wrap;min-height:56px;margin-top:10px;padding:8px 14px;border:2px solid var(--line);border-radius:12px;background:var(--card);font-size:24px;line-height:1.3}
 .ty-show sup{font-size:.62em}.ty-show.ok{border-color:var(--good);background:var(--goodbg)}.ty-show.no{border-color:var(--bad);background:var(--badbg)}
@@ -354,6 +354,20 @@ body.calc-open.paper-only .wrap{padding-bottom:440px}
 .gear{font:inherit;font-size:15px;cursor:pointer;padding:4px 10px}
 .sheet{max-height:85vh;overflow:auto;z-index:15}
 .set-row{display:flex;justify-content:space-between;align-items:center;font-size:15px}
+/* motion: transform/opacity only, visual only (never delays input) */
+@keyframes scrIn{from{opacity:.9;transform:translateY(10px)}to{opacity:1;transform:none}}
+.scr-in{animation:scrIn .2s ease-out both}
+@keyframes okPop{0%{transform:scale(1);box-shadow:0 0 0 0 transparent}40%{transform:scale(1.04);box-shadow:0 0 0 4px color-mix(in srgb,var(--good) 45%,transparent),0 0 16px color-mix(in srgb,var(--good) 55%,transparent)}100%{transform:scale(1);box-shadow:0 0 0 0 transparent}}
+.opt.ok,.ty-show.ok{animation:okPop .4s ease-out}
+.ty-show{transition:background-color .22s ease,border-color .22s ease}
+@keyframes sheetIn{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:none}}
+.calc:not(.hidden){animation:sheetIn .24s cubic-bezier(.2,.8,.2,1) both}
+@keyframes numPop{0%{transform:scale(1)}40%{transform:scale(1.22)}100%{transform:scale(1)}}
+.numpop{display:inline-block;animation:numPop .32s ease-out}
+@keyframes bootIn{from{opacity:.55;transform:translateY(10px)}to{opacity:1;transform:none}}
+body.boot #home .hpane.on :is(.tile,.card,.hs){animation:bootIn .35s ease-out both}
+body.boot #home .hpane.on :is(.tile,.card):nth-child(2){animation-delay:.04s}body.boot #home .hpane.on :is(.tile,.card):nth-child(3){animation-delay:.08s}body.boot #home .hpane.on :is(.tile,.card):nth-child(4){animation-delay:.12s}body.boot #home .hpane.on :is(.tile,.card):nth-child(5){animation-delay:.16s}body.boot #home .hpane.on :is(.tile,.card):nth-child(6){animation-delay:.2s}body.boot #home .hpane.on :is(.tile,.card):nth-child(n+7){animation-delay:.24s}
+@media (prefers-reduced-motion:reduce){.scr-in,.opt.ok,.ty-show.ok,.calc:not(.hidden),.numpop,body.boot #home .hpane.on :is(.tile,.card,.hs){animation:none!important}button,button:active{transition:none;transform:none}}
 </style>
 </head>
 <body>
@@ -2046,7 +2060,7 @@ async function initCloud(){
     if(!$("home").classList.contains("hidden"))home();
   }catch(e){clearTimeout(timer);setSync("retry")}
 }
-function show(id){curScreen=id;setTimeout(()=>{try{drunkApply()}catch(e){}},0);if(id!=="casino")document.body.classList.remove("cz-fs");["home","learn","game","end","train","casino","profile","check"].forEach(s=>$(s).classList.toggle("hidden",s!==id));setTimeout(musUpdate,0);const cv=id==="game"||id==="learn";$("calcBtn").classList.toggle("hidden",!cv);if(!cv&&calcOpen)toggleCalc(false);}
+function show(id){const prevScr=curScreen;curScreen=id;if(prevScr!==id&&id!=="casino"&&!REDUCED_MOTION()){const el=$(id);if(el){el.classList.remove("scr-in");void el.offsetWidth;el.classList.add("scr-in")}}setTimeout(()=>{try{drunkApply()}catch(e){}},0);if(id!=="casino")document.body.classList.remove("cz-fs");["home","learn","game","end","train","casino","profile","check"].forEach(s=>$(s).classList.toggle("hidden",s!==id));setTimeout(musUpdate,0);const cv=id==="game"||id==="learn";$("calcBtn").classList.toggle("hidden",!cv);if(!cv&&calcOpen)toggleCalc(false);}
 
 function start(f){
   let focus=null,pool=null,label=null;
@@ -2583,6 +2597,23 @@ $("checkBtn").onclick=openCheck;$("kHome").onclick=home;
 $("casinoBtn").onclick=openCasino;$("coinChip").onclick=openCasino;$("profBtn").onclick=openProfile;$("cHome").onclick=home;$("pHome").onclick=home;
 home();
 initCloud();
+
+/* motion helpers: cosmetic count-up and pop on numbers (final text is always exact) */
+function REDUCED_MOTION(){try{return matchMedia("(prefers-reduced-motion:reduce)").matches}catch(e){return false}}
+const TICK_MS=420,TICK_ARM_MS=1500;
+(function(){const t0=Date.now();document.body.classList.add("boot");setTimeout(()=>document.body.classList.remove("boot"),1000);
+  const num=t=>parseFloat(String(t).replace(/[^0-9.\-]/g,""));
+  function pop(el){el.classList.remove("numpop");void el.offsetWidth;el.classList.add("numpop")}
+  function watch(id,count){const el=document.getElementById(id);if(!el)return;let last=num(el.textContent),raf=0,own=false;
+    const mo=new MutationObserver(()=>{if(own)return;const t=el.textContent,n=num(t);
+      if(Date.now()-t0<TICK_ARM_MS||REDUCED_MOTION()||document.hidden||isNaN(n)){last=n;return}
+      if(n===last)return;const from=last;last=n;pop(el);
+      if(!count||isNaN(from)||n===0||Math.abs(n-from)<2)return;
+      const loc=t.indexOf(",")>-1,fmt=v=>loc?v.toLocaleString():String(v),t1=performance.now();cancelAnimationFrame(raf);
+      const step=now=>{const k=Math.min(1,(now-t1)/TICK_MS),e=1-Math.pow(1-k,3);own=true;el.textContent=k>=1?t:fmt(Math.round(from+(n-from)*e));mo.takeRecords();own=false;if(k<1)raf=requestAnimationFrame(step)};
+      raf=requestAnimationFrame(step)});
+    mo.observe(el,{childList:true,characterData:true,subtree:true})}
+  watch("hCoins",true);watch("sc",true);watch("cb",false)})();
 </script>
 </body>
 </html>
