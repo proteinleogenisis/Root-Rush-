@@ -136,5 +136,33 @@ check("status: starts Broke on the road, climbs with net worth", () => {
   const s = P.status(["cleantee"]); eq(s.toNext, 900, "900 to Getting by");
 });
 
+// ---------- life stages (Nov 16) ----------
+check("stages: 11, homeless (free) to filthy rich (islands), prices rise every step", () => {
+  eq(P.STAGES.length, 11);
+  eq(P.STAGES[0].name, "Homeless"); eq(P.STAGES[0].price, 0); eq(JSON.stringify(P.STAGES[0].look), "{}", "homeless wears nothing bought");
+  eq(P.STAGES[10].name, "Filthy rich"); eq(P.STAGES[10].look.place, "island");
+  for (let i = 2; i < 11; i++) truthy(P.STAGES[i].price > P.STAGES[i - 1].price, "price rises at " + i);
+  eq(P.stageCost(0), 0); eq(P.stageCost(1), 300); eq(P.stageCost(10), P.STAGES.reduce((a, s) => a + s.price, 0));
+});
+check("stages: every look is valid, uses real items, and changes the picture", () => {
+  let prev = null;
+  P.STAGES.forEach((st, i) => {
+    for (const k in st.look) truthy(k === "place" ? true : P.CATALOG.some(c => c.id === st.look[k] && c.slot === k), "stage " + i + " " + k + " is a real item");
+    const svg = P.avatarSVG({ equipped: P.stageLook(i), size: 100 });
+    validate(svg, "stage " + i);
+    if (prev) truthy(svg.replace(/pf\d+-/g, "") !== prev, "stage " + i + " looks different from " + (i - 1));
+    prev = svg.replace(/pf\d+-/g, "");
+    if (i) truthy(P.stageGets(i).length > 0, "stage " + i + " lists what is new");
+  });
+});
+check("stages: old shop items convert to the highest stage they pay for, rest refunded", () => {
+  eq(JSON.stringify(P.stageFromSpent(0)), JSON.stringify({ stage: 0, refund: 0 }));
+  eq(JSON.stringify(P.stageFromSpent(299)), JSON.stringify({ stage: 0, refund: 299 }));
+  eq(JSON.stringify(P.stageFromSpent(300)), JSON.stringify({ stage: 1, refund: 0 }));
+  eq(JSON.stringify(P.stageFromSpent(3000)), JSON.stringify({ stage: 2, refund: 1700 }));
+  const all = P.netWorth(P.CATALOG.map(c => c.id)), r = P.stageFromSpent(all);
+  eq(P.stageCost(r.stage) + r.refund, all, "value kept exactly");
+  eq(JSON.stringify(P.stageFromSpent(10 ** 9).stage), "10", "capped at the top");
+});
 console.log(pass + " passed, " + fail + " failed");
 process.exit(fail ? 1 : 0);

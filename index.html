@@ -883,6 +883,11 @@ function dailyReady(){return econ.daily!==dayKey(new Date())}
 const QUIZ_PASS_FRAC=1,QUIZ_MISS_XP=60; // QUIZ_MISS_XP: mastery a skill drops to when you miss it on the final quiz // share of final-quiz answers needed to pass (1 = must ace it)
 // Real-life cards pay once each, tracked in econ.rl so it syncs: COIN_RL_UNLOCK when the card unlocks, COIN_RL_VIEW the first time you open its answer
 const COIN_RL_UNLOCK=30,COIN_RL_VIEW=20;
+// Rebirth: at the top of the life ladder you can start over (Homeless, 0 coins) for a permanent boost on coins earned
+// in Root Rush (answers, lightning, mastery, quiz pass). Each rebirth adds REBIRTH_STEP, capped at REBIRTH_MAX_MULT.
+// Casino winnings, the daily bonus and real-life rewards are not boosted, so the casino can't snowball.
+const REBIRTH_STEP=0.5,REBIRTH_MAX_MULT=4;
+function rebirthMult(){return Math.min(REBIRTH_MAX_MULT,1+REBIRTH_STEP*(econ.reb||0))}
 const COIN_PER_RIGHT=2,COIN_PER_LT=1,COIN_PER_MASTERY=1,COIN_MASTERED=50,COIN_QUIZ_PASS=500,TRAINING_MULT=1.5;
 let econ=LS.get("econ",{coins:0,owned:[],equipped:{},t:0});
 function normEcon(){if(!econ||typeof econ!=="object")econ={};econ.coins=Math.max(0,Math.floor(+econ.coins||0));delete econ.inv;econ.owned=Array.isArray(econ.owned)?econ.owned:[];econ.equipped=econ.equipped&&typeof econ.equipped==="object"?econ.equipped:{};econ.t=+econ.t||0;if(typeof econ.daily!=="string")econ.daily="";if(!econ.rl||typeof econ.rl!=="object")econ.rl={};
@@ -891,15 +896,21 @@ function normEcon(){if(!econ||typeof econ!=="object")econ={};econ.coins=Math.max
   if(!econ.led||typeof econ.led!=="object"){econ.led={};econ.base=econ.coins;econ.bt=econ.t||0}
   econ.base=Math.floor(+econ.base||0);econ.bt=+econ.bt||0;
   for(const d in econ.led){const x=econ.led[d]||{};econ.led[d]={e:Math.max(0,+x.e||0),s:Math.max(0,+x.s||0)}}
+  // Life stage (Nov 16): the shop is one ladder now. econ.stage = how far up you are; econ.mref = coins handed back when
+  // old shop items were turned into a stage (kept apart from the ledger and merged by max, so two devices can't both pay it).
+  econ.stage=Math.max(0,Math.floor(+econ.stage||0));econ.reb=Math.max(0,Math.floor(+econ.reb||0));econ.migr=!!econ.migr;econ.mref=Math.max(0,Math.floor(+econ.mref||0));
   econ.coins=econDerived();if(econ.coins<0)econSettle()}
+// Turn items bought in the old shop into a stage once: the highest stage their price covers, the rest comes back as coins.
+function econMigrate(){if(econ.migr||!econ.owned.length||!window.RRProfile||!RRProfile.stageFromSpent)return;
+  const r=RRProfile.stageFromSpent(RRProfile.netWorth(econ.owned));econ.stage=Math.max(econ.stage,r.stage);econ.mref=Math.max(econ.mref,r.refund);econ.migr=true;econ.coins=econDerived();saveEcon()}
 const DEV=LS.get("dev",null)||(()=>{const d="d"+Date.now().toString(36)+Math.random().toString(36).slice(2,8);LS.set("dev",d);return d})();
-function econDerived(){let n=econ.base;for(const d in econ.led)n+=econ.led[d].e-econ.led[d].s;return n}
+function econDerived(){let n=econ.base+(econ.mref||0);for(const d in econ.led)n+=econ.led[d].e-econ.led[d].s;return n}
 // Book any change to econ.coins since the last settle into this device's counters (a negative total is floored to 0 as a small gift).
 function econSettle(){if(!econ.led)return;const me=econ.led[DEV]||(econ.led[DEV]={e:0,s:0});let c=Math.floor(+econ.coins||0);if(c<0)c=0;const d=c-econDerived();if(d>0)me.e+=d;else if(d<0)me.s+=-d;econ.coins=econDerived()}
 // Merge another device's econ into ours without losing either side's coins
 function econMerge(o){
   if(!o||typeof o!=="object")return;econSettle();
-  if(!o.led||typeof o.led!=="object"){if((+o.t||0)>(econ.t||0)){econ=JSON.parse(JSON.stringify(o));normEcon();LS.set("econ",econ)}return}
+  if(!o.led||typeof o.led!=="object"){if((+o.t||0)>(econ.t||0)){const keep={stage:econ.stage,migr:econ.migr,mref:econ.mref};econ=JSON.parse(JSON.stringify(o));normEcon();econ.stage=Math.max(econ.stage,keep.stage);econ.migr=econ.migr||keep.migr;econ.mref=Math.max(econ.mref,keep.mref);econ.coins=econDerived();LS.set("econ",econ);econMigrate()}return}
   if((+o.bt||0)>econ.bt){econ.base=Math.floor(+o.base||0);econ.bt=+o.bt||0}
   for(const d in o.led){const x=o.led[d]||{},m=econ.led[d]||(econ.led[d]={e:0,s:0});m.e=Math.max(m.e,+x.e||0);m.s=Math.max(m.s,+x.s||0)}
   econ.owned=[...new Set([...econ.owned,...(Array.isArray(o.owned)?o.owned:[])])];
@@ -907,8 +918,9 @@ function econMerge(o){
   const dv=k=>{if(!k)return 0;const [y,mo,da]=String(k).split("-").map(Number);return new Date(y,mo-1,da).getTime()||0};
   if(typeof o.daily==="string"&&dv(o.daily)>dv(econ.daily))econ.daily=o.daily;
   if(o.rl&&typeof o.rl==="object")for(const k in o.rl)if(o.rl[k])econ.rl[k]=1;
-  econ.t=Math.max(econ.t||0,+o.t||0);econ.coins=econDerived();if(econ.coins<0)econSettle();LS.set("econ",econ)}
-normEcon();
+  {const orb=Math.floor(+o.reb||0),ost=Math.floor(+o.stage||0);if(orb>econ.reb){econ.reb=orb;econ.stage=ost}else if(orb===econ.reb)econ.stage=Math.max(econ.stage,ost)}if(o.migr)econ.migr=true;econ.mref=Math.max(econ.mref||0,Math.floor(+o.mref||0));
+  econ.t=Math.max(econ.t||0,+o.t||0);econ.coins=econDerived();if(econ.coins<0)econSettle();LS.set("econ",econ);econMigrate()}
+normEcon();setTimeout(econMigrate,0);
 // Pay a real-life card reward once (kind "u" unlock, "v" view). Returns coins paid.
 function rlPay(key,kind){const id=kind+":"+key;if(econ.rl[id])return 0;econ.rl[id]=1;const n=kind==="u"?COIN_RL_UNLOCK:COIN_RL_VIEW;econ.coins+=n;saveEcon();try{$("hCoins").textContent=econ.coins.toLocaleString();$("casinoBtn").textContent=`🎰 Casino · ${econ.coins.toLocaleString()} coins`}catch(e){}return n}
 function saveEcon(){econSettle();econ.t=Date.now();LS.set("econ",econ);persist()}
@@ -1556,7 +1568,7 @@ function frame(dt){
     const d=Math.round(st.score-ghostScore);$("vs").innerHTML=d>=0?`<span style="color:var(--good)">+${d.toLocaleString()} ahead of your best</span>`:`<span style="color:var(--bad)">${d.toLocaleString()} behind your best</span>`}
 }
 function addCoins(n){
-  n=Math.max(0,n);if(st&&st.training)n*=TRAINING_MULT;n=Math.round(n);
+  n=Math.max(0,n)*rebirthMult();if(st&&st.training)n*=TRAINING_MULT;n=Math.round(n);
   if(n>0){econ.coins+=n;if(st&&typeof st.coinsRun==="number")st.coinsRun+=n;saveEcon()}
   return n}
 function mkBtn(cls,html,fn){const b=document.createElement("button");b.className=cls;b.innerHTML=html;b.onclick=fn;return b}
@@ -1941,10 +1953,16 @@ const api={
   toast(h){popup(h,"var(--hot)")},
   back(){home()},
   stats(){const all=Object.values(LESSONS).flat();return{mastered:all.filter(k=>lvl(k)===3).length,total:all.length,passedDays:Object.values(passed).filter(Boolean).length,runs,best:Math.max(0,...Object.values(bestBy).map(x=>+(x&&x.best)||0))}},
+  // life-stage shop (profile.js): buy the next stage in order
+  stage:()=>econ.stage,
+  rebirths:()=>econ.reb||0,
+  coinMult:()=>rebirthMult(),
+  nextMult:()=>Math.min(REBIRTH_MAX_MULT,1+REBIRTH_STEP*((econ.reb||0)+1)),
+  // only from the top stage: coins go to 0 (booked as spent so it syncs), back to Homeless, one more rebirth
+  rebirth(){if(!window.RRProfile||econ.stage<RRProfile.STAGES.length-1)return false;econ.coins=0;econ.stage=0;econ.reb=(econ.reb||0)+1;saveEcon();return true},
+  buyStage(n){n=Math.floor(+n);if(!window.RRProfile||n!==econ.stage+1)return false;const st=RRProfile.STAGES[n];if(!st||!api.spend(st.price,"stage "+n))return false;econ.stage=n;saveEcon();return true},
   owned:()=>econ.owned.slice(),
   equipped:()=>Object.assign({},econ.equipped),
-  buyItem(id){const it=window.RRProfile&&RRProfile.CATALOG&&RRProfile.CATALOG.find(x=>x.id===id);if(!it||econ.owned.includes(id)||!api.spend(it.price,"item "+id))return false;econ.owned.push(id);saveEcon();return true},
-  equip(slot,id){if(id==null)delete econ.equipped[slot];else if(econ.owned.includes(id))econ.equipped[slot]=id;else return;saveEcon()}
 };
 function openMount(screen,mountId,lib,msg){show(screen);const d=$(mountId);d.innerHTML="";
   try{if(window[lib])window[lib].mount(d,api);else d.textContent=msg}catch(e){d.textContent=msg;console.error(e)}
@@ -1952,7 +1970,7 @@ function openMount(screen,mountId,lib,msg){show(screen);const d=$(mountId);d.inn
 function openCasino(){openMount("casino","casinoMount","RRCasino","Casino is loading…")}
 function openProfile(){openMount("profile","profileMount","RRProfile","Profile is loading…")}
 function renderProfBtn(){const b=$("profBtn");if(!b)return;let h="👤";
-  try{if(window.RRProfile&&RRProfile.avatarSVG)h=RRProfile.avatarSVG({equipped:econ.equipped,size:34,crop:"head"})}catch(e){}
+  try{if(window.RRProfile&&RRProfile.avatarSVG)h=RRProfile.avatarSVG({equipped:RRProfile.stageLook(econ.stage),size:34,crop:"head"})}catch(e){}
   b.innerHTML=h}
 // ---- Homework checker: type a problem, see the answer (solver.js). Visually quiet on purpose. ----
 const HK_KEYS=["√","∛","root(",  "^","(",")","x","=","/","−"];

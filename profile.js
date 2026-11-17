@@ -35,6 +35,39 @@
     { id: "dog", slot: "pet", name: "Dog", price: 600, desc: "Good boy, always happy" },
     { id: "tiger", slot: "pet", name: "Tiger", price: 15000, desc: "The ultimate flex" }
   ];
+  // Life stages (Nov 16): the shop is now one ladder, homeless to owning islands. Each stage is a whole new look
+  // (place, clothes, ride, pet). You buy the next stage in order; nothing is bought separately any more.
+  var STAGES = [
+    { name: "Homeless", line: "Sleeping on the road", price: 0, look: {} },
+    { name: "Broke", line: "A tiny room, finally off the street", price: 300, look: { place: "room", outfit: "cleantee", shoes: "slides" } },
+    { name: "Poor", line: "A warm hoodie and a skateboard", price: 1000, look: { place: "room", outfit: "hoodie", shoes: "sneakers", hat: "beanie", chain: "dogtag", ride: "skateboard" } },
+    { name: "Getting by", line: "A city apartment, a bike and a cat", price: 2500, look: { place: "cityview", outfit: "varsity", shoes: "sneakers", hat: "cap", shades: "nerdglasses", ride: "bike", pet: "cat" } },
+    { name: "Middle class", line: "A nice jacket, a dog, a view", price: 5000, look: { place: "cityview", outfit: "dripjacket", shoes: "sneakers", hat: "headphones", shades: "sunglasses", chain: "silverchain", ride: "bike", pet: "dog" } },
+    { name: "Well-off", line: "Penthouse living, suit and tie", price: 10000, look: { place: "penthouse", outfit: "suit", shoes: "designerkicks", shades: "sunglasses", chain: "silverchain", pet: "dog" } },
+    { name: "Rich", line: "Gold everything and a sports car", price: 20000, look: { place: "penthouse", outfit: "suit", shoes: "designerkicks", shades: "goldshades", chain: "goldchain", ride: "sportscar", pet: "dog" } },
+    { name: "Millionaire", line: "Life on a yacht with a pet tiger", price: 40000, look: { place: "yacht", outfit: "suit", shoes: "designerkicks", shades: "goldshades", chain: "goldchain", pet: "tiger" } },
+    { name: "Multi-millionaire", line: "A mansion with a pool", price: 75000, look: { place: "mansion", outfit: "suit", shoes: "designerkicks", shades: "goldshades", chain: "diamondchain", ride: "sportscar", pet: "tiger" } },
+    { name: "Billionaire", line: "Your own private jet and a crown", price: 125000, look: { place: "jet", outfit: "suit", shoes: "designerkicks", hat: "crown", shades: "goldshades", chain: "diamondchain", pet: "tiger" } },
+    { name: "Filthy rich", line: "You own islands", price: 200000, look: { place: "island", outfit: "suit", shoes: "designerkicks", hat: "crown", shades: "goldshades", chain: "diamondchain", pet: "tiger" } }
+  ];
+  var EXTRA_NAMES = { jet: "Private jet", island: "Private island" };
+  // total coins to reach stage n from homeless
+  function stageCost(n) { var c = 0; for (var i = 1; i <= n && i < STAGES.length; i++) c += STAGES[i].price; return c; }
+  // turn coins already spent on old shop items into a stage, plus coins handed back for the part that doesn't fill a stage
+  function stageFromSpent(v) {
+    v = Math.max(0, Math.floor(+v || 0));
+    var n = 0; while (n + 1 < STAGES.length && stageCost(n + 1) <= v) n++;
+    return { stage: n, refund: v - stageCost(n) };
+  }
+  function clampStage(n) { return Math.max(0, Math.min(STAGES.length - 1, Math.floor(+n || 0))); }
+  function stageLook(n) { var o = {}, l = STAGES[clampStage(n)].look; for (var k in l) o[k] = l[k]; return o; }
+  // what's new at stage n compared to the one before, as names ("City view", "Bike", "Cat")
+  function stageGets(n) {
+    n = clampStage(n); if (n === 0) return [];
+    var a = STAGES[n].look, b = STAGES[n - 1].look, out = [];
+    SLOTS.forEach(function (sl) { var id = a[sl[0]]; if (id && id !== b[sl[0]]) out.push(EXTRA_NAMES[id] || (BY_ID[id] ? BY_ID[id].name : id)); });
+    return out;
+  }
   var TRY_ON_MS = 2000;                    // how long a try-on preview shows
   var NEXT_UP = 4;                          // "Can buy" tab: how many cheapest items to show when you can't afford any
   var SLOTS = [
@@ -141,6 +174,36 @@
       o.push('<rect y="240" width="300" height="60" fill="#4caf50"/><rect y="240" width="300" height="6" fill="#3d8b40"/>');
       o.push('<ellipse cx="236" cy="282" rx="56" ry="12" fill="#4fc3f7" stroke="#e0f7ff" stroke-width="3"/><path d="M206 282 q8 -4 16 0 M236 286 q8 -4 16 0" stroke="#e0f7ff" stroke-width="2" fill="none"/>');
       o.push('<circle cx="16" cy="230" r="16" fill="#2e7d32"/><circle cx="286" cy="226" r="18" fill="#2e7d32"/>' + spark(262, 40, 7, "#fffbe0"));
+    } else if (p === "jet") { // Billionaire: a private jet on the runway at sunset, red carpet to the door
+      o.push('<defs><linearGradient id="' + id + 'jsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3b2a6e"/><stop offset=".55" stop-color="#f08a5d"/><stop offset="1" stop-color="#ffd59a"/></linearGradient></defs>');
+      o.push('<rect width="300" height="300" fill="url(#' + id + 'jsky)"/><circle cx="60" cy="150" r="26" fill="#ffe2a8" opacity=".9"/>');
+      o.push('<rect y="196" width="300" height="104" fill="#3b3f4a"/><rect y="196" width="300" height="4" fill="#5b606d"/>');
+      for (var rx = 0; rx < 300; rx += 44) o.push('<rect x="' + rx + '" y="262" width="26" height="4" fill="#f4f1e6"/>');
+      o.push('<g transform="translate(150 150)"><path d="M-130 30 Q-140 14 -112 10 L96 6 Q132 6 140 22 Q132 36 96 38 L-112 40 Q-132 40 -130 30Z" fill="#f7f7f9" stroke="#c8ccd6" stroke-width="1.5"/>' +
+        '<path d="M-112 10 L-128 -26 L-108 -26 L-80 10Z" fill="#f7f7f9" stroke="#c8ccd6" stroke-width="1.5"/><path d="M-120 -20 L-104 -20" stroke="#c9a227" stroke-width="3"/>' +
+        '<path d="M-20 30 L-60 62 L-36 62 L20 32Z" fill="#e6e8ee"/><rect x="-96" y="16" width="160" height="5" fill="#c9a227"/>');
+      for (var wx = -86; wx < 70; wx += 18) o.push('<ellipse cx="' + wx + '" cy="25" rx="5" ry="4" fill="#22304a"/>');
+      o.push('<path d="M112 14 Q128 16 132 24 L112 24Z" fill="#22304a"/><rect x="70" y="20" width="14" height="22" rx="2" fill="#d9dde6" stroke="#b9bfcc"/></g>');
+      o.push('<path d="M226 192 L242 192 L262 238 L236 238Z" fill="#c9a227"/><path d="M228 196 L240 196 M231 205 L244 205 M234 214 L248 214 M237 223 L252 223" stroke="#8a6d17" stroke-width="2"/>');
+      o.push('<path d="M236 238 L262 238 L300 300 L240 300Z" fill="#b3122e"/>' + spark(250, 46, 7, "#fffbe0"));
+    } else if (p === "island") { // Filthy rich: your own island, villa, palms, helipad, a yacht offshore
+      o.push('<defs><linearGradient id="' + id + 'isky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3fb6ff"/><stop offset="1" stop-color="#bdeaff"/></linearGradient>' +
+        '<linearGradient id="' + id + 'isea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#19b6c9"/><stop offset="1" stop-color="#0b6f9e"/></linearGradient></defs>');
+      o.push('<rect width="300" height="300" fill="url(#' + id + 'isky)"/><circle cx="250" cy="48" r="20" fill="#fff6b8"/><circle cx="250" cy="48" r="32" fill="#fff6b8" opacity=".3"/>');
+      o.push('<rect y="150" width="300" height="150" fill="url(#' + id + 'isea)"/><path d="M0 150 Q50 144 100 150 T200 150 T300 150 L300 156 L0 156Z" fill="#5fd6e6"/>');
+      // a second island far off
+      o.push('<path d="M206 152 Q228 136 254 152Z" fill="#2f8f4e"/><path d="M226 140 l0 -12 M226 128 q-8 2 -12 8 M226 128 q8 2 12 8" stroke="#2f6e3a" stroke-width="2" fill="none"/>');
+      // the main island: sand, villa with infinity pool, palms, helipad
+      o.push('<path d="M-10 250 Q40 176 150 178 Q250 176 310 250 L310 300 L-10 300Z" fill="#f2d48b"/><path d="M10 236 Q70 188 150 190 Q236 188 292 236Z" fill="#3fa65a"/>');
+      o.push('<rect x="96" y="160" width="96" height="40" fill="#fbfbf7" stroke="#d9d4c4"/><rect x="108" y="150" width="72" height="12" fill="#fbfbf7" stroke="#d9d4c4"/><rect x="104" y="170" width="20" height="16" fill="#7ecbf2"/><rect x="134" y="170" width="20" height="16" fill="#7ecbf2"/><rect x="164" y="170" width="20" height="16" fill="#7ecbf2"/>');
+      o.push('<rect x="100" y="200" width="88" height="10" rx="2" fill="#4fd0f5" stroke="#e8fbff"/>');
+      [[44, 210], [70, 196], [236, 200], [262, 214]].forEach(function (pp) {
+        o.push('<path d="M' + pp[0] + ' ' + pp[1] + ' q4 -30 -2 -52" stroke="#8a5a2b" stroke-width="5" fill="none"/><g transform="translate(' + (pp[0] - 2) + ' ' + (pp[1] - 52) + ')"><path d="M0 0 q-20 -4 -28 10 M0 0 q20 -4 28 10 M0 0 q-12 -16 -26 -12 M0 0 q12 -16 26 -12 M0 0 q0 -14 4 -20" stroke="#2f8f4e" stroke-width="5" fill="none" stroke-linecap="round"/></g>');
+      });
+      o.push('<circle cx="214" cy="226" r="15" fill="#3a3f48"/><text x="214" y="231" text-anchor="middle" font-family="Arial,sans-serif" font-weight="900" font-size="14" fill="#f4f1e6">H</text>');
+      // yacht offshore
+      o.push('<g transform="translate(40 158)"><path d="M0 0 L46 0 L40 8 L4 8Z" fill="#f7f7f9"/><rect x="12" y="-7" width="22" height="7" fill="#f7f7f9"/><rect x="15" y="-5" width="16" height="3" fill="#22304a"/></g>');
+      o.push(spark(70, 40, 7, "#fffbe0") + spark(150, 110, 6, "#fffbe0"));
     } else { // the road: where he starts, broke
       o.push('<defs><linearGradient id="' + id + 'dusk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#232842"/><stop offset="1" stop-color="#6a5878"/></linearGradient></defs>');
       o.push('<rect width="300" height="300" fill="url(#' + id + 'dusk)"/>');
@@ -391,6 +454,21 @@
     ".pf-btn.buy{background:var(--hot,#D85A30);border-color:var(--hot,#D85A30);color:#fff}",
     ".pf-btn.poor{background:transparent;border-color:var(--line,#33332f);color:var(--mute,#a3a199)}",
     ".pf-btn.off{border-color:var(--good,#97C459);color:var(--good,#97C459)}",
+    ".pf-reb{font-size:12px;font-weight:700;color:var(--hot,#D85A30);margin-top:2px}",
+    ".pf-lvl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}",
+    ".pf-next{display:flex;gap:12px;align-items:center;padding:12px;border:1px solid var(--pow,#1D9E75);border-radius:16px;background:color-mix(in srgb,var(--pow,#1D9E75) 10%,var(--card,#1f1f1d));margin:4px 0 6px}",
+    ".pf-next.top{justify-content:center;text-align:center}",
+    ".pf-nav{width:120px;flex:none;aspect-ratio:1;border-radius:14px;overflow:hidden}.pf-nav svg{display:block;width:100%;height:100%}",
+    ".pf-nb{flex:1;min-width:0}.pf-nlab{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}",
+    ".pf-nname{font-size:20px;font-weight:700;line-height:1.15}.pf-nline{font-size:13px;color:var(--mute);margin-top:2px}",
+    ".pf-ngets{font-size:12px;margin-top:6px;line-height:1.35}",
+    ".pf-ladder{display:flex;flex-direction:column;gap:6px}",
+    ".pf-rung{display:flex;align-items:center;gap:10px;padding:6px 10px 6px 6px;border:1px solid var(--line);border-radius:12px;background:var(--card)}",
+    ".pf-rav{width:44px;height:44px;flex:none;border-radius:10px;overflow:hidden}.pf-rav svg{display:block;width:100%;height:100%}",
+    ".pf-rb{flex:1;min-width:0;display:flex;flex-direction:column}.pf-rb b{font-size:14px}.pf-rb small{font-size:11px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
+    ".pf-rp{font-size:13px;font-family:\"JetBrains Mono\",ui-monospace,monospace;white-space:nowrap}",
+    ".pf-rung.now{border-color:var(--pow,#1D9E75);box-shadow:0 0 0 1px var(--pow,#1D9E75)}.pf-rung.now .pf-rp{color:var(--pow,#1D9E75);font-weight:700}",
+    ".pf-rung.done{opacity:.65}.pf-rung.done .pf-rp{color:var(--good,#97C459)}.pf-rung.lock .pf-rav{filter:grayscale(.85) brightness(.8)}",
     "@media (prefers-reduced-motion:reduce){.pf-pop,.pf-spk,.pf-msg.bad{animation:none}.pf-card{transition:none}}"
   ].join("\n");
 
@@ -404,113 +482,65 @@
       st.textContent = CSS;
       document.head.appendChild(st);
     }
-    var preview = null, timer = null, msg = null, pop = false;
-    var tab = "deals";
-    try { tab = localStorage.getItem("rootrush_pfTab") || "deals"; } catch (e) { /* ignore */ }
-    if (tab !== "deals" && !SLOTS.some(function (x) { return x[0] === tab; })) tab = "deals";
-
+    var msg = null, pop = false, sure = false;
+    function num(f, d) { try { return api[f] ? Number(api[f]()) : d; } catch (e) { return d; } }
+    function cur() { return clampStage(api.stage ? api.stage() : 0); }
     function render() {
-      var owned = api.owned() || [], eq = api.equipped() || {}, coins = api.coins();
-      var shown = {}, k;
-      for (k in eq) if (eq[k]) shown[k] = eq[k];
-      if (preview) shown[preview.slot] = preview.id;
-      var h = [];
+      var n = cur(), coins = Number(api.coins()) || 0, S = STAGES[n], last = STAGES.length - 1, h = [];
       h.push('<div class="pf-wrap">');
-      var stt = status(owned);
-      // top: the guy on the left, status + money on the right (no scrolling to see it)
-      h.push('<div class="pf-top"><div class="pf-av' + (pop ? " pf-pop" : "") + '">' + avatarSVG({ equipped: shown, size: 200 }) + "</div>");
-      h.push('<div class="pf-side"><div class="pf-sname">' + stt.name + '</div><div class="pf-sline">' + stt.line + '</div>' +
-        (stt.next ? '<div class="pf-sbar"><i style="width:' + Math.round(stt.frac * 100) + '%"></i></div><div class="pf-snext">' + fmt(stt.toNext) + ' 🪙 to <b>' + stt.next + '</b></div>' : '<div class="pf-snext">Top status.</div>') +
-        '<div class="pf-money"><small>coins</small><b>' + fmt(coins) + ' 🪙</b></div><div class="pf-money"><small>net worth</small><b>' + fmt(netWorth(owned)) + ' 🪙</b></div></div></div>');
+      h.push('<div class="pf-top"><div class="pf-av' + (pop ? " pf-pop" : "") + '">' + avatarSVG({ equipped: stageLook(n), size: 200 }) + "</div>");
+      h.push('<div class="pf-side"><div class="pf-lvl">Stage ' + (n + 1) + " of " + STAGES.length + '</div><div class="pf-sname">' + S.name + '</div><div class="pf-sline">' + S.line + "</div>" +
+        (num("rebirths", 0) ? '<div class="pf-reb">Rebirth ' + num("rebirths", 0) + " · Rush coins ×" + num("coinMult", 1) + "</div>" : "") +
+        '<div class="pf-sbar"><i style="width:' + Math.round(n / last * 100) + '%"></i></div>' +
+        '<div class="pf-money"><small>coins</small><b>' + fmt(coins) + " 🪙</b></div></div></div>");
       pop = false;
-      h.push('<div class="pf-msg' + (msg ? " " + msg.kind : "") + '">' + (msg ? msg.text : (preview ? "Trying it on... buy it to keep it." : "Tap an item to try it on.")) + "</div>");
-      // tabs: "Can buy" first, then one tab per slot
-      var canBuy = CATALOG.filter(function (c) { return owned.indexOf(c.id) < 0 && c.price <= coins; });
-      var tabs = [["deals", "Can buy", "⭐"]].concat(SLOTS);
-      h.push('<div class="pf-tabs">');
-      tabs.forEach(function (tb) {
-        var n = tb[0] === "deals" ? canBuy.length : CATALOG.filter(function (c) { return c.slot === tb[0] && owned.indexOf(c.id) >= 0; }).length + "/" + CATALOG.filter(function (c) { return c.slot === tb[0]; }).length;
-        h.push('<button class="pf-tab' + (tab === tb[0] ? " on" : "") + '" data-act="tab" data-tab="' + tb[0] + '">' + tb[2] + " " + tb[1] + " <small>" + n + "</small></button>");
-      });
-      h.push("</div>");
-      var list;
-      if (tab === "deals") {
-        list = canBuy.slice().sort(function (a, b) { return a.price - b.price; });
-        if (!list.length) {
-          list = CATALOG.filter(function (c) { return owned.indexOf(c.id) < 0; }).sort(function (a, b) { return a.price - b.price; }).slice(0, NEXT_UP);
-          h.push('<div class="pf-note">' + (list.length ? "Nothing you can afford yet. Cheapest next:" : "You own everything!") + "</div>");
-        }
-      } else list = CATALOG.filter(function (c) { return c.slot === tab; });
-      [list].forEach(function () {
-        h.push('<div class="pf-grid">');
-        list.forEach(function (c) {
-          var has = owned.indexOf(c.id) >= 0, wearing = eq[c.slot] === c.id;
-          var cls = "pf-card" + (has ? " own" : "") + (wearing ? " on" : "") + (preview && preview.id === c.id ? " try" : "");
-          h.push('<div class="' + cls + '"' + (has ? "" : ' data-act="try" data-id="' + c.id + '"') + ">");
-          h.push('<div class="pf-ico">' + ICONS[c.id] + '</div><div class="pf-iname">' + c.name + '</div><div class="pf-desc">' + c.desc + "</div>");
-          h.push('<div class="pf-price">' + fmt(c.price) + " 🪙</div>");
-          if (!has) h.push('<button class="pf-btn ' + (coins >= c.price ? "buy" : "poor") + '" data-act="buy" data-id="' + c.id + '">Buy</button>');
-          else if (wearing) h.push('<button class="pf-btn off" data-act="unequip" data-id="' + c.id + '">Unequip</button>');
-          else h.push('<button class="pf-btn" data-act="equip" data-id="' + c.id + '">Equip</button>');
-          h.push("</div>");
-        });
-        h.push("</div>");
-      });
-      h.push("</div>");
+      h.push('<div class="pf-msg' + (msg ? " " + msg.kind : "") + '">' + (msg ? msg.text : "") + "</div>");
+      if (n < last) {
+        var N = STAGES[n + 1], can = coins >= N.price, gets = stageGets(n + 1);
+        h.push('<div class="pf-next"><div class="pf-nav">' + avatarSVG({ equipped: stageLook(n + 1), size: 120 }) + '</div><div class="pf-nb">' +
+          '<div class="pf-nlab">Next life</div><div class="pf-nname">' + N.name + '</div><div class="pf-nline">' + N.line + "</div>" +
+          (gets.length ? '<div class="pf-ngets">New: ' + gets.join(", ") + "</div>" : "") +
+          '<button class="pf-btn ' + (can ? "buy" : "poor") + '" data-act="up">' + (can ? "Move up · " + fmt(N.price) + " 🪙" : fmt(N.price - coins) + " more 🪙 to go") + "</button></div></div>");
+      } else {
+        var nm = num("nextMult", 1.5), same = nm === num("coinMult", 1);
+        h.push('<div class="pf-next top"><div class="pf-nb"><div class="pf-nname">You made it. Rebirth?</div><div class="pf-nline">Start over as Homeless with <b>0 coins</b>. ' +
+          (same ? "You're at the max boost already, so this is just for the climb." : "Every coin you earn in Root Rush is worth <b>×" + nm + "</b> from then on, forever.") +
+          " Casino wins don't get the boost.</div>" +
+          '<button class="pf-btn ' + (sure ? "buy" : "") + '" data-act="rebirth">' + (sure ? "Tap again: lose all coins and restart" : "♻ Rebirth" + (same ? "" : " · coins ×" + nm)) + "</button></div></div>");
+      }
+      // the whole ladder, top first
+      h.push('<div class="pf-h">The ladder</div><div class="pf-ladder">');
+      for (var i = last; i >= 0; i--) {
+        var cls = i < n ? "done" : i === n ? "now" : "lock";
+        h.push('<div class="pf-rung ' + cls + '"><div class="pf-rav">' + avatarSVG({ equipped: stageLook(i), size: 44, crop: "head" }) + '</div><div class="pf-rb"><b>' + STAGES[i].name + "</b><small>" + STAGES[i].line + "</small></div>" +
+          '<div class="pf-rp">' + (i <= n ? (i === n ? "You" : "✓") : fmt(STAGES[i].price) + " 🪙") + "</div></div>");
+      }
+      h.push("</div></div>");
       el.innerHTML = h.join("");
       msg = null;
     }
-
     function snd(kind) { try { if (api.sound) api.sound(kind); } catch (e) { /* ignore */ } }
-
     el.onclick = function (e) {
-      var t = e.target && e.target.closest ? e.target.closest("[data-act]") : null;
-      if (!t || !el.contains(t)) return;
-      if (t.getAttribute("data-act") === "tab") {
-        tab = t.getAttribute("data-tab");
-        try { localStorage.setItem("rootrush_pfTab", tab); } catch (e2) { /* ignore */ }
-        snd("click"); render(); return;
+      var tg = e.target && e.target.closest ? e.target.closest("[data-act]") : null;
+      if (!tg || !el.contains(tg)) return;
+      if (tg.getAttribute("data-act") === "rebirth") {
+        if (!sure) { sure = true; snd("click"); render(); return; }
+        sure = false;
+        if (api.rebirth && api.rebirth()) { snd("buy"); pop = true; msg = { kind: "good", text: "Reborn! Back on the road, Rush coins ×" + num("coinMult", 1) + "." }; }
+        render(); return;
       }
-      var item = BY_ID[t.getAttribute("data-id")];
-      if (!item) return; // never pass an unknown id to the api
-      var act = t.getAttribute("data-act");
-      if (timer) { clearTimeout(timer); timer = null; }
-      if (act === "try") {
-        preview = { slot: item.slot, id: item.id };
-        snd("click");
-        render();
-        timer = setTimeout(function () {
-          timer = null; preview = null;
-          if (el.isConnected) render();
-        }, TRY_ON_MS);
-        return;
-      }
-      preview = null;
-      if (act === "buy") {
-        if (api.buyItem(item.id)) {
-          api.equip(item.slot, item.id);
-          snd("buy");
-          msg = { kind: "good", text: "Bought " + item.name + "! Now wearing it." };
-          pop = true;
-        } else {
-          var need = Math.max(0, item.price - (Number(api.coins()) || 0));
-          snd("lose");
-          msg = { kind: "bad", text: "Not enough coins: " + fmt(need) + " more to go." };
-        }
-      } else if (act === "equip") {
-        api.equip(item.slot, item.id);
-        snd("click");
-        pop = true;
-      } else if (act === "unequip") {
-        api.equip(item.slot, null);
-        snd("click");
-      }
+      if (tg.getAttribute("data-act") !== "up") return;
+      var n = cur(); if (n >= STAGES.length - 1) return;
+      var N = STAGES[n + 1];
+      if (api.buyStage && api.buyStage(n + 1)) { snd("buy"); pop = true; msg = { kind: "good", text: "You're " + (/^[AEIOU]/.test(N.name) ? "an " : "") + N.name.toLowerCase().replace(/^(an |a )/, "") + " now!" }; }
+      else { snd("lose"); msg = { kind: "bad", text: "Not enough coins: " + fmt(Math.max(0, N.price - (Number(api.coins()) || 0))) + " more to go." }; }
       render();
     };
     render();
   }
 
   globalThis.RRProfile = {
+    STAGES: STAGES, stageCost: stageCost, stageFromSpent: stageFromSpent, stageLook: stageLook, stageGets: stageGets,
     CATALOG: CATALOG,
     netWorth: netWorth,
     status: status,
