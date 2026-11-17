@@ -28,6 +28,9 @@ yes("-243", "−243"); no("243", "−243");
 yes("3m^4n^4", "3m<sup>4</sup>n<sup>4</sup>"); no("3m^4n^3", "3m<sup>4</sup>n<sup>4</sup>"); no("81m^4n^4", "3m<sup>4</sup>n<sup>4</sup>");
 yes("k^6/(2|z|)", "k<sup>6</sup> / 2|z|"); yes("k^6/2|z|", "k<sup>6</sup> / 2|z|"); no("k^6/(2z)", "k<sup>6</sup> / 2|z|"); no("k^6/2", "k<sup>6</sup> / 2|z|");
 yes("x^4/3|y|", "x<sup>4</sup> / 3|y|");
+yes("7^1/4", "7<sup>1/4</sup>");
+yes("15(3^1/3)", "15(3<sup>1/3</sup>)");
+yes("7^(1/4)", "7<sup>1/4</sup>");
 // Day 3: functions, inequalities
 for (const c of ["g(x) = −√(x − 3) + 3", "x ≥ −3", "y = ±√(25 − x^2)", "f(x) = ∛x"]) ok(T.canType(c), "canType " + c);
 yes("-√(x-3)+3", "g(x) = −√(x − 3) + 3"); yes("3-√(x-3)", "g(x) = −√(x − 3) + 3"); no("-√(x+3)+3", "g(x) = −√(x − 3) + 3"); no("√(x-3)+3", "g(x) = −√(x − 3) + 3");

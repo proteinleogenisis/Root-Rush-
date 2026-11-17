@@ -157,8 +157,10 @@
     try { var ps = parts(s); if (!ps.length) return false; ps.forEach(function (x) { var n = parse(x); var v = vars(n, {}); if (!Object.keys(v).length && isNaN(ev(n, {}))) throw 0; }); return true; } catch (e) { return false; }
   }
 
+  // A fraction typed right after ^ is the whole exponent: 7^1/4 means 7^(1/4), the way it shows on the keypad
+  function expFrac(u) { return u.replace(/\^(-?\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?)(?![0-9a-z.|(√∛∜])/gi, "^($1/$2)"); }
   function check(typed, c) {
-    var s = plain(c), u = String(typed || "").trim();
+    var s = plain(c), u = expFrac(String(typed || "").trim());
     if (!u) return { ok: false, empty: true, msg: "Type an answer first." };
     if (isNoReal(s) || isNoReal(u)) return { ok: isNoReal(s) && isNoReal(u) };
     var R = rel(s);
@@ -202,7 +204,7 @@
       if (s[i] === "^") {
         i++; var sup = "";
         if (s[i] === "(") { var d = 0, j = i; for (; j < s.length; j++) { if (s[j] === "(") d++; else if (s[j] === ")") { d--; if (!d) break; } } sup = s.slice(i + 1, j); i = j + 1; if (j >= s.length) { out += "<sup>" + render(sup) + "<span class=\"ty-open\">)</span></sup>"; continue; } }
-        else { var m = /^-?[0-9a-z.]*/i.exec(s.slice(i))[0]; sup = m; i += m.length; }
+        else { var m = (/^-?[0-9.]+\/[0-9.]*(?![0-9a-z.|(√∛∜])/i.exec(s.slice(i)) || /^-?[0-9a-z.]*/i.exec(s.slice(i)))[0]; sup = m; i += m.length; }
         out += "<sup>" + (sup ? render(sup) : "<span class=\"ty-caret\">□</span>") + "</sup>"; continue;
       }
       out += esc(s[i] === "-" ? "−" : s[i]); i++;

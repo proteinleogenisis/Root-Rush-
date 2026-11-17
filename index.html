@@ -241,7 +241,7 @@ body.fok{background:var(--goodbg)}body.fbad{background:var(--badbg)}
 .htabs button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}.htabs i{font-style:normal;font-size:11px;opacity:.8}
 .htabs button{position:relative}.htabs .newdot::after{content:"";position:absolute;top:5px;right:7px;width:8px;height:8px;border-radius:50%;background:var(--good);animation:rlDot 1.6s ease infinite}
 @keyframes rlDot{50%{transform:scale(1.5);opacity:.6}}
-.hpane{display:none}.hpane.on{display:block;animation:paneIn .28s ease both}
+.hpane{display:none}.hpane.on{display:block}.hpane.on.pin{animation:paneIn .28s ease both}
 @keyframes paneIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.hpane.on{animation:none}}
 .rl-head{display:flex;justify-content:space-between;align-items:center;gap:10px;cursor:pointer;width:100%;background:none;border:0;padding:0;text-align:left;color:inherit;font:inherit}
@@ -1784,7 +1784,9 @@ function renderReal(){const box=$("real");if(!box)return;const d=selDay,ks=LESSO
 
 // Home tabs: remembered per device
 let hTab=LS.get("hTab","today");
-function setTab(t){hTab=t;LS.set("hTab",t);if(t==="real"){const tb=document.querySelector('#htabs [data-t="real"]');if(tb)tb.classList.remove("newdot")}document.querySelectorAll("#htabs button").forEach(b=>b.classList.toggle("on",b.dataset.t===t));document.querySelectorAll("#home .hpane").forEach(p=>p.classList.toggle("on",p.dataset.p===t))}
+function setTab(t){hTab=t;LS.set("hTab",t);if(t==="real"){const tb=document.querySelector('#htabs [data-t="real"]');if(tb)tb.classList.remove("newdot")}document.querySelectorAll("#htabs button").forEach(b=>b.classList.toggle("on",b.dataset.t===t));document.querySelectorAll("#home .hpane").forEach(p=>{const was=p.classList.contains("on"),on=p.dataset.p===t;p.classList.toggle("on",on);
+  // fade only when you switch tabs; coming back to Home from another page shows it at once (no dark flash)
+  if(on&&!was&&!$("home").classList.contains("hidden")){p.classList.remove("pin");void p.offsetWidth;p.classList.add("pin");p.onanimationend=e=>{if(e.target===p)p.classList.remove("pin")}}else if(!on)p.classList.remove("pin")})}
 document.querySelectorAll("#htabs button").forEach(b=>b.onclick=()=>{setTab(b.dataset.t);const h=$("htabs");if(h.getBoundingClientRect().top<0||window.scrollY>h.offsetTop)window.scrollTo({top:h.offsetTop,behavior:"smooth"})});
 function home(){
   document.body.classList.remove("typing");

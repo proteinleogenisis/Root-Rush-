@@ -1809,8 +1809,17 @@
       else { stage.innerHTML = hlSkel(); hlRestore(); }
       // While a game is open, the casino floor keeps living behind it, blurred
       try { document.body.classList.toggle("cz-fs", view === "lobby" && isFull()); } catch (e) { /* ignore */ }
-      if (view === "lobby") { drawnTall = fullTall() + fullWide(); bgEl.classList.remove("on"); bgEl.innerHTML = ""; fitLobby(); lookUpdate(); }
-      else if (!bgEl.innerHTML) { bgEl.innerHTML = lobbySvg(false).replace('class="cz-roomsvg"', 'preserveAspectRatio="xMidYMid slice"').replace(/ data-a="open"/g, ""); bgEl.classList.add("on"); }
+      if (view === "lobby") {
+        drawnTall = fullTall() + fullWide(); fitLobby(); lookUpdate();
+        // the blurred floor stays behind the lobby until it has finished fading in, so the switch never shows a black frame
+        later(function () { if (live() && view === "lobby" && !navBusy) { bgEl.classList.remove("on"); bgEl.innerHTML = ""; } }, ms(ZOOM_MS) + 80);
+      } else bgFill(false);
+    }
+    // The blurred casino floor behind a game. now=true shows it at once (no fade from black) for a page switch.
+    function bgFill(now) {
+      if (!bgEl.innerHTML) bgEl.innerHTML = lobbySvg(false).replace('class="cz-roomsvg"', 'preserveAspectRatio="xMidYMid slice"').replace(/ data-a="open"/g, "");
+      if (now) { bgEl.style.transition = "none"; bgEl.classList.add("on"); void bgEl.offsetWidth; bgEl.style.transition = ""; }
+      else bgEl.classList.add("on");
     }
     // Shrink the floor so the whole thing fits on screen without scrolling (LOBBY_FIT_GAP px left below it)
     function fitLobby() {
@@ -1838,6 +1847,7 @@
         var r = from.getBoundingClientRect(), s = stage.getBoundingClientRect();
         stage.style.transformOrigin = ((r.left + r.width / 2 - s.left) / s.width * 100) + "% " + ((r.top + r.height / 2 - s.top) / s.height * 100) + "%";
       }
+      bgFill(true);
       stage.className = "cz-stage " + (v === "lobby" ? "cz-outg" : "cz-outl");
       snd("click");
       later(function () {
