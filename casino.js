@@ -271,16 +271,16 @@
   var DRINK_FADE_MS = 8 * 60 * 1000; // one serving wears off in this long (real time)
   var BUZZ_MAX = 8;                  // servings stop stacking here
   var DRINKS = [
-    { id: "lager", name: "Imported Lager", icon: "🍺", serv: 1, price: 1000, tint: "#f5c542", note: "Ice cold, from Munich" },
-    { id: "mojito", name: "Mint Mojito", icon: "🍹", serv: 1.5, price: 2500, tint: "#5be37d", note: "Fresh mint and white rum" },
-    { id: "wine", name: "Grand Cru Red", icon: "🍷", serv: 1.5, price: 4000, tint: "#c0213f", note: "A glass from a famous vineyard" },
-    { id: "martini", name: "Dry Martini", icon: "🍸", serv: 2, price: 6000, tint: "#9fd8ff", note: "Shaken, with an olive" },
-    { id: "sake", name: "Junmai Daiginjo Sake", icon: "🍶", serv: 2, price: 8000, tint: "#f3eedc", note: "Polished rice, served chilled" },
-    { id: "scotch", name: "18-Year Single Malt", icon: "🥃", serv: 2, price: 12000, tint: "#d98b2b", note: "Smoky, aged in oak" },
-    { id: "absinthe", name: "Green Fairy Absinthe", icon: "🧪", serv: 3, price: 18000, tint: "#7dff4a", note: "Strong. Everything turns green" },
-    { id: "tower", name: "Champagne Tower", icon: "🥂", serv: 4, price: 25000, tint: "#ffe08a", note: "A pyramid of glasses, poured from the top" },
-    { id: "cognac", name: "Royal Reserve Cognac", icon: "🥃", serv: 3, price: 35000, tint: "#b5651d", note: "From a cellar older than the casino" },
-    { id: "vintage", name: "1961 Vintage Champagne", icon: "🍾", serv: 5, price: 50000, tint: "#fff3b0", note: "One of the last bottles left" }
+    { id: "lager", name: "Imported Lager", icon: "🍺", serv: 1, price: 1000, tint: "#f5c542", note: "Ice cold, from Munich" , tone: "Warm glow", fx: { sw: 0.7, bl: 0.8, dv: 0.6, sy: 0.8, dk: 0.6, spd: 0.9, bub: 0 } },
+    { id: "mojito", name: "Mint Mojito", icon: "🍹", serv: 1.5, price: 2500, tint: "#5be37d", note: "Fresh mint and white rum" , tone: "Breezy", fx: { sw: 1.1, bl: 0.6, dv: 0.7, sy: 1.25, dk: 0.4, spd: 1.3, bub: 0 } },
+    { id: "wine", name: "Grand Cru Red", icon: "🍷", serv: 1.5, price: 4000, tint: "#c0213f", note: "A glass from a famous vineyard" , tone: "Heavy", fx: { sw: 0.8, bl: 1.2, dv: 0.9, sy: 1.45, dk: 1.5, spd: 0.7, bub: 0 } },
+    { id: "martini", name: "Dry Martini", icon: "🍸", serv: 2, price: 6000, tint: "#9fd8ff", note: "Shaken, with an olive" , tone: "Seeing double", fx: { sw: 0.7, bl: 0.6, dv: 2.2, sy: 0.9, dk: 0.8, spd: 1, bub: 0 } },
+    { id: "sake", name: "Junmai Daiginjo Sake", icon: "🍶", serv: 2, price: 8000, tint: "#f3eedc", note: "Polished rice, served chilled" , tone: "Dreamy", fx: { sw: 1.1, bl: 1.7, dv: 0.6, sy: 0.9, dk: 0.5, spd: 0.6, bub: 0 } },
+    { id: "scotch", name: "18-Year Single Malt", icon: "🥃", serv: 2, price: 12000, tint: "#d98b2b", note: "Smoky, aged in oak" , tone: "Smoky", fx: { sw: 0.6, bl: 1.4, dv: 1, sy: 1, dk: 1.7, spd: 0.8, bub: 0 } },
+    { id: "absinthe", name: "Green Fairy Absinthe", icon: "🧪", serv: 3, price: 18000, tint: "#7dff4a", note: "Strong. Everything turns green" , tone: "Trippy", fx: { sw: 2.1, bl: 0.9, dv: 1.3, sy: 1.35, dk: 0.8, spd: 2, bub: 0 } },
+    { id: "tower", name: "Champagne Tower", icon: "🥂", serv: 4, price: 25000, tint: "#ffe08a", note: "A pyramid of glasses, poured from the top" , tone: "Bubbly", fx: { sw: 1.2, bl: 0.8, dv: 0.9, sy: 1.05, dk: 0.5, spd: 1.2, bub: 1 } },
+    { id: "cognac", name: "Royal Reserve Cognac", icon: "🥃", serv: 3, price: 35000, tint: "#b5651d", note: "From a cellar older than the casino" , tone: "Royal haze", fx: { sw: 1.3, bl: 1.3, dv: 1.4, sy: 1.4, dk: 1.3, spd: 1, bub: 0 } },
+    { id: "vintage", name: "1961 Vintage Champagne", icon: "🍾", serv: 5, price: 50000, tint: "#fff3b0", note: "One of the last bottles left" , tone: "Everything at once", fx: { sw: 2.1, bl: 1.7, dv: 2.2, sy: 1.45, dk: 1.7, spd: 2, bub: 1 } }
   ];
   // how many servings are still "in you" right now
   function buzzAt(st, now) {
@@ -289,7 +289,8 @@
     return left > 0 ? left : 0;
   }
   // a new drink stacks on top of what's left, up to BUZZ_MAX; its color tints the effect
-  function drinkAdd(st, d, now) { return { lvl: Math.min(BUZZ_MAX, buzzAt(st, now) + d.serv), t: now, tint: d.tint }; }
+  // the last drink sets the tone (its fx) and the color
+  function drinkAdd(st, d, now) { return { lvl: Math.min(BUZZ_MAX, buzzAt(st, now) + d.serv), t: now, tint: d.tint, id: d.id }; }
   function buzzName(lvl) { return lvl < 0.3 ? "Sober" : lvl < 1.5 ? "Tipsy" : lvl < 3 ? "Buzzed" : lvl < 5 ? "Drunk" : "Wasted"; }
   function soberMinutes(lvl) { return Math.ceil(lvl * DRINK_FADE_MS / 60000); }
 
@@ -324,7 +325,7 @@
     // lobby
     ".cz-room{position:relative;overflow:hidden;margin:0 auto;border-radius:14px;box-shadow:0 0 0 2px #7a5513,0 6px 24px rgba(0,0,0,.5);touch-action:pan-y}",
     "body.cz-fs{overflow:hidden}",
-    "body.cz-fs .cz-room{position:fixed;inset:0;width:100vw!important;height:100dvh;margin:0;border-radius:0;box-shadow:none;z-index:6}",
+    "body.cz-fs .cz-room{position:fixed;inset:0;width:100vw!important;height:100dvh;margin:0;border-radius:0;box-shadow:none;z-index:6;background:#14031f}",
     "body.cz-fs .cz-roomsvg{width:100vw!important;height:100dvh!important}",
     "body.cz-fs .cz-head{position:fixed;top:10px;right:10px;left:auto;z-index:8;margin:0;min-height:0}",
     "body.cz-fs #cz-left{display:none}",
@@ -621,7 +622,7 @@
   // ---------- the casino room (lobby) ----------
   var SPOT_NAMES = { bar: "The Salon bar", bj: "Blackjack", sl: "Slots", ro: "Roulette", hl: "Higher / Lower", ba: "Baccarat", vp: "Video Poker", cr: "Craps" };
   var LOBBY_H = 640;           // lobby drawing height (it is 360 wide)
-  var FULL_MAX_W = 520;        // screens this narrow or narrower get the floor edge to edge (phones); wider ones (iPad) keep the framed floor
+  var FULL_MAX_W = 4000;       // screens up to this wide get the floor full screen (phones and iPads)
   var FULL_TOP_SHARE = 0.45;   // of the extra height on a tall phone, this share goes above the scene (ceiling), the rest below (floor)
   var HERO_Z = 0.3, HERO_X = 25;  // the two featured machines in the left view: distance and how far from the middle
   var AISLE_X = 64;              // the rows of machines further back along the sides
@@ -1071,7 +1072,7 @@
       setHtml("#bar-list", DRINKS.map(function (d) {
         var dots = ""; for (var j = 0; j < Math.ceil(d.serv); j++) dots += j + 1 <= d.serv ? "●" : "◐";
         return '<div class="cz-drink" style="--tint:' + d.tint + '"><div class="cz-dk-i">' + d.icon + '</div><div class="cz-dk-b"><div class="cz-dk-n">' + d.name + '</div><div class="cz-dk-d">' + d.note + '</div>' +
-          '<div class="cz-dk-s" title="servings">' + dots + " " + d.serv + (d.serv === 1 ? " serving" : " servings") + '</div></div>' +
+          '<div class="cz-dk-s" title="servings">' + dots + " " + d.serv + (d.serv === 1 ? " serving" : " servings") + ' · <i>' + d.tone + "</i></div></div>" +
           '<button class="cz-dk-o" data-a="drink" data-v="' + d.id + '"' + (coins < d.price ? " disabled" : "") + ">🪙 " + d.price.toLocaleString("en-US") + "</button></div>";
       }).join(""));
     }

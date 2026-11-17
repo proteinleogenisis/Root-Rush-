@@ -23,11 +23,24 @@ body.drunk #drunk{display:block}
 @keyframes dk-swirl{0%,100%{transform:translate(-5%,2%) rotate(-4deg)}50%{transform:translate(5%,-2%) rotate(4deg)}}
 .dk-tint{background:radial-gradient(ellipse at 50% 50%,transparent 22%,var(--dk-tint,#f5c542) 95%);opacity:calc(var(--dk,0) * .8);mix-blend-mode:screen;animation:dk-hue 8s linear infinite}
 @keyframes dk-hue{to{filter:hue-rotate(360deg)}}
-#drunk i.dk-swirl{inset:-70%;background:conic-gradient(from 0deg,#ff3fa4,#ffd23f,#3ff0ff,#9b5cff,#4dff88,#ff7a2f,#ff3fa4);opacity:var(--dk-sw,0);mix-blend-mode:overlay;filter:blur(28px);animation:dk-spin 11s linear infinite}
-#drunk i.dk-swirl.b{background:repeating-conic-gradient(from 45deg,rgba(255,63,164,.9) 0 18deg,rgba(63,240,255,.9) 36deg 54deg,rgba(255,210,63,.9) 72deg 90deg);opacity:calc(var(--dk-sw,0) * .6);animation:dk-spin 17s linear infinite reverse;filter:blur(18px)}
-@keyframes dk-spin{to{transform:rotate(360deg)}}
+.dk-tint{animation-duration:calc(8s / var(--dk-spd,1))}
+/* color swirls: big soft color clouds, each on its own random looping path that also circles, so it never looks like one wheel */
+#drunk i.dk-blob:nth-of-type(odd){mix-blend-mode:overlay}
+#drunk i.dk-blob{inset:auto;left:50%;top:50%;width:var(--sz,80vmax);height:var(--sz,80vmax);margin:calc(var(--sz,80vmax) / -2) 0 0 calc(var(--sz,80vmax) / -2);border-radius:50%;
+  background:radial-gradient(circle,var(--c) 0,transparent 64%);opacity:var(--dk-sw,0);mix-blend-mode:screen;animation:dk-roam calc(var(--d,12s) / var(--dk-spd,1)) linear infinite;animation-delay:var(--dl,0s);animation-direction:var(--dir,normal)}
+@keyframes dk-roam{0%{transform:rotate(0) translate(var(--x1),var(--y1)) scale(var(--s1))}33%{transform:rotate(120deg) translate(var(--x2),var(--y2)) scale(var(--s2))}66%{transform:rotate(240deg) translate(var(--x3),var(--y3)) scale(var(--s1))}100%{transform:rotate(360deg) translate(var(--x1),var(--y1)) scale(var(--s1))}}
+/* bubbles for bubbly drinks (champagne) */
+#drunk i.dk-bub{inset:auto;bottom:-30px;width:var(--bs,14px);height:var(--bs,14px);border-radius:50%;border:2px solid rgba(255,244,200,.75);background:radial-gradient(circle at 35% 35%,rgba(255,255,255,.7),rgba(255,230,150,.1));display:none;animation:dk-rise var(--d,6s) linear infinite;animation-delay:var(--dl,0s)}
+body.drunk.dk-bubbly #drunk i.dk-bub{display:block}
+@keyframes dk-rise{0%{transform:translate(0,0);opacity:0}10%{opacity:calc(var(--dk,0) + .2)}50%{transform:translate(var(--wx,14px),-55vh)}100%{transform:translate(0,-112vh);opacity:0}}
+/* buttons float on their own little loops, each a bit out of step */
+:where(body.drunk) :where(.big,.tile,.ibtn,.profbtn,.hs,.dsw button,.htabs button,.opt,.cz-dk-o,.pf-btn,.small,.cz-turn,.chip,.tfb){animation:dk-orbit calc(3.4s / var(--dk-spd,1)) ease-in-out infinite}
+:where(body.drunk) :where(.big,.tile,.ibtn,.hs,.dsw button,.htabs button,.opt,.cz-dk-o,.pf-btn,.small,.chip,.tfb):nth-child(2n){animation-delay:-1.1s;animation-direction:reverse}
+:where(body.drunk) :where(.big,.tile,.ibtn,.hs,.dsw button,.htabs button,.opt,.cz-dk-o,.pf-btn,.small,.chip,.tfb):nth-child(3n){animation-delay:-2.3s}
+@keyframes dk-orbit{0%,100%{translate:var(--dk-orb,0px) 0;rotate:calc(var(--dk-orbr,0deg) * -1)}25%{translate:0 var(--dk-orb,0px)}50%{translate:calc(var(--dk-orb,0px) * -1) 0;rotate:var(--dk-orbr,0deg)}75%{translate:0 calc(var(--dk-orb,0px) * -1)}}
+body.drunk #qc{--dk-orb:var(--dk-orbl,0px);--dk-orbr:var(--dk-orbrl,0deg)}
 .dk-dark{background:radial-gradient(ellipse at 50% 50%,transparent 42%,#000 112%);animation:dk-pulse 4s ease-in-out infinite}
-@keyframes dk-pulse{0%,100%{opacity:calc(var(--dk,0) * .45)}50%{opacity:calc(var(--dk,0) * .85)}}
+@keyframes dk-pulse{0%,100%{opacity:calc(var(--dk,0) * .45 * var(--dk-dkm,1))}50%{opacity:calc(var(--dk,0) * .85 * var(--dk-dkm,1))}}
 /* the screen itself: sways, goes soft, and sees double (two colored ghost copies). Only transform moves, the filter stays put (cheaper on phones). */
 body.drunk :is(#home,#learn,#end,#train,#profile,#check),body.drunk #game>:not(#qc),body.drunk:not(.cz-fs) #casino .cz-stage,body.drunk .cz-pv svg{
   filter:blur(var(--dk-cb,0px)) drop-shadow(var(--dk-dv,0px) 0 0 rgba(255,70,170,.55)) drop-shadow(calc(var(--dk-dv,0px) * -1) 2px 0 rgba(70,210,255,.5));
@@ -36,7 +49,7 @@ body.drunk :is(#home,#learn,#end,#train,#profile,#check),body.drunk #game>:not(#
 /* the Rush question card: much lighter, never blurred, so it stays readable */
 body.drunk #game>#qc{filter:drop-shadow(var(--dk-dvl,0px) 0 0 rgba(255,70,170,.45)) drop-shadow(calc(var(--dk-dvl,0px) * -1) 1px 0 rgba(70,210,255,.45));animation:dk-wobl 4.6s ease-in-out infinite}
 @keyframes dk-wobl{0%,100%{transform:translate(calc(var(--dk-shift,0px) * .3),0) rotate(calc(var(--dk-rotl,0deg) * -1))}25%{transform:translate(0,calc(var(--dk-shift,0px) * .3))}50%{transform:translate(calc(var(--dk-shift,0px) * -.3),0) rotate(var(--dk-rotl,0deg))}75%{transform:translate(0,calc(var(--dk-shift,0px) * -.3))}}
-@media (prefers-reduced-motion:reduce){.dk-blur,.dk-tint,.dk-dark,#drunk i.dk-swirl,body.drunk :is(#home,#learn,#end,#train,#profile,#check),body.drunk #game>*,body.drunk #casino .cz-stage,body.drunk .cz-pv svg{animation:none}}
+@media (prefers-reduced-motion:reduce){.dk-blur,.dk-tint,.dk-dark,#drunk i.dk-blob,#drunk i.dk-bub,body.drunk :is(#home,#learn,#end,#train,#profile,#check),body.drunk #game>*,body.drunk #casino .cz-stage,body.drunk .cz-pv svg{animation:none}}
 .hk-link{display:block;margin:10px auto 0;background:none;border:0;color:var(--mute);font:inherit;font-size:14px;text-decoration:underline;text-underline-offset:3px;padding:6px}
 .hk-top{margin-bottom:18px}.hk-lab{display:block;font-size:13px;color:var(--mute);margin-bottom:6px}
 .hk-in{width:100%;font:inherit;font-size:20px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);outline:none}
@@ -54,7 +67,9 @@ html{-webkit-text-size-adjust:100%}
 body{background:var(--bg);color:var(--ink);font-family:"Space Grotesk",system-ui,sans-serif;min-height:100dvh;display:flex;justify-content:center;padding:12px 14px 24px;touch-action:manipulation;-webkit-user-select:none;user-select:none;overscroll-behavior:none}
 @media (hover:none){.opt kbd,.kbhint{display:none}}
 @media (max-height:740px){.ex{font-size:22px;padding:10px 6px}.q{font-size:17px}.opt{min-height:52px;margin-top:8px}.hud{margin-bottom:8px}.stat b{font-size:20px}}
-.wrap{width:100%;max-width:460px}
+.wrap{width:100%;max-width:460px;zoom:var(--tz,1)}
+/* iPad: the whole app scales up (--tz, set by tabletZoom) except the full-screen casino floor, which sizes itself to the screen */
+body.cz-fs .wrap{zoom:1}
 .mono{font-family:"JetBrains Mono",ui-monospace,monospace}
 .rt{color:var(--root);font-weight:700}.pw{color:var(--pow);font-weight:700}
 h1{font-size:44px;font-weight:700;letter-spacing:-1px;line-height:1}
@@ -520,6 +535,11 @@ body.calc-open.paper-only .wrap{padding-bottom:440px}
 <script src="casino.js"></script>
 <script src="profile.js"></script>
 <script>
+// ---- iPad: scale the phone-sized layout up to fill the screen. TABLET_MIN_W and wider gets a zoom that fills
+// TABLET_FILL of the width without getting taller than TABLET_H_PX of phone layout per screen; never above TABLET_MAX_ZOOM.
+const TABLET_MIN_W=700,TABLET_FILL=0.86,TABLET_H_PX=760,TABLET_MAX_ZOOM=1.7;
+function tabletZoom(){const w=innerWidth,h=innerHeight;let z=1;if(w>=TABLET_MIN_W)z=Math.max(1,Math.min(w*TABLET_FILL/460,h/TABLET_H_PX,TABLET_MAX_ZOOM));document.documentElement.style.setProperty("--tz",z.toFixed(3))}
+tabletZoom();addEventListener("resize",tabletZoom);
 // ---- Simple line icons used for buttons across the app (one set, 2px stroke, currentColor) ----
 const IC={
   play:'<path d="M8 5.5v13l11-6.5z" fill="currentColor" stroke="none"/>',
@@ -1965,7 +1985,11 @@ function toggleCalc(on){calcOpen=on===undefined?!calcOpen:on;$("calc").classList
 // ---- Salon drinks (casino.js holds the drink list and the math): pretend drunk look, screen effects only ----
 const DRUNK_FULL=5;         // servings in you for the full effect
 const DRUNK_BLUR_MAX=6;     // px of blur at the screen edges at full effect (kept light: the student liked it soft, not smeared)
-const DRUNK_SWIRL_MAX=0.42; // how strong the spinning color swirls get at full effect (0 to 1)
+const DRUNK_SWIRL_MAX=0.6;  // how strong the color swirls get at full effect (0 to 1)
+const DRUNK_ORBIT_MAX=6;    // px each button drifts on its own loop at full effect (the Rush question card gets DRUNK_RUSH_TEXT of it)
+const DRUNK_SWIRL_CAP=0.5;  // swirls never get stronger than this, so the screen never washes out to white
+const DRUNK_RUSH_SWIRL=0.6; // in a Rush the swirls are this much as strong
+const DRUNK_BLOBS=7;        // how many color clouds swirl around
 const DRUNK_SOFT_MAX=1.6;   // px the whole screen goes soft at full effect (never the Rush question card)
 const DRUNK_DV_MAX=6;       // px apart the two ghost copies sit ("seeing double") at full effect
 const DRUNK_RUSH_TEXT=0.35; // the Rush question card gets this share of the ghosting and sway, so questions stay readable
@@ -1974,12 +1998,20 @@ const DRUNK_SHIFT_MAX=8;    // px the screen drifts side to side at full effect
 const DRUNK_TICK_MS=4000;   // how often the effect updates as it wears off
 let drunkSt=LS.get("drunk",null);
 function drunkLvl(){try{return RRCasino.logic.buzzAt(drunkSt,Date.now())}catch(e){return 0}}
-function drunkApply(){const l=drunkLvl(),k=Math.min(1,l/DRUNK_FULL),rush=curScreen==="game",r=document.documentElement.style;
-  if(!$("drunk")){const d=document.createElement("div");d.id="drunk";d.setAttribute("aria-hidden","true");d.innerHTML='<i class="dk-blur"></i><i class="dk-swirl"></i><i class="dk-swirl b"></i><i class="dk-tint"></i><i class="dk-dark"></i>';document.body.appendChild(d)}
-  document.body.classList.toggle("drunk",k>0.02);
-  r.setProperty("--dk",k.toFixed(3));r.setProperty("--dk-blur",(k*DRUNK_BLUR_MAX).toFixed(1)+"px");
-  r.setProperty("--dk-cb",(k*DRUNK_SOFT_MAX).toFixed(2)+"px");r.setProperty("--dk-dv",(k*DRUNK_DV_MAX).toFixed(2)+"px");r.setProperty("--dk-dvl",(k*DRUNK_DV_MAX*DRUNK_RUSH_TEXT).toFixed(2)+"px");
-  r.setProperty("--dk-rot",(k*DRUNK_SWAY_MAX).toFixed(2)+"deg");r.setProperty("--dk-rotl",(k*DRUNK_SWAY_MAX*DRUNK_RUSH_TEXT).toFixed(2)+"deg");r.setProperty("--dk-shift",(k*DRUNK_SHIFT_MAX).toFixed(1)+"px");r.setProperty("--dk-sw",(k*DRUNK_SWIRL_MAX).toFixed(3));
+// each drink's tone (casino.js DRINKS fx) scales the parts of the effect; unknown or old saves use 1 for everything
+function drunkFx(){let f=null;try{f=(RRCasino.logic.DRINKS.find(x=>drunkSt&&x.id===drunkSt.id)||{}).fx}catch(e){}return Object.assign({sw:1,bl:1,dv:1,sy:1,dk:1,spd:1,bub:0},f||{})}
+function drunkApply(){const l=drunkLvl(),k=Math.min(1,l/DRUNK_FULL),rush=curScreen==="game",r=document.documentElement.style,fx=drunkFx();
+  if(!$("drunk")){const d=document.createElement("div");d.id="drunk";d.setAttribute("aria-hidden","true");const R=(a,b)=>a+Math.random()*(b-a),C=["#ff3fa4","#ffd23f","#3ff0ff","#9b5cff","#4dff88","#ff7a2f","#ff5a5a"],v=n=>R(-n,n).toFixed(1)+"vmax";
+    let h='<i class="dk-blur"></i>';for(let j=0;j<DRUNK_BLOBS;j++)h+=`<i class="dk-blob" style="--c:${j===0?"var(--dk-tint)":C[(j*3+Math.floor(R(0,7)))%C.length]};--sz:${R(55,95).toFixed(0)}vmax;--x1:${v(30)};--y1:${v(34)};--x2:${v(30)};--y2:${v(34)};--x3:${v(30)};--y3:${v(34)};--s1:${R(.7,1.1).toFixed(2)};--s2:${R(1.1,1.7).toFixed(2)};--d:${R(9,18).toFixed(1)}s;--dl:-${R(0,18).toFixed(1)}s;--dir:${j%2?"reverse":"normal"}"></i>`;
+    for(let j=0;j<14;j++)h+=`<i class="dk-bub" style="left:${R(2,96).toFixed(0)}%;--bs:${R(6,20).toFixed(0)}px;--d:${R(4,9).toFixed(1)}s;--dl:-${R(0,9).toFixed(1)}s;--wx:${R(-24,24).toFixed(0)}px"></i>`;
+    d.innerHTML=h+'<i class="dk-tint"></i><i class="dk-dark"></i>';document.body.appendChild(d)}
+  document.body.classList.toggle("drunk",k>0.02);document.body.classList.toggle("dk-bubbly",k>0.02&&fx.bub>0);
+  const P=(n,v)=>r.setProperty(n,v);
+  P("--dk",k.toFixed(3));P("--dk-blur",(k*DRUNK_BLUR_MAX*fx.bl).toFixed(1)+"px");P("--dk-cb",(k*DRUNK_SOFT_MAX*fx.bl).toFixed(2)+"px");
+  P("--dk-dv",(k*DRUNK_DV_MAX*fx.dv).toFixed(2)+"px");P("--dk-dvl",(k*DRUNK_DV_MAX*DRUNK_RUSH_TEXT*fx.dv).toFixed(2)+"px");
+  P("--dk-rot",(k*DRUNK_SWAY_MAX*fx.sy).toFixed(2)+"deg");P("--dk-rotl",(k*DRUNK_SWAY_MAX*DRUNK_RUSH_TEXT*fx.sy).toFixed(2)+"deg");P("--dk-shift",(k*DRUNK_SHIFT_MAX*fx.sy).toFixed(1)+"px");
+  P("--dk-orb",(k*DRUNK_ORBIT_MAX*fx.sy).toFixed(1)+"px");P("--dk-orbr",(k*2*fx.sy).toFixed(2)+"deg");P("--dk-orbl",(k*DRUNK_ORBIT_MAX*DRUNK_RUSH_TEXT*fx.sy).toFixed(1)+"px");P("--dk-orbrl",(k*2*DRUNK_RUSH_TEXT*fx.sy).toFixed(2)+"deg");
+  P("--dk-sw",Math.min(DRUNK_SWIRL_CAP,k*DRUNK_SWIRL_MAX*fx.sw*(rush?DRUNK_RUSH_SWIRL:1)).toFixed(3));P("--dk-spd",fx.spd.toFixed(2));P("--dk-dkm",fx.dk.toFixed(2));
   r.setProperty("--dk-tint",(drunkSt&&drunkSt.tint)||"#f5c542")}
 setInterval(drunkApply,DRUNK_TICK_MS);setTimeout(drunkApply,0);
 const api={

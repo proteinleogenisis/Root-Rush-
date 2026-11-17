@@ -516,5 +516,12 @@ check("salon: names and minutes to sober", () => {
   eq(L.buzzName(0), "Sober"); eq(L.buzzName(1), "Tipsy"); eq(L.buzzName(2), "Buzzed"); eq(L.buzzName(4), "Drunk"); eq(L.buzzName(6), "Wasted");
   eq(L.soberMinutes(1), Math.ceil(L.DRINK_FADE_MS / 60000)); eq(L.soberMinutes(0), 0);
 });
+check("salon: every drink has its own tone; the 1961 Vintage combines all of them (at least as strong as any drink in every part)", () => {
+  const keys = ["sw", "bl", "dv", "sy", "dk", "spd", "bub"], v = L.DRINKS.find(d => d.id === "vintage");
+  eq(new Set(L.DRINKS.map(d => d.tone)).size, 10, "10 different tones");
+  L.DRINKS.forEach(d => keys.forEach(k => truthy(typeof d.fx[k] === "number", d.id + " fx." + k)));
+  keys.forEach(k => truthy(L.DRINKS.every(d => v.fx[k] >= d.fx[k]), "vintage is the max for " + k));
+  eq(L.drinkAdd(null, v, 5).id, "vintage", "the last drink sets the tone");
+});
 console.log(passed + " passed, " + failed + " failed");
 process.exit(failed ? 1 : 0);
