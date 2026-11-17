@@ -897,13 +897,47 @@
     function zone(id, X, z, w, top) { ZONES.push([id, r1(sx(X, z) - w / 2 / z), r1(sy(EYE, z) - top / z), r1(w / z), r1(top / z + 12)]); }
 
     if (dir === "c") {
-      // ---- the big sign ----
-      s.push('<rect x="58" y="22" width="244" height="106" rx="16" fill="#0d0216" stroke="#ff4fa3" stroke-width="2.5" filter="url(#czl-neon)"/>');
-      for (i = 0; i < 26; i++) s.push('<circle class="cz-bulb" style="animation-delay:' + (i * 0.08).toFixed(2) + 's" cx="' + (66 + i * 9.1) + '" cy="29" r="2.2"/><circle class="cz-bulb" style="animation-delay:' + (1.2 - i * 0.08).toFixed(2) + 's" cx="' + (66 + i * 9.1) + '" cy="121" r="2.2"/>');
+      // ---- the big sign: an art-deco marquee. Gold stepped frame with chasing bulbs, a sunburst behind the
+      // neon title, gold hairlines around CASINO, a brass-framed LED jackpot, a fan crest on top and fins at the sides ----
+      var cham = function (x, y, w, h, c) { return "M" + (x + c) + " " + y + " H" + (x + w - c) + " L" + (x + w) + " " + (y + c) + " V" + (y + h - c) + " L" + (x + w - c) + " " + (y + h) + " H" + (x + c) + " L" + x + " " + (y + h - c) + " V" + (y + c) + "Z"; };
+      s.push('<defs><radialGradient id="czl-sgin" cx=".5" cy=".45" r=".75"><stop offset="0" stop-color="#3d0b40"/><stop offset=".55" stop-color="#17031f"/><stop offset="1" stop-color="#06010b"/></radialGradient>',
+        '<linearGradient id="czl-sgled" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#211000"/><stop offset=".5" stop-color="#070300"/><stop offset="1" stop-color="#1c0e00"/></linearGradient>',
+        '<pattern id="czl-sgdot" width="2.2" height="2.2" patternUnits="userSpaceOnUse"><circle cx="1.1" cy="1.1" r=".45" fill="#ffb300" opacity=".14"/></pattern>',
+        '<clipPath id="czl-sgclip"><path d="' + cham(63, 25, 234, 100, 9) + '"/></clipPath></defs>');
+      // side fins (stepped gold bars) and the fan crest
+      [[0, 1], [360, -1]].forEach(function (f) {
+        var x = f[0] === 0 ? 56 : 304, d = f[1];
+        for (var k = 0; k < 3; k++) s.push('<rect x="' + r1(d > 0 ? x - 5 - k * 4 : x + 1 + k * 4) + '" y="' + (44 + k * 9) + '" width="4" height="' + (62 - k * 18) + '" rx="1.2" fill="url(#czl-brass)" opacity="' + (1 - k * .2) + '"/>');
+      });
+      s.push('<path d="M150 20 A30 30 0 0 1 210 20 Z" fill="url(#czl-brass)" stroke="#6b4a12" stroke-width=".6"/><path d="M158 20 A22 22 0 0 1 202 20 Z" fill="#1a0620"/>');
+      for (i = 0; i <= 8; i++) { var an = Math.PI * (1 - i / 8); s.push('<line x1="180" y1="20" x2="' + r1(180 + 21 * Math.cos(an)) + '" y2="' + r1(20 - 21 * Math.sin(an)) + '" stroke="#e3bf62" stroke-width="1.1"/>'); }
+      s.push('<circle cx="180" cy="20" r="4" fill="#ff4fa3" filter="url(#czl-neon)"/><path d="M180 -12 L183 -7 L180 -2 L177 -7Z" fill="url(#czl-gold)" transform="translate(0 4)"/>');
+      // the frame: gold outer, dark inner panel, neon pink inner line
+      s.push('<path d="' + cham(54, 15, 252, 120, 13) + '" fill="#000" opacity=".45" transform="translate(0 3)"/>',
+        '<path d="' + cham(54, 15, 252, 120, 13) + '" fill="url(#czl-brass)" stroke="#5c3d0c" stroke-width=".8"/>',
+        '<path d="' + cham(57.5, 18.5, 245, 113, 11) + '" fill="none" stroke="#fff6cf" stroke-opacity=".55" stroke-width=".6"/>',
+        '<path d="' + cham(63, 25, 234, 100, 9) + '" fill="url(#czl-sgin)" stroke="#3a2306" stroke-width="1.2"/>');
+      // sunburst behind the title
+      var rays = "";
+      for (i = 0; i < 25; i++) { var ra = Math.PI * (0.06 + 0.88 * i / 24); rays += "M180 104 L" + r1(180 - 190 * Math.cos(ra)) + " " + r1(104 - 190 * Math.sin(ra)) + " "; }
+      s.push('<g clip-path="url(#czl-sgclip)"><path d="' + rays + '" stroke="#ffcf6a" stroke-opacity=".1" stroke-width="3"/><ellipse cx="180" cy="58" rx="92" ry="24" fill="#ff2e93" opacity=".13"/></g>',
+        '<path d="' + cham(66.5, 28.5, 227, 93, 7.5) + '" fill="none" stroke="#ff4fa3" stroke-width="1.4" filter="url(#czl-neon)"/>');
+      // chasing bulbs in sockets all the way round the gold frame
+      var bulb = function (x, y, dl) { return '<circle cx="' + r1(x) + '" cy="' + r1(y) + '" r="2.7" fill="#3a2306"/><circle class="cz-bulb" style="animation-delay:' + dl.toFixed(2) + 's" cx="' + r1(x) + '" cy="' + r1(y) + '" r="1.9"/>'; };
+      for (i = 0; i < 25; i++) s.push(bulb(72 + i * 9, 20.8, i * 0.08) + bulb(72 + i * 9, 129.2, 1.2 - i * 0.08));
+      for (i = 0; i < 9; i++) s.push(bulb(59.4, 37 + i * 9.5, 0.4 + i * 0.08) + bulb(300.6, 37 + i * 9.5, 0.8 - i * 0.08));
+      // title: a deep extruded shadow under the neon letters
+      s.push('<text x="180" y="66.5" text-anchor="middle" font-size="32" font-weight="900" letter-spacing="1.2" fill="#4a0729" stroke="#4a0729" stroke-width="4.6" font-family="inherit" transform="translate(0 2.4)">ROOT RUSH</text>');
       s.push(neon(180, 66, "ROOT RUSH", "#ff2e93", 32, 0));
+      s.push('<path d="M104 80.5 H136 M224 80.5 H256" stroke="#e3bf62" stroke-width=".9"/><path d="M101 80.5 l3 -2.4 l3 2.4 l-3 2.4z M253 80.5 l3 -2.4 l3 2.4 l-3 2.4z" fill="url(#czl-gold)"/>');
       s.push('<text x="180" y="84" text-anchor="middle" font-size="12" font-weight="900" letter-spacing="9" fill="#bff9ff" stroke="#00d5ff" stroke-width="1.6" paint-order="stroke" filter="url(#czl-neon)" font-family="inherit">CASINO</text>');
-      s.push('<rect x="96" y="91" width="168" height="24" rx="6" fill="#000" stroke="#ffd23f" stroke-opacity=".8"/><text x="104" y="107" font-size="8" font-weight="900" fill="#ffd23f" letter-spacing="1.5" font-family="inherit">JACKPOT</text>');
-      s.push('<text id="czl-jp" x="256" y="108.5" text-anchor="end" font-size="14" font-weight="900" fill="#ffe86b" stroke="#ff9d00" stroke-width=".8" paint-order="stroke" filter="url(#czl-neon)" font-family="inherit">' + JACKPOT_START.toLocaleString("en-US") + "</text>");
+      // jackpot: brass frame, dark LED inset with a dot screen, a small gold star either side
+      s.push('<rect x="90" y="91" width="180" height="27" rx="5.5" fill="url(#czl-brass)" stroke="#5c3d0c" stroke-width=".6"/>',
+        '<rect x="93" y="94" width="174" height="21" rx="3.5" fill="url(#czl-sgled)"/><rect x="93" y="94" width="174" height="21" rx="3.5" fill="url(#czl-sgdot)"/>',
+        '<rect x="93" y="94" width="174" height="7" rx="3.5" fill="#fff" opacity=".06"/>',
+        '<text x="101" y="107.6" font-size="7.6" font-weight="900" fill="url(#czl-gold)" letter-spacing="1.6" font-family="Cinzel,Georgia,serif">JACKPOT</text>',
+        '<path d="M150 104.5 l2 -3 l2 3 l-2 3z" fill="#ffd23f" opacity=".8"/>');
+      s.push('<text id="czl-jp" x="260" y="109" text-anchor="end" font-size="14" font-weight="900" letter-spacing=".6" fill="#ffe86b" stroke="#ff9d00" stroke-width=".8" paint-order="stroke" filter="url(#czl-neon)" font-family="inherit">' + JACKPOT_START.toLocaleString("en-US") + "</text>");
 
       // ---- higher / lower: a card table further back with a big card and up/down arrows ----
       // blackjack (left) and higher/lower (right) side by side, same distance
