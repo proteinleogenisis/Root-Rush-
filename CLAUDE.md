@@ -90,6 +90,9 @@ Accounts, scratch paper, weak-skill training, lightning lockout and timing, no c
 ### Nov 13 later
 Read-aloud (TTS) was built and then removed at the student's request; don't add it back unasked. Home has tabs (Today, Real life, Skills, Progress).
 
+### Nov 16: simpler Home
+The student asked for a simpler Home with simple icons, keeping everything. One line-icon set for the whole app (`IC`, `icon(name)`, `paintIcons()` for `<i data-ic>`; defined at the top of the main script so it exists before anything renders). Header: brand + icon buttons (music note / note-off, gear) + avatar; one quiet stats line (coins → casino, streak, best, account). The day card has no orange border; mastery and lessons as two thin bars; one main button (Play Rush with a play icon); then three tiles `tile()`: Learn (book; purple dot while lessons are unfinished), Casino (chip), Check (homework checker). Day switcher and tabs are quiet (selected = outlined). Home buttons on other pages carry a back icon (`.homebtn`). Emoji were removed from Home text.
+
 ### Ideas not built yet (he picked spaced review first; ask before building the others)
 - Type-your-own-answer questions (closer to real tests than multiple choice).
 - Unit 5 mock test mode with a timer and a review list at the end.

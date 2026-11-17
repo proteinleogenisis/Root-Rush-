@@ -120,13 +120,13 @@ body.fok{background:var(--goodbg)}body.fbad{background:var(--badbg)}
 .topbar{display:flex;justify-content:space-between;align-items:center;padding:6px 0 14px;gap:8px;flex-wrap:wrap}
 .brand{font-size:28px;font-weight:700;letter-spacing:-.5px}.brand span{color:var(--hot)}
 .chips{display:flex;gap:6px}.chip{font-size:13px;background:var(--card);border:1px solid var(--line);border-radius:99px;padding:5px 10px}
-.hero{border-color:var(--hot);border-width:2px;margin-bottom:6px}
-.eyebrow{font-size:12px;font-weight:700;color:var(--hot);text-transform:uppercase;letter-spacing:.06em}
+.hero{margin-bottom:6px}
+.eyebrow{font-size:12px;font-weight:600;color:var(--mute)}
 .hero-t{font-size:22px;font-weight:700;margin:4px 0 10px;line-height:1.2}
 .formula{font-size:26px;text-align:center;background:var(--bg);border-radius:12px;padding:12px}
 .formula sup{font-size:15px}
 .legend{display:flex;justify-content:center;gap:16px;font-size:13px;margin:6px 0 12px}
-.goal{display:flex;gap:10px;align-items:center;font-size:15px;margin-bottom:12px}
+.goal{display:flex;gap:10px;align-items:center;font-size:13px;margin:0 2px}
 .check{width:22px;height:22px;border-radius:6px;border:2px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:14px}
 .goal.done .check{background:var(--good);border-color:var(--good);color:#fff}.goal.done{color:var(--good);font-weight:500}
 .mini{text-align:center;font-size:13px;margin-top:10px}
@@ -234,17 +234,29 @@ body.fok{background:var(--goodbg)}body.fbad{background:var(--badbg)}
 .l-note{font-size:13px;color:var(--mute);margin-top:10px}
 .l-btn{width:100%;margin-top:12px;font-weight:700}
 .dsw{display:flex;gap:6px;margin-bottom:10px}.dsw button{flex:1;font-weight:700;padding:11px 6px;font-size:15px}
-.dsw button.on{background:var(--hot);border-color:var(--hot);color:#fff}
+.dsw button{background:transparent;color:var(--mute)}.dsw button.on{background:var(--card);border-color:var(--ink);color:var(--ink)}
 .brandrow{display:flex;justify-content:space-between;align-items:center;flex:1 1 100%}
 .brandr{display:flex;align-items:center;gap:8px}.profbtn{width:34px;height:34px;padding:0;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:16px;background:var(--card);border:1px solid var(--line);cursor:pointer}.profbtn svg{width:34px;height:34px;display:block}
 .coinchip{font:inherit;font-size:13px;cursor:pointer;color:var(--ink)}
-.casinobtn{margin-top:10px;background:var(--card);color:var(--ink);border:1px solid var(--line)}
+.ic{width:20px;height:20px;flex:none;display:inline-block;vertical-align:-4px}
+.ibtn{width:38px;height:38px;padding:0;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--card);border:1px solid var(--line);color:var(--ink)}
+.ibtn.off{color:var(--mute)}
+.homebtn{display:inline-flex;align-items:center;gap:4px;padding-left:8px}.homebtn .ic{width:18px;height:18px}
+.hstats{display:flex;align-items:center;gap:14px;flex:1 1 100%;font-size:13px;color:var(--mute);margin-top:6px}
+.hs{display:flex;align-items:center;gap:5px;background:none;border:0;padding:0;font:inherit;color:inherit}.hs b{color:var(--ink);font-weight:700}.hs .ic{width:16px;height:16px}
+button.hs{cursor:pointer}.hstats .acct{margin-left:auto}
+.prog{display:grid;gap:2px;margin:10px 0 12px}.prog .mrow,.prog .learnrow{margin:0}
+#start{display:flex;align-items:center;justify-content:center;gap:8px}#start .ic{width:22px;height:22px}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0 12px}
+.tile{display:flex;flex-direction:column;align-items:center;gap:3px;padding:12px 4px;border-radius:14px;background:var(--bg);border:1px solid var(--line);color:var(--ink);font:inherit;position:relative}
+.tile .ic{width:24px;height:24px;color:var(--mute)}.tile b{font-size:15px}.tile small{font-size:11px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.tile.todo .ic{color:var(--root)}.tile.todo::after{content:"";position:absolute;top:8px;right:9px;width:7px;height:7px;border-radius:50%;background:var(--root)}
 .acct{background:none;border:0;padding:6px 2px;font-size:13px;font-weight:600;color:var(--mute);cursor:pointer}.acct.on{color:var(--good)}
 .actabs{display:flex;gap:6px;margin-bottom:12px}.actabs .on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .aclab{display:block;font-size:13px;color:var(--mute);margin-bottom:10px}.aclab input{display:block;width:100%;margin-top:4px;font-size:17px;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
 .acpw{position:relative;display:block}.acpw input{padding-right:64px}.acshow{position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:13px;font-weight:600;padding:6px 10px;border-radius:8px;background:none;border:0;color:var(--root)}
 .acerr{color:var(--bad);font-size:14px;min-height:20px;margin-bottom:6px}
-.sync{font-size:12px;color:var(--mute);margin:-6px 2px 10px}.sync.cloud{color:var(--good)}
+.sync{font-size:11px;color:var(--mute);margin:-4px 2px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sync.cloud{color:var(--good)}
 .rd.click{cursor:pointer}
 .fabs{position:fixed;right:14px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:8;display:flex;gap:8px}
 .calc-fab{background:var(--ink);color:var(--bg);border-color:var(--ink);border-radius:99px;padding:12px 18px;font-weight:700;font-size:15px}
@@ -278,7 +290,7 @@ body.calc-open.paper-only .wrap{padding-bottom:440px}
 .dsw button.lock{opacity:.5}
 .mrow{display:flex;align-items:center;gap:10px;margin:14px 0 8px;font-size:13px}
 .mbtn{width:100%;font-weight:700;border-color:var(--good);color:var(--good);padding:12px;margin-bottom:4px}
-.mbadge{display:block;text-align:center;font-weight:700;color:var(--good);background:var(--goodbg);border-radius:10px;padding:10px;margin-bottom:4px}
+.mbadge{display:block;font-size:13px;font-weight:600;color:var(--good);margin:-2px 0 10px}
 .qm{display:flex;align-items:center;gap:8px;margin:-2px 0 10px;font-size:12px;color:var(--mute)}
 .qm-b{flex:1;height:6px;background:var(--line);border-radius:3px;overflow:hidden}.qm-b i{display:block;height:100%;width:0;transition:width .4s ease}
 .qm.pulse{animation:qmp .5s ease}@keyframes qmp{50%{transform:scale(1.03)}}
@@ -315,8 +327,9 @@ body.calc-open.paper-only .wrap{padding-bottom:440px}
 
 <section id="home">
   <header class="topbar">
-    <div class="brandrow"><div class="brand">Root<span>Rush</span></div><div class="brandr"><button class="profbtn" id="profBtn" aria-label="Profile">👤</button><button class="acct" id="acctBtn">Sign in</button></div></div>
-    <div class="chips"><button class="chip mchip" id="musBtn" aria-label="Music on or off">♪ On</button><button class="chip gear" id="setBtn" aria-label="Settings">⚙</button><button class="chip coinchip" id="coinChip" aria-label="Casino">🪙 <b id="hCoins">0</b></button><span class="chip"><b id="hDay">0</b> day streak</span><span class="chip">Best <b id="hBest">0</b></span></div>
+    <div class="brandrow"><div class="brand">Root<span>Rush</span></div>
+      <div class="brandr"><button class="ibtn" id="musBtn" aria-label="Music on or off"></button><button class="ibtn" id="setBtn" aria-label="Settings"></button><button class="profbtn" id="profBtn" aria-label="Your guy and the shop">👤</button></div></div>
+    <div class="hstats"><button class="hs" id="coinChip" aria-label="Coins, open the casino"><i data-ic="coin"></i><b id="hCoins">0</b></button><span class="hs"><i data-ic="flame"></i><b id="hDay">0</b> day streak</span><span class="hs"><i data-ic="trophy"></i>Best <b id="hBest">0</b></span><button class="acct" id="acctBtn">Sign in</button></div>
   </header>
   <div class="sync" id="sync"></div>
   <div class="dsw" id="dsw"></div>
@@ -327,14 +340,16 @@ body.calc-open.paper-only .wrap{padding-bottom:440px}
     <div class="eyebrow" id="heroEye"></div>
     <h2 class="hero-t" id="heroTitle"></h2>
     <div id="heroRules"></div>
-    <div class="mrow"><span id="mTxt" class="mute"></span><span class="lbar"><i id="mBar" style="background:var(--good)"></i></span></div>
+    <div class="prog"><div class="mrow"><span id="mTxt" class="mute"></span><span class="lbar"><i id="mBar" style="background:var(--good)"></i></span></div>
+    <div class="learnrow"><span id="learnTxt" class="mute"></span><span class="lbar"><i id="learnBar"></i></span></div></div>
     <div id="mSlot"></div>
-    <div class="learnrow"><span id="learnTxt" class="mute"></span><span class="lbar"><i id="learnBar"></i></span></div>
-    <button class="big learnbtn" id="learnBtn">Learn</button>
-    <div class="goal" id="goal" style="margin-top:12px"><span class="check" id="goalBox"></span><span id="goalTxt">Daily goal: finish 1 run</span></div>
     <button class="big" id="start">Play Rush</button>
-    <button class="big casinobtn" id="casinoBtn">🎰 Casino</button>
-    <button class="hk-link" id="checkBtn">Check a homework answer</button>
+    <div class="tiles">
+      <button class="tile" id="learnBtn">Learn</button>
+      <button class="tile" id="casinoBtn">Casino</button>
+      <button class="tile" id="checkBtn">Check</button>
+    </div>
+    <div class="goal" id="goal"><span class="check" id="goalBox"></span><span id="goalTxt">Daily goal: finish 1 run</span></div>
     <div class="mini mute" id="rushMix"></div>
     <div class="mini mute">Rank <b id="hRank">Square one</b> · Runs <b id="hRuns">0</b> · Freezes <b id="hFrz">0 / 2</b></div>
   </div>
@@ -385,7 +400,7 @@ body.calc-open.paper-only .wrap{padding-bottom:440px}
 </section>
 
 <section id="check" class="hidden">
-  <div class="hk-top"><button class="small" id="kHome">Home</button></div>
+  <div class="hk-top"><button class="small homebtn" id="kHome"><i data-ic="back"></i>Home</button></div>
   <label class="hk-lab" for="hkIn">Type a problem</label>
   <input id="hkIn" class="hk-in" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="e.g. 3x^4 + 5 = 53  or  √72">
   <div class="hk-keys" id="hkKeys"></div>
@@ -394,17 +409,17 @@ body.calc-open.paper-only .wrap{padding-bottom:440px}
   <div class="hk-help mute">Evaluate (16^(3/4), ∛-27), simplify (√72, 2√12 + 3√27, √(x^3)), or solve (2(x+3)^3 − 5 = 49). Use ^ for powers, root(5, 32) for a fifth root.</div>
 </section>
 <section id="casino" class="hidden">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><button class="small" id="cHome">Home</button></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><button class="small homebtn" id="cHome"><i data-ic="back"></i>Home</button></div>
   <div id="casinoMount"></div>
 </section>
 <section id="profile" class="hidden">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><button class="small" id="pHome">Home</button></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><button class="small homebtn" id="pHome"><i data-ic="back"></i>Home</button></div>
   <div id="profileMount"></div>
 </section>
 
 <section id="learn" class="hidden">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-    <button class="small" id="lHome">Home</button><span class="mute" id="lCount" style="font-size:13px"></span>
+    <button class="small homebtn" id="lHome"><i data-ic="back"></i>Home</button><span class="mute" id="lCount" style="font-size:13px"></span>
   </div>
   <div class="ldots" id="lDots"></div>
   <div class="card" id="lCard"></div>
@@ -502,6 +517,25 @@ body.calc-open.paper-only .wrap{padding-bottom:440px}
 <script src="casino.js"></script>
 <script src="profile.js"></script>
 <script>
+// ---- Simple line icons used for buttons across the app (one set, 2px stroke, currentColor) ----
+const IC={
+  play:'<path d="M8 5.5v13l11-6.5z" fill="currentColor" stroke="none"/>',
+  book:'<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5zM4 20.5A2.5 2.5 0 0 0 6.5 23H20"/>',
+  chip:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/>',
+  check:'<path d="M4 12.5l5 5L20 6.5"/>',
+  note:'<path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/>',
+  noteoff:'<path d="M9 18V9M9 5.6V5l11-2v10"/><circle cx="6.5" cy="18" r="2.5"/><path d="M3 3l18 18"/>',
+  gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
+  coin:'<circle cx="12" cy="12" r="9"/><path d="M14.5 9.2c-.5-.9-1.5-1.4-2.6-1.4-1.6 0-2.7.9-2.7 2.1 0 2.7 5.6 1.5 5.6 4.2 0 1.2-1.2 2.1-2.8 2.1-1.2 0-2.3-.6-2.7-1.6M12 6v1.8M12 16.2V18"/>',
+  flame:'<path d="M12 22c4 0 7-2.7 7-6.6 0-3.6-2.6-5.7-3.9-8.9-.4 1.9-1.4 3.1-2.6 3.8C12.9 7 11.7 4.4 9 2.5c.3 3.1-1.5 5.1-2.9 6.9C4.9 11 5 12.4 5 15.4 5 19.3 8 22 12 22z"/>',
+  trophy:'<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3"/>',
+  home:'<path d="M3 11l9-8 9 8M5 9.5V21h5v-6h4v6h5V9.5"/>',
+  back:'<path d="M15 5l-7 7 7 7"/>'};
+function icon(n){return `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${IC[n]||""}</svg>`}
+function paintIcons(root){(root||document).querySelectorAll("i[data-ic]").forEach(e=>{e.outerHTML=icon(e.dataset.ic)})}
+// a Home tile: icon, label, small line under it
+function tile(id,ic,label,sub){$(id).innerHTML=`${icon(ic)}<b>${label}</b><small>${sub||""}</small>`}
+
 const R=t=>`<span class="rt">${t}</span>`,P=t=>`<span class="pw">${t}</span>`;
 const ri=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
 const pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -922,7 +956,7 @@ function econMerge(o){
   econ.t=Math.max(econ.t||0,+o.t||0);econ.coins=econDerived();if(econ.coins<0)econSettle();LS.set("econ",econ);econMigrate()}
 normEcon();setTimeout(econMigrate,0);
 // Pay a real-life card reward once (kind "u" unlock, "v" view). Returns coins paid.
-function rlPay(key,kind){const id=kind+":"+key;if(econ.rl[id])return 0;econ.rl[id]=1;const n=kind==="u"?COIN_RL_UNLOCK:COIN_RL_VIEW;econ.coins+=n;saveEcon();try{$("hCoins").textContent=econ.coins.toLocaleString();$("casinoBtn").textContent=`🎰 Casino · ${econ.coins.toLocaleString()} coins`}catch(e){}return n}
+function rlPay(key,kind){const id=kind+":"+key;if(econ.rl[id])return 0;econ.rl[id]=1;const n=kind==="u"?COIN_RL_UNLOCK:COIN_RL_VIEW;econ.coins+=n;saveEcon();try{$("hCoins").textContent=econ.coins.toLocaleString();tile("casinoBtn","chip","Casino",`${econ.coins.toLocaleString()} coins`)}catch(e){}return n}
 function saveEcon(){econSettle();econ.t=Date.now();LS.set("econ",econ);persist()}
 let runs=LS.get("runs",0);
 let bestBy=LS.get("bestBy",null);if(!bestBy){bestBy={"5.1":{best:LS.get("best",0),dur:LS.get("bestDur",60)}};LS.set("bestBy",bestBy)}
@@ -1024,7 +1058,7 @@ function musTick(){
   if(!musActive.length){clearInterval(musTimer);musTimer=null}}
 function musStopAll(){if(!musReady)return;const now=ac.currentTime;musActive.forEach(tr=>{if(!tr.stop){tr.stop=now+.7;tr.g.gain.cancelScheduledValues(now);tr.g.gain.setValueAtTime(tr.g.gain.value,now);tr.g.gain.linearRampToValueAtTime(0,now+.6)}});musCur=null}
 function musUpdate(){if(musReady&&musicOn&&!document.hidden){const w=musWant();if(!musCur||musCur.id!==w)musPlay(w)}}
-function musLabel(){$("musBtn").textContent=musicOn?"♪ On":"♪ Off";$("musBtn").classList.toggle("off",!musicOn);renderMusic()}
+function musLabel(){$("musBtn").innerHTML=icon(musicOn?"note":"noteoff");$("musBtn").setAttribute("aria-pressed",musicOn?"true":"false");$("musBtn").classList.toggle("off",!musicOn);renderMusic()}
 function musToggle(){if(musicOn&&!musCur&&!document.hidden){musUnlock();musUpdate();musLabel();return}musicOn=!musicOn;LS.set("music",musicOn);audioMode();if(musicOn){musUnlock();musUpdate()}else musStopAll();musLabel()}
 function renderMusic(){
   const box=$("musCard");if(!box)return;
@@ -1034,6 +1068,7 @@ function renderMusic(){
   $("musVol").oninput=e=>{musVol=+e.target.value;LS.set("musVol",musVol);if(musBus)musBus.gain.setTargetAtTime(musVol/100*1.4,ac.currentTime,.05)};
   box.querySelectorAll(".mus-opt").forEach(b=>b.onclick=()=>{musTrack=b.dataset.k;LS.set("musTrack",musTrack);if(!musicOn){musicOn=true;LS.set("music",true)}musUnlock();const w=musTrack==="auto"?musWant():musTrack;if(musCur&&musCur.id===w){musLabel()}else musPlay(w);musLabel()})}
 $("musBtn").onclick=musToggle;
+$("setBtn").innerHTML=icon("gear");paintIcons();
 $("setBtn").onclick=()=>{$("setSheet").classList.remove("hidden");renderMusic();};$("setClose").onclick=()=>$("setSheet").classList.add("hidden");
 document.addEventListener("pointerdown",e=>{if(musicOn&&!musReady&&!(e.target.closest&&e.target.closest("#musBtn,#musTog")))  {musUnlock();musUpdate()}},{passive:true});
 document.addEventListener("keydown",()=>{if(musicOn&&!musReady){musUnlock();musUpdate()}});
@@ -1327,21 +1362,21 @@ function home(){
   $("dsw").innerHTML="";DAY_ORDER.forEach(d=>{const u=dayUnlocked(d),m=dayMastered(d);$("dsw").appendChild(mkBtn(d===selDay?"on":u?"":"lock",`Day ${DAYS[d].n} · ${d}`+(dayPassed(d)?" ✓":u?"":" · locked"),()=>setDay(d)))});
   const mc=masteredCount(selDay),mt=LESSONS[selDay].length;$("mTxt").textContent=`Mastery: ${mc} of ${mt} skills`;$("mBar").style.width=(mc/mt*100)+"%";
   $("mSlot").innerHTML="";const nxd=DAY_ORDER[DAY_ORDER.indexOf(selDay)+1],qN=quizList(selDay).length,qNeed=Math.ceil(qN*QUIZ_PASS_FRAC);
-  if(dayPassed(selDay)){$("mSlot").innerHTML=`<span class="mbadge">Day ${D.n} complete ✓${nxd?` · Day ${DAYS[nxd].n} unlocked`:""}</span>`;$("start").textContent="Review Rush · every skill";$("start").classList.remove("hidden")}
+  if(dayPassed(selDay)){$("mSlot").innerHTML=`<span class="mbadge">Day ${D.n} complete ✓${nxd?` · Day ${DAYS[nxd].n} unlocked`:""}</span>`;$("start").innerHTML=icon("play")+"Review Rush · every skill";$("start").classList.remove("hidden")}
   else if(mc===mt){$("mSlot").appendChild(mkBtn("big quizbtn",`Take the final quiz · ${qN} questions`,()=>start({quiz:true})));const n=document.createElement("div");n.className="mini mute";n.textContent=`No timer. Get ${qNeed===qN?"all "+qN:qNeed+" of "+qN} right to unlock ${nxd?"Day "+DAYS[nxd].n:"the next level"}. Skills you miss drop back to 60 mastery.`;$("mSlot").appendChild(n);$("start").classList.add("hidden")}
-  else{$("start").textContent="Play Rush";$("start").classList.remove("hidden")}
-  $("casinoBtn").textContent=`🎰 Casino · ${econ.coins.toLocaleString()} coins`;$("hCoins").textContent=econ.coins.toLocaleString();renderProfBtn();
+  else{$("start").innerHTML=icon("play")+"Play Rush";$("start").classList.remove("hidden")}
+  tile("casinoBtn","chip","Casino",`${econ.coins.toLocaleString()} coins`);tile("checkBtn","check","Check","homework");$("hCoins").textContent=econ.coins.toLocaleString();renderProfBtn();
   $("heroEye").textContent=`Unit 5 · Day ${D.n}`+(selDay===[...DAY_ORDER].reverse().find(dayUnlocked)?" · Current day":" · Review");$("heroTitle").textContent=D.t;$("heroRules").innerHTML=D.rules;$("rushMix").textContent=dayPassed(selDay)?"Review mode: every skill, just for practice":masteredCount(selDay)===LESSONS[selDay].length?"":D.mix+" · mastered skills are skipped";
   $("hBest").textContent=b.toLocaleString();$("hRank").textContent=rank(b);$("hRuns").textContent=runs;
   $("hDay").textContent=liveStreak();$("hFrz").textContent=day.freezes+" / 2";
   const done=day.last===dayKey(new Date());$("goal").classList.toggle("done",done);$("goalBox").textContent=done?"✓":"";
   const dr=dailyReady(),nextStreak=done?day.streak:(day.last&&daysBetween(day.last,dayKey(new Date()))===1?day.streak+1:1);
-  $("goalTxt").innerHTML=dr?`Daily bonus: finish a Rush for <b>+${dailyAmount(nextStreak)} 🪙</b>`+(done?" (streak is safe)":""):`Daily bonus collected. Streak safe today. Tomorrow: +${dailyAmount(day.streak+1)} 🪙`;
+  $("goalTxt").innerHTML=dr?`Daily bonus: finish a Rush for <b>+${dailyAmount(nextStreak)}</b> coins`+(done?" (streak is safe)":""):`Daily bonus collected. Streak safe today. Tomorrow: +${dailyAmount(day.streak+1)} coins`;
   $("goal").classList.toggle("done",!dr);$("goalBox").textContent=!dr?"✓":"";
   ensureDue();renderReview();renderSkills();renderSpark();renderRoad();renderReal();setTab(hTab);{const ks=LESSONS[selDay],rk=ks.filter(k=>REAL[k]);$("tbReal").textContent=`${rk.filter(k=>lvl(k)===3||dayPassed(selDay)).length}/${rk.length}`;$("tbSk").textContent=`${masteredCount(selDay)}/${ks.length}`}
   const L=LRN(),ld=LD();
   $("learnTxt").textContent=`${ld.length} of ${L.length} lessons done`;$("learnBar").style.width=(ld.length/L.length*100)+"%";
-  $("learnBtn").textContent=ld.length===0?`Learn ${selDay} · about ${L.length} min`:ld.length<L.length?`Continue learning · lesson ${Math.max(0,L.findIndex((_,j)=>!ld.includes(j)))+1}`:`Review ${selDay} lessons`;
+  tile("learnBtn","book",ld.length<L.length?"Learn":"Review",ld.length===0?`${selDay} · ${L.length} min`:ld.length<L.length?`lesson ${Math.max(0,L.findIndex((_,j)=>!ld.includes(j)))+1}`:`${selDay} lessons`);$("learnBtn").classList.toggle("todo",ld.length<L.length);
   setSync(syncState);show("home");window.scrollTo(0,0);
 }
 const LEARN52=[
@@ -1480,7 +1515,7 @@ async function acMergeRemote(){const r=await acApi({action:"get",token:acct.toke
 function syncSig(){const s=packSave();delete s.updated;return JSON.stringify(s)}
 function syncRedraw(){try{if(curScreen==="home")home();else{const c=econ.coins.toLocaleString();$("hCoins").textContent=c}}catch(e){}}
 function acSignedOut(){acct=null;LS.set("acct",null);cloud=null;setSync("revoked")}
-function renderAcct(){const b=$("acctBtn");if(!b)return;b.textContent=acct?"✓ "+acct.user:"Sign in";b.classList.toggle("on",!!acct);
+function renderAcct(){const b=$("acctBtn");if(!b)return;b.textContent=acct?acct.user:"Sign in";b.classList.toggle("on",!!acct);
   $("acOut").classList.toggle("hidden",!!acct);$("acIn").classList.toggle("hidden",!acct);if(acct)$("acName").textContent=acct.user;
   $("acTabIn").classList.toggle("on",acMode==="in");$("acTabNew").classList.toggle("on",acMode==="new");$("acGo").textContent=acMode==="in"?"Sign in":"Make account";
   $("acPass").autocomplete=acMode==="in"?"current-password":"new-password";
@@ -1847,7 +1882,7 @@ function finish(){
   const w=Object.entries(st.miss).sort((a,b)=>b[1]-a[1])[0];
   $("eWeak").textContent=w?TAGS[w[0]]:"None";
   const tips={entry:"Fraction exponents always go in parentheses, and keep the order: top over bottom.",bottom:"Bottom is the root, top is the power. Take the root first.",neg:"Odd root of a negative gives a negative. Even root of a negative isn't real.",sols:"Even power → ± (or no solution if it equals a negative). Odd power → one answer that keeps its sign.",iso:"Get the power alone before you take any root: undo +/−, then ×/÷, then the power.",shift:"Undo in reverse order: the power first, then the + or −.",order:"Peel from the outside in: whatever was done to x last gets undone first.",spot:"Check each line against the rules: bottom = root, odd roots keep the negative, even powers get ±, isolate before rooting.",line:"To estimate a root, list whole numbers to that power and see which two the number lands between.",rules:"Same base: multiply → add exponents, divide → subtract, power of a power → multiply. Negative exponent → flip.",radmul:"Only combine radicals with the same index, then simplify the one radical.",simp:"Break the number into small numbers. Each pair escapes the root as one number; leftovers stay inside.",vars:"Divide each variable's exponent by the index.",like:"Like radicals need the same index and radicand. Add the front numbers and keep the radical.",spot2:"Check for added radicands, added exponents in a power of a power, and perfect squares pulled out without rooting."};
-  $("eTip").textContent=w?tips[w[0]]:"Flawless. Next run, push the combo harder and save Double for when you're at ×5.";
+  $("eTip").textContent=w?tips[w[0]]:st.total?"Flawless. Next run, push the combo harder: every 3 in a row raises it, up to ×5.":"No answers this run. Start a Rush and answer a few to earn coins and progress.";
   persist();
   beep(523,.12);beep(659,.12,"sine",.14,.12);beep(nb||newM?1047:784,.25,"sine",.14,.24);if(newM){beep(1319,.2,"triangle",.12,.4);beep(1568,.3,"triangle",.12,.55)}
   if(st.revCount){const nr=nextReview();$("eTip").textContent=`Reviewed ${st.revCount} old skill${st.revCount>1?"s":""} (${st.revRight} right).`+(nr?` Next review: ${TAGS[nr.k]} ${inDays(nr.due)}.`:"")+" "+$("eTip").textContent}
