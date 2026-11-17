@@ -243,7 +243,9 @@
   function pocketFill(c) { return c === "red" ? "#b3141f" : c === "black" ? "#141414" : "#0b7a48"; }
   function wheelDefs() {
     return '<radialGradient id="czw-gold" cx="50%" cy="40%" r="70%"><stop offset="0" stop-color="#fbe9a0"/><stop offset="1" stop-color="#a97a1c"/></radialGradient>' +
-      '<radialGradient id="czw-cone" cx="50%" cy="50%" r="60%"><stop offset="0" stop-color="#5a3a1c"/><stop offset="1" stop-color="#1b0e06"/></radialGradient>';
+      '<radialGradient id="czw-cone" cx="38%" cy="34%" r="70%"><stop offset="0" stop-color="#9a8a78"/><stop offset=".35" stop-color="#5a3a1c"/><stop offset="1" stop-color="#1b0e06"/></radialGradient>' +
+      '<radialGradient id="czw-shade" cx="50%" cy="50%" r="50%"><stop offset=".65" stop-color="#000" stop-opacity=".42"/><stop offset=".82" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></radialGradient>' +
+      '<linearGradient id="czw-chrome" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset=".3" stop-color="#9a9a9a"/><stop offset=".55" stop-color="#f4f4f4"/><stop offset="1" stop-color="#6a6a6a"/></linearGradient>';
   }
   // The turning part of the wheel (pockets, numbers, cone), in a -114..114 box.
   function wheelInner() {
@@ -254,13 +256,14 @@
         '" stroke="#d9b45a" stroke-width=".8" d="M' + pt(r0, a0) + " L" + pt(r1, a0) + " A" + r1 + " " + r1 + " 0 0 1 " + pt(r1, a1) +
         " L" + pt(r0, a1) + " A" + r0 + " " + r0 + " 0 0 0 " + pt(r0, a0) + ' Z"/>';
     }
+    s += '<circle r="89" fill="url(#czw-shade)"/><circle r="89" fill="none" stroke="#f0d78a" stroke-width="1.4"/>';
     for (i = 0; i < 37; i++) {
       var m = (i + 0.5) * POCKET_DEG;
       s += '<text transform="rotate(' + m.toFixed(3) + ') translate(0 -82)" y="3" text-anchor="middle" font-size="9" font-weight="800" fill="#fff" font-family="inherit">' + WHEEL_ORDER[i] + "</text>";
     }
     s += '<circle r="58" fill="#3a2212" stroke="#d9b45a" stroke-width="1.5"/><circle r="47" fill="url(#czw-gold)"/><circle r="31" fill="url(#czw-cone)" stroke="#6b4a10" stroke-width="1"/>';
-    for (i = 0; i < 4; i++) s += '<rect x="-2" y="-46" width="4" height="30" rx="2" fill="#f3d37a" transform="rotate(' + (i * 90 + 45) + ')"/>';
-    s += '<circle r="9" fill="url(#czw-gold)" stroke="#6b4a10"/><circle r="3" fill="#fff6c8"/>';
+    for (i = 0; i < 4; i++) s += '<rect x="-2" y="-46" width="4" height="30" rx="2" fill="url(#czw-chrome)" stroke="#6b4a10" stroke-width=".5" transform="rotate(' + (i * 90 + 45) + ')"/>';
+    s += '<circle r="9" fill="url(#czw-chrome)" stroke="#6b4a10"/><circle r="3" fill="#fff6c8"/>';
     return s;
   }
   function wheelSvg() {
@@ -574,6 +577,86 @@
     ".cz-pass span{align-self:center}",
     ".cz-stack.ghost{opacity:.55}",
     ".cz-pot{text-align:center;font-weight:800;font-size:16px;min-height:22px;color:#fff}",
+    // ---- art-deco polish layer (visual only; later rules refine the ones above) ----
+    ".cz-game{--cz-gold:#d9b86a;--cz-champ:#f3e6c4;--cz-felt:radial-gradient(130% 110% at 50% 40%,transparent 50%,rgba(0,0,0,.5)) padding-box,radial-gradient(rgba(255,255,255,.055) 1px,transparent 1.3px) 0 0/4px 4px padding-box,radial-gradient(rgba(0,0,0,.1) 1px,transparent 1.3px) 2px 2px/4px 4px padding-box}",
+    ".cz-game{background:radial-gradient(72% 32% at 50% 0,rgba(255,226,150,.2),transparent 72%),radial-gradient(120% 90% at 50% 0,#3d2213,#1b0e07 75%);border:2px solid #7a5513;box-shadow:0 0 0 1px rgba(232,192,90,.5),0 0 0 2px #4a300c,0 10px 26px rgba(0,0,0,.55),inset 0 0 0 1px rgba(232,192,90,.28),inset 0 0 36px rgba(0,0,0,.55)}",
+    ".cz-game button{background:linear-gradient(180deg,#3b2717,#1f130b);box-shadow:inset 0 1px 0 rgba(255,235,180,.22),0 2px 0 rgba(0,0,0,.4)}",
+    ".cz-sub{font-family:Cinzel,Georgia,serif;letter-spacing:.1em}",
+    // look left / right arrows: brass art-deco plates with a soft neon edge
+    ".cz-turn{width:46px;height:68px;padding:0;overflow:hidden;border:2px solid transparent;border-radius:14px;color:#ffe08a;-webkit-tap-highlight-color:transparent;background:linear-gradient(180deg,#2e180a,#12050b 55%,#220c12) padding-box,linear-gradient(160deg,#fff3c2,#e8c05a 28%,#8a5d0a 52%,#f3d37a 78%,#a97a1c) border-box;box-shadow:0 0 0 1px rgba(7,3,12,.85),0 0 9px rgba(255,200,90,.5),0 0 20px rgba(255,60,160,.3),0 4px 8px rgba(0,0,0,.55),inset 0 0 9px rgba(232,192,90,.32);transition:transform .12s ease,box-shadow .12s ease}",
+    ".cz-turn::before{content:'';position:absolute;inset:3px;border:1px solid rgba(217,184,106,.6);border-radius:10px;pointer-events:none}",
+    ".cz-turn::after{content:'';position:absolute;top:-12%;bottom:-12%;left:0;width:42%;background:linear-gradient(100deg,transparent,rgba(255,244,200,.6),transparent);transform:translateX(-170%) skewX(-18deg);animation:cz-tshine 5.6s ease-in-out infinite;pointer-events:none}",
+    ".cz-turn.r::after{animation-delay:2.8s}",
+    "@keyframes cz-tshine{0%,62%{transform:translateX(-170%) skewX(-18deg)}100%{transform:translateX(340%) skewX(-18deg)}}",
+    ".cz-turn>span{position:relative;z-index:1;filter:none}",
+    ".cz-turn:active{transform:translateY(-50%) scale(.92);box-shadow:0 0 0 1px rgba(7,3,12,.85),0 0 5px rgba(255,200,90,.4),0 1px 3px rgba(0,0,0,.6),inset 0 4px 9px rgba(0,0,0,.75),inset 0 0 12px rgba(232,192,90,.45);background:linear-gradient(180deg,#120804,#2a1608 60%,#12050b) padding-box,linear-gradient(160deg,#a97a1c,#f3d37a 40%,#8a5d0a 70%,#e8c05a) border-box}",
+    ".cz-look{padding:6px 13px;border:1px solid rgba(217,184,106,.75);background:linear-gradient(180deg,rgba(40,18,8,.88),rgba(10,0,20,.82));color:var(--cz-champ,#f3e6c4);font-family:Cinzel,Georgia,serif;font-weight:700;letter-spacing:.05em;box-shadow:0 0 0 1px rgba(7,3,12,.7),0 0 12px rgba(255,200,90,.28),0 0 18px rgba(255,60,160,.16),0 3px 8px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,235,180,.25)}",
+    ".cz-look i{width:6px;height:6px;border-radius:0;transform:rotate(45deg);background:#d9b86a;opacity:.38;margin:0 1px}",
+    ".cz-look i.on{opacity:1;background:#ffe08a;box-shadow:0 0 6px rgba(255,224,138,.9)}",
+    // cards: paper face, framed back, soft shadow
+    ".cz-cb,.cz-cf{border-radius:8px;box-shadow:0 2px 3px rgba(0,0,0,.5),0 6px 10px rgba(0,0,0,.28)}",
+    ".cz-cf{background:linear-gradient(160deg,#ffffff,#f6f1e4 60%,#e9e2d0);border:1px solid #c9c4b4}",
+    ".cz-cf::before{content:'';position:absolute;inset:2px;border:1px solid rgba(0,0,0,.09);border-radius:6px;pointer-events:none}",
+    ".cz-cb,.cz-pile i{background:radial-gradient(circle at 50% 50%,#f0cf74 0 4px,#7a1020 5px 8px,transparent 9px),repeating-linear-gradient(45deg,rgba(255,255,255,.16) 0 1px,transparent 1px 7px),repeating-linear-gradient(-45deg,rgba(255,255,255,.16) 0 1px,transparent 1px 7px),linear-gradient(145deg,#b3223c,#6a0c1c);border:3px solid #fbf7ec}",
+    ".cz-cb::before,.cz-pile i::before{content:'';position:absolute;inset:2px;border:1px solid rgba(240,207,116,.9);border-radius:5px;pointer-events:none}",
+    ".cz-pile i{box-shadow:0 2px 3px rgba(0,0,0,.55),0 5px 8px rgba(0,0,0,.3)}",
+    ".cz-vps.held .cz-cf{box-shadow:0 0 0 3px #ffe08a,0 0 12px rgba(255,224,138,.8),0 6px 10px rgba(0,0,0,.3)}",
+    // chips: edge stripes, inner ring, gloss, shadow
+    ".cz-chb,.cz-ch,.cz-stack i,.cz-plc{background:radial-gradient(circle at 34% 26%,rgba(255,255,255,.4),transparent 42%),radial-gradient(ellipse closest-side,var(--chc) 0 76%,rgba(255,255,255,.92) 77% 83%,transparent 84%),repeating-conic-gradient(#fff 0 11deg,var(--chc) 11deg 30deg)}",
+    ".cz-chb{background:radial-gradient(circle at 34% 26%,rgba(255,255,255,.4),transparent 42%),radial-gradient(ellipse closest-side,var(--chc) 0 76%,rgba(255,255,255,.92) 77% 83%,transparent 84%),repeating-conic-gradient(#fff 0 11deg,var(--chc) 11deg 30deg)!important;box-shadow:0 3px 0 rgba(0,0,0,.6),0 6px 8px rgba(0,0,0,.45),inset 0 -3px 4px rgba(0,0,0,.35),inset 0 1px 1px rgba(255,255,255,.55)}",
+    ".cz-chb.on{box-shadow:0 0 0 3px #ffe08a,0 0 14px rgba(255,224,138,.8),0 7px 8px rgba(0,0,0,.45),inset 0 -3px 4px rgba(0,0,0,.35),inset 0 1px 1px rgba(255,255,255,.55)}",
+    ".cz-ch,.cz-stack i{box-shadow:0 3px 0 rgba(0,0,0,.6),0 5px 6px rgba(0,0,0,.35),inset 0 -2px 3px rgba(0,0,0,.3)}",
+    ".cz-plc{box-shadow:0 2px 3px rgba(0,0,0,.65),inset 0 -2px 3px rgba(0,0,0,.35),inset 0 1px 1px rgba(255,255,255,.5)}",
+    // felt tables: weave texture, vignette, wood rail, light pool
+    ".cz-hlt,.cz-bat,.cz-crt,.cz-lay{background:var(--cz-felt),radial-gradient(120% 100% at 50% 20%,var(--fa,#22995a),var(--fb,#0b4b2a)) padding-box,linear-gradient(180deg,#94603a,#52301a 45%,#2a1409) border-box;border:6px solid transparent;box-shadow:0 0 0 1px rgba(232,192,90,.55),0 8px 16px rgba(0,0,0,.5),inset 0 0 0 2px rgba(232,192,90,.5),inset 0 0 0 4px rgba(0,0,0,.25),inset 0 0 36px rgba(0,0,0,.5)}",
+    ".cz-hlt{--fa:#1f8a9e;--fb:#0a3340}",
+    ".cz-lay{border-width:4px;--fa:#22995a;--fb:#0b4b2a}",
+    ".cz-hlt::before,.cz-bat::before,.cz-crt::before{content:'';position:absolute;inset:0;border-radius:16px;pointer-events:none;background:radial-gradient(70% 34% at 50% 0,rgba(255,240,200,.16),transparent 75%)}",
+    ".cz-pts>div{background:linear-gradient(180deg,rgba(0,0,0,.28),rgba(0,0,0,.12));box-shadow:inset 0 0 0 1px rgba(232,192,90,.35),inset 0 2px 6px rgba(0,0,0,.35);font-family:Cinzel,Georgia,serif}",
+    ".cz-pts>div.on{box-shadow:0 0 0 2px #ffe08a,0 0 12px rgba(255,224,138,.7),inset 0 0 0 1px rgba(232,192,90,.35)}",
+    ".cz-pass{background:linear-gradient(180deg,rgba(0,0,0,.18),rgba(0,0,0,.05));box-shadow:inset 0 0 0 1px rgba(232,192,90,.4),0 0 8px rgba(240,207,116,.2);font-family:Cinzel,Georgia,serif}",
+    ".cz-bacol{background:linear-gradient(180deg,rgba(0,0,0,.2),rgba(0,0,0,.08));border:2px solid rgba(232,192,90,.45);box-shadow:inset 0 0 0 1px rgba(0,0,0,.25),inset 0 3px 10px rgba(0,0,0,.3)}",
+    ".cz-bacol:first-child{background:linear-gradient(180deg,rgba(40,90,200,.2),rgba(0,0,0,.1))}",
+    ".cz-bacol:last-child{background:linear-gradient(180deg,rgba(200,30,50,.2),rgba(0,0,0,.1))}",
+    ".cz-balbl{font-family:Cinzel,Georgia,serif;font-weight:700}",
+    ".cz-lbl{font-family:Cinzel,Georgia,serif;font-weight:700}",
+    ".cz-shoe{background:linear-gradient(135deg,#0b0b0b,#555 48%,#1a1a1a);border:2px solid #d9b45a;box-shadow:0 5px 9px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.3)}",
+    ".cz-board{background:linear-gradient(180deg,#050303,#150b09);border:2px solid #b98a24;box-shadow:inset 0 0 0 1px rgba(0,0,0,.6),inset 0 2px 10px rgba(0,0,0,.8),0 0 8px rgba(232,192,90,.2)}",
+    ".cz-hlplate{background:linear-gradient(180deg,#fff0a8,#e1b43c 45%,#a8761a);box-shadow:0 2px 4px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.6);font-family:Cinzel,Georgia,serif}",
+    // roulette
+    ".cz-lay button{background-image:linear-gradient(180deg,rgba(255,255,255,.16),rgba(0,0,0,.2))!important;background-color:rgba(0,0,0,.28)}",
+    ".red.cz-nc,.red.cz-numchip,.cz-num.red{background-color:#b3141f}.cz-num.red{background-color:#c5192a}.cz-num.black{background-color:#1a1a1a}.cz-num.green{background-color:#0b8a50}",
+    ".cz-sel4 button.red{background-color:#b3141f!important}.cz-sel4 button.black{background-color:#141414!important}",
+    ".cz-nc,.cz-numchip{box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 2px 3px rgba(0,0,0,.5)}",
+    ".cz-ball{background:radial-gradient(circle at 32% 28%,#fff 0 18%,#e8e8e8 30%,#9a9a9a 70%,#5a5a5a);box-shadow:0 2px 3px rgba(0,0,0,.75),0 0 5px rgba(255,255,255,.55)}",
+    ".cz-sheen{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}",
+    ".cz-wbox{filter:none}",
+    // slots: chrome cabinet, lit marquee, glass over the reels
+    ".cz-slm{border:4px solid transparent;background:linear-gradient(95deg,rgba(255,255,255,.1),transparent 22%,transparent 78%,rgba(0,0,0,.25)),linear-gradient(180deg,#e2283f,#8a0f22 60%,#5e0816) padding-box,linear-gradient(135deg,#fff7d6,#c8962b 26%,#fff1b0 48%,#8a5d0a 74%,#e8c05a) border-box;box-shadow:0 0 0 2px #5a3d0c,0 10px 22px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,235,180,.35),inset 0 -14px 24px rgba(0,0,0,.35)}",
+    ".cz-slm::after{content:'';position:absolute;left:0;right:0;top:0;height:34%;border-radius:18px 18px 0 0;background:linear-gradient(180deg,rgba(255,255,255,.2),transparent);pointer-events:none}",
+    ".cz-bulbs i{box-shadow:0 0 7px #ffd96a,0 0 2px #fff6c8,inset 0 -2px 2px rgba(150,90,0,.5)}",
+    ".cz-slt{margin:0 6px 7px;padding:2px 0;font-family:Cinzel,Georgia,serif;background:linear-gradient(180deg,#2a0610,#12030a);border:1px solid #e8c05a;border-radius:8px;box-shadow:inset 0 0 12px rgba(255,150,60,.35),0 0 10px rgba(255,200,90,.3),0 1px 0 rgba(0,0,0,.5)}",
+    ".cz-wnd{background:linear-gradient(180deg,#000,#1a0a0a);border-color:#e8c05a;box-shadow:inset 0 0 12px rgba(0,0,0,.9),0 0 0 1px #5a3d0c,0 2px 0 rgba(255,235,180,.25)}",
+    ".cz-reel{background:linear-gradient(90deg,#cfc7ae,#fffdf3 16%,#fffdf3 84%,#cfc7ae);box-shadow:inset 0 0 10px rgba(0,0,0,.35)}",
+    ".cz-reel::after{background:linear-gradient(112deg,rgba(255,255,255,.3) 0 16%,rgba(255,255,255,0) 17% 100%),linear-gradient(180deg,rgba(0,0,0,.52),transparent 30%,transparent 70%,rgba(0,0,0,.52))}",
+    ".cz-lvbase{background:linear-gradient(90deg,#666,#f2f2f2 40%,#777);border:2px solid #2a2a2a;box-shadow:0 3px 4px rgba(0,0,0,.5)}",
+    ".cz-lvs{background:linear-gradient(90deg,#888,#fff 45%,#777)}",
+    ".cz-lvb{background:radial-gradient(circle at 34% 28%,#fff 0 8%,#ff9a9a 16%,#d01c1c 55%,#6a0808);box-shadow:0 4px 6px rgba(0,0,0,.55),inset 0 -3px 5px rgba(0,0,0,.35)}",
+    ".cz-pay{font-family:Cinzel,Georgia,serif}",
+    // video poker cabinet
+    ".cz-vpm{position:relative;border:4px solid transparent;background:linear-gradient(180deg,#34509f,#0f1b4b 70%,#0a1233) padding-box,linear-gradient(135deg,#fff7d6,#c8962b 26%,#fff1b0 48%,#8a5d0a 74%,#e8c05a) border-box;box-shadow:0 0 0 2px #5a3d0c,0 10px 22px rgba(0,0,0,.55),inset 0 0 22px rgba(0,0,40,.6)}",
+    ".cz-vpm::after{content:'';position:absolute;inset:0;border-radius:12px;pointer-events:none;background:linear-gradient(118deg,rgba(255,255,255,.14) 0 22%,rgba(255,255,255,0) 23%)}",
+    ".cz-vpt{font-family:Cinzel,Georgia,serif}",
+    ".cz-vpp{background:repeating-linear-gradient(180deg,rgba(255,255,255,.035) 0 1px,transparent 1px 3px),#08102e;box-shadow:inset 0 0 12px rgba(0,0,0,.8),0 1px 0 rgba(255,235,180,.25)}",
+    // craps dice: rounded faces, shaded pips
+    ".cz-die{border-radius:16px;background:radial-gradient(circle at 30% 24%,rgba(255,255,255,.35),transparent 45%),linear-gradient(145deg,#ea3a45,#a1161f 70%,#7c0e16);box-shadow:inset 0 -5px 0 rgba(0,0,0,.25),inset 0 2px 0 rgba(255,255,255,.4),inset 3px 0 0 rgba(255,255,255,.1),0 7px 8px rgba(0,0,0,.5)}",
+    ".cz-die i.on{background:radial-gradient(circle at 34% 30%,#fff 0 30%,#f1ece0 55%,#bdb6a4);box-shadow:inset 0 -1px 2px rgba(0,0,0,.35),0 1px 1px rgba(0,0,0,.4)}",
+    ".cz-puck{background:radial-gradient(circle at 34% 28%,#fff,#e4e4e4 70%,#aaa)}",
+    // the Salon bar
+    ".cz-bar{background:radial-gradient(70% 30% at 50% 0,rgba(255,200,120,.2),transparent 75%),linear-gradient(180deg,#26100a,#0b0408);box-shadow:0 0 0 1px rgba(232,192,90,.6),0 0 0 2px #3a2208,0 10px 24px rgba(0,0,0,.55),inset 0 0 0 1px rgba(232,192,90,.3),inset 0 0 30px rgba(0,0,0,.6)}",
+    ".cz-bar-t{color:var(--cz-champ,#f3e6c4)}",
+    ".cz-drink{background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.015));box-shadow:inset 3px 0 0 var(--tint),inset 0 1px 0 rgba(255,235,180,.15),0 3px 6px rgba(0,0,0,.35)}",
+    ".cz-dk-o{background:linear-gradient(180deg,#4a3516,#24190a);box-shadow:inset 0 1px 0 rgba(255,235,180,.3),0 2px 0 rgba(0,0,0,.4)}",
     "@media (prefers-reduced-motion:reduce){.cz *{animation:none!important;transition:none!important}}"
   ].join("\n");
 
@@ -1065,7 +1148,7 @@
       var can = canBet();
       return '<div class="cz-room"><div class="cz-pano" style="transform:translateX(-' + (LOOK * 100 / SCENE_DIRS.length) + '%)">' +
         SCENE_DIRS.map(function (d) { return '<div class="cz-pv">' + sceneSvg(d, can, fullTall(), fullWide()) + "</div>"; }).join("") + "</div>" +
-        '<button class="cz-turn l" data-a="turn" data-v="-1" aria-label="Look left"><span style="display:flex"><svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M15 4 L7 12 L15 20" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button><button class="cz-turn r" data-a="turn" data-v="1" aria-label="Look right"><span style="display:flex;transform:scaleX(-1)"><svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M15 4 L7 12 L15 20" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>' +
+        '<button class="cz-turn l" data-a="turn" data-v="-1" aria-label="Look left"><span style="display:flex"><svg viewBox="0 0 28 44" width="28" height="44" aria-hidden="true"><defs><linearGradient id="czt-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff3c2"/><stop offset=".5" stop-color="#e8c05a"/><stop offset="1" stop-color="#a97a1c"/></linearGradient></defs><path d="M18 11 L9 22 L18 33" fill="none" stroke="url(#czt-g)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M24 16 L18.5 22 L24 28" fill="none" stroke="#d9b86a" stroke-opacity=".75" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 4.6 L16.4 7 L14 9.4 L11.6 7Z M14 34.6 L16.4 37 L14 39.4 L11.6 37Z" fill="#f3d37a" transform="translate(0 0)"/></svg></span></button><button class="cz-turn r" data-a="turn" data-v="1" aria-label="Look right"><span style="display:flex;transform:scaleX(-1)"><svg viewBox="0 0 28 44" width="28" height="44" aria-hidden="true"><defs><linearGradient id="czt-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff3c2"/><stop offset=".5" stop-color="#e8c05a"/><stop offset="1" stop-color="#a97a1c"/></linearGradient></defs><path d="M18 11 L9 22 L18 33" fill="none" stroke="url(#czt-g)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M24 16 L18.5 22 L24 28" fill="none" stroke="#d9b86a" stroke-opacity=".75" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 4.6 L16.4 7 L14 9.4 L11.6 7Z M14 34.6 L16.4 37 L14 39.4 L11.6 37Z" fill="#f3d37a" transform="translate(0 0)"/></svg></span></button>' +
         '<div class="cz-look" aria-live="polite"></div></div>';
     }
     // phones: the floor fills the whole screen; returns the drawing height that matches the screen's shape (0 = not full screen)
@@ -1115,12 +1198,24 @@
       return '<div class="cz-game"><div class="cz-bjt" id="bj-t">' +
         '<svg viewBox="0 0 358 350" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>' +
         '<radialGradient id="czb-felt" cx="50%" cy="45%" r="75%"><stop offset="0" stop-color="#24a05f"/><stop offset="1" stop-color="#0c5230"/></radialGradient>' +
+        '<radialGradient id="czb-vig" cx="50%" cy="42%" r="70%"><stop offset=".55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".5"/></radialGradient>' +
+        '<radialGradient id="czb-pool" cx="50%" cy="0%" r="75%"><stop offset="0" stop-color="#fff3c8" stop-opacity=".26"/><stop offset="1" stop-color="#fff3c8" stop-opacity="0"/></radialGradient>' +
+        '<linearGradient id="czb-rail" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9a6438"/><stop offset=".45" stop-color="#5a3319"/><stop offset="1" stop-color="#2a1409"/></linearGradient>' +
+        '<pattern id="czb-weave" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="4" fill="none"/><circle cx="1" cy="1" r=".6" fill="#fff" fill-opacity=".07"/><circle cx="3" cy="3" r=".6" fill="#000" fill-opacity=".1"/></pattern>' +
         '<path id="czb-arc1" d="M44 130 Q179 172 314 130" fill="none"/><path id="czb-arc2" d="M64 156 Q179 192 294 156" fill="none"/></defs>' +
-        '<path d="M8 8 H350 V260 A100 80 0 0 1 250 340 H108 A100 80 0 0 1 8 260 Z" fill="url(#czb-felt)" stroke="#5a3218" stroke-width="10" stroke-linejoin="round"/>' +
+        '<path d="M8 14 H350 V266 A100 80 0 0 1 250 346 H108 A100 80 0 0 1 8 266 Z" fill="#000" fill-opacity=".38"/>' +
+        '<path d="M8 8 H350 V260 A100 80 0 0 1 250 340 H108 A100 80 0 0 1 8 260 Z" fill="url(#czb-felt)"/>' +
+        '<path d="M8 8 H350 V260 A100 80 0 0 1 250 340 H108 A100 80 0 0 1 8 260 Z" fill="url(#czb-weave)"/>' +
+        '<path d="M8 8 H350 V260 A100 80 0 0 1 250 340 H108 A100 80 0 0 1 8 260 Z" fill="url(#czb-vig)"/>' +
+        '<path d="M8 8 H350 V260 A100 80 0 0 1 250 340 H108 A100 80 0 0 1 8 260 Z" fill="url(#czb-pool)"/>' +
+        '<path d="M8 8 H350 V260 A100 80 0 0 1 250 340 H108 A100 80 0 0 1 8 260 Z" fill="none" stroke="url(#czb-rail)" stroke-width="10" stroke-linejoin="round"/>' +
+        '<path d="M3.5 3.5 H354.5 V260 A104.5 84.5 0 0 1 250 344.5 H108 A104.5 84.5 0 0 1 3.5 260 Z" fill="none" stroke="#ffe6b8" stroke-opacity=".38" stroke-width="1" stroke-linejoin="round"/>' +
+        '<path d="M12.5 12.5 H345.5 V260 A95.5 75.5 0 0 1 250 335.5 H108 A95.5 75.5 0 0 1 12.5 260 Z" fill="none" stroke="#000" stroke-opacity=".4" stroke-width="1.2" stroke-linejoin="round"/>' +
         '<path d="M16 16 H342 V260 A92 72 0 0 1 250 332 H108 A92 72 0 0 1 16 260 Z" fill="none" stroke="#e8c05a" stroke-opacity=".75" stroke-width="1.5"/>' +
         '<text font-size="15" font-weight="900" fill="#f0cf74" letter-spacing="1.6" text-anchor="middle" font-family="inherit"><textPath href="#czb-arc1" startOffset="50%">BLACKJACK PAYS 3 TO 2</textPath></text>' +
         '<text font-size="9" font-weight="700" fill="#d3ecdb" letter-spacing="1.6" text-anchor="middle" font-family="inherit"><textPath href="#czb-arc2" startOffset="50%">DEALER STANDS ON ALL 17</textPath></text>' +
-        '<circle cx="179" cy="202" r="29" fill="none" stroke="#e8c05a" stroke-opacity=".8" stroke-width="1.6" stroke-dasharray="4 3"/>' +
+        '<circle cx="179" cy="202" r="29" fill="none" stroke="#e8c05a" stroke-opacity=".8" stroke-width="1.6" stroke-dasharray="4 3"/><circle cx="179" cy="202" r="24" fill="none" stroke="#e8c05a" stroke-opacity=".35" stroke-width=".8"/>' +
+        '<g fill="#e8c05a" fill-opacity=".8"><path d="M52 177 l3 3 -3 3 -3 -3z"/><path d="M306 177 l3 3 -3 3 -3 -3z"/></g>' +
         "</svg>" +
         '<div class="cz-shoe" id="bj-shoe"><i></i><i></i><i></i></div>' +
         '<div class="cz-lbl cz-lbl-d" id="bj-dl">DEALER</div><div class="cz-hand cz-hand-d" id="bj-d"></div>' +
@@ -1382,11 +1477,16 @@
     var BALL_TRACK = 8.8, BALL_POCKET = 20.2;  // ball radius as % from the box edge (track ring, pocket floor)
     function roSkel() {
       var bowl = '<svg viewBox="-114 -114 228 228" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><linearGradient id="czr-wood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7a4a28"/><stop offset="1" stop-color="#2e170b"/></linearGradient></defs>' +
-        '<circle r="108" fill="url(#czr-wood)" stroke="#e8c05a" stroke-width="3"/><circle r="99" fill="#0f0a08" stroke="#8c6a2a" stroke-width="1.5"/><circle r="89.5" fill="#201208"/>' +
+        '<linearGradient id="czr-rim" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff3c2"/><stop offset=".35" stop-color="#c8962b"/><stop offset=".6" stop-color="#8a5d0a"/><stop offset="1" stop-color="#f3d37a"/></linearGradient><radialGradient id="czr-trk" cx="50%" cy="50%" r="50%"><stop offset=".86" stop-color="#201208"/><stop offset=".92" stop-color="#3a2514"/><stop offset="1" stop-color="#0f0a08"/></radialGradient>' +
+        '<linearGradient id="czr-sh" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".3"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>' +
+        '<circle r="111" cy="3" fill="#000" fill-opacity=".35"/>' +
+        '<circle r="108" fill="url(#czr-wood)" stroke="url(#czr-rim)" stroke-width="3.4"/><circle r="104" fill="none" stroke="#000" stroke-opacity=".4" stroke-width="1"/><circle r="99" fill="url(#czr-trk)" stroke="#c8962b" stroke-width="1.5"/><circle r="89.5" fill="#201208"/>' +
+        '<g fill="#e8c05a">' + [0, 45, 90, 135, 180, 225, 270, 315].map(function (a) { return '<path transform="rotate(' + a + ') translate(0 -94.5)" d="M0 -3.2 L2.2 0 L0 3.2 L-2.2 0Z"/>'; }).join("") + "</g>" +
         '<path d="M-8 -113 L8 -113 L0 -97Z" fill="#f4d577" stroke="#6b4a10" stroke-width="1.2"/></svg>';
       return '<div class="cz-game"><div class="cz-board" id="ro-board"></div><div class="cz-wbox">' + bowl +
         '<div class="cz-wheel" id="ro-wheel" style="transform:rotate(' + ro.rot + 'deg)">' + wheelSvg() + "</div>" +
         '<div class="cz-arm" id="ro-arm" style="transform:rotate(' + ro.brot + 'deg)"><i class="cz-ball" id="ro-ball" style="top:' + (ro.n === null ? BALL_TRACK : BALL_POCKET) + '%"></i></div></div>' +
+        '<svg class="cz-sheen" viewBox="-114 -114 228 228" aria-hidden="true"><path d="M-84 -42 A94 94 0 0 1 12 -94 A112 112 0 0 0 -84 -42Z" fill="url(#czr-sh)"/></svg>' +
         '<div id="ro-msg"></div><div id="ro-lay"></div></div>';
     }
     function selLabel() {
