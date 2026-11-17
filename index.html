@@ -883,11 +883,11 @@ function dailyReady(){return econ.daily!==dayKey(new Date())}
 const QUIZ_PASS_FRAC=1,QUIZ_MISS_XP=60; // QUIZ_MISS_XP: mastery a skill drops to when you miss it on the final quiz // share of final-quiz answers needed to pass (1 = must ace it)
 // Real-life cards pay once each, tracked in econ.rl so it syncs: COIN_RL_UNLOCK when the card unlocks, COIN_RL_VIEW the first time you open its answer
 const COIN_RL_UNLOCK=30,COIN_RL_VIEW=20;
-// Rebirth: at the top of the life ladder you can start over (Homeless, 0 coins) for a permanent boost on coins earned
-// in Root Rush (answers, lightning, mastery, quiz pass). Each rebirth adds REBIRTH_STEP, capped at REBIRTH_MAX_MULT.
-// Casino winnings, the daily bonus and real-life rewards are not boosted, so the casino can't snowball.
-const REBIRTH_STEP=0.5,REBIRTH_MAX_MULT=4;
-function rebirthMult(){return Math.min(REBIRTH_MAX_MULT,1+REBIRTH_STEP*(econ.reb||0))}
+// Life-stage coin boost (Nov 16, the student's design): every stage you buy in the shop multiplies the coins you earn in
+// Root Rush (answers, lightning, mastery, quiz pass) by 1 + STAGE_BOOST x stage: Homeless x1, Broke x1.5, Poor x2 ... Filthy rich x6.
+// Casino winnings, the daily bonus and real-life rewards are not boosted, so the casino can't snowball. (Rebirth was removed.)
+const STAGE_BOOST=0.5;
+function coinMult(stage){const m=1+STAGE_BOOST*(stage==null?(econ.stage||0):stage);return Math.round(m*100)/100}
 const COIN_PER_RIGHT=2,COIN_PER_LT=1,COIN_PER_MASTERY=1,COIN_MASTERED=50,COIN_QUIZ_PASS=500,TRAINING_MULT=1.5;
 let econ=LS.get("econ",{coins:0,owned:[],equipped:{},t:0});
 function normEcon(){if(!econ||typeof econ!=="object")econ={};econ.coins=Math.max(0,Math.floor(+econ.coins||0));delete econ.inv;econ.owned=Array.isArray(econ.owned)?econ.owned:[];econ.equipped=econ.equipped&&typeof econ.equipped==="object"?econ.equipped:{};econ.t=+econ.t||0;if(typeof econ.daily!=="string")econ.daily="";if(!econ.rl||typeof econ.rl!=="object")econ.rl={};
@@ -1568,7 +1568,7 @@ function frame(dt){
     const d=Math.round(st.score-ghostScore);$("vs").innerHTML=d>=0?`<span style="color:var(--good)">+${d.toLocaleString()} ahead of your best</span>`:`<span style="color:var(--bad)">${d.toLocaleString()} behind your best</span>`}
 }
 function addCoins(n){
-  n=Math.max(0,n)*rebirthMult();if(st&&st.training)n*=TRAINING_MULT;n=Math.round(n);
+  n=Math.max(0,n)*coinMult();if(st&&st.training)n*=TRAINING_MULT;n=Math.round(n);
   if(n>0){econ.coins+=n;if(st&&typeof st.coinsRun==="number")st.coinsRun+=n;saveEcon()}
   return n}
 function mkBtn(cls,html,fn){const b=document.createElement("button");b.className=cls;b.innerHTML=html;b.onclick=fn;return b}
@@ -1955,11 +1955,8 @@ const api={
   stats(){const all=Object.values(LESSONS).flat();return{mastered:all.filter(k=>lvl(k)===3).length,total:all.length,passedDays:Object.values(passed).filter(Boolean).length,runs,best:Math.max(0,...Object.values(bestBy).map(x=>+(x&&x.best)||0))}},
   // life-stage shop (profile.js): buy the next stage in order
   stage:()=>econ.stage,
-  rebirths:()=>econ.reb||0,
-  coinMult:()=>rebirthMult(),
-  nextMult:()=>Math.min(REBIRTH_MAX_MULT,1+REBIRTH_STEP*((econ.reb||0)+1)),
-  // only from the top stage: coins go to 0 (booked as spent so it syncs), back to Homeless, one more rebirth
-  rebirth(){if(!window.RRProfile||econ.stage<RRProfile.STAGES.length-1)return false;econ.coins=0;econ.stage=0;econ.reb=(econ.reb||0)+1;saveEcon();return true},
+  coinMult:()=>coinMult(),
+  multAt:stage=>coinMult(stage),
   buyStage(n){n=Math.floor(+n);if(!window.RRProfile||n!==econ.stage+1)return false;const st=RRProfile.STAGES[n];if(!st||!api.spend(st.price,"stage "+n))return false;econ.stage=n;saveEcon();return true},
   owned:()=>econ.owned.slice(),
   equipped:()=>Object.assign({},econ.equipped),

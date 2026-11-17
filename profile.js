@@ -458,18 +458,21 @@
     ".pf-lvl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}",
     ".pf-next{display:flex;gap:12px;align-items:center;padding:12px;border:1px solid var(--pow,#1D9E75);border-radius:16px;background:color-mix(in srgb,var(--pow,#1D9E75) 10%,var(--card,#1f1f1d));margin:4px 0 6px}",
     ".pf-next.top{justify-content:center;text-align:center}",
-    ".pf-nav{width:120px;flex:none;aspect-ratio:1;border-radius:14px;overflow:hidden}.pf-nav svg{display:block;width:100%;height:100%}",
+    ".pf-nav{width:84px;flex:none;aspect-ratio:1;border-radius:14px;overflow:hidden}.pf-nav svg{display:block;width:100%;height:100%}",
     ".pf-nb{flex:1;min-width:0}.pf-nlab{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}",
     ".pf-nname{font-size:20px;font-weight:700;line-height:1.15}.pf-nline{font-size:13px;color:var(--mute);margin-top:2px}",
     ".pf-ngets{font-size:12px;margin-top:6px;line-height:1.35}",
     ".pf-top2{grid-template-columns:140px minmax(0,1fr)}",
     ".pf-h small{font-size:12px;font-weight:400;color:var(--mute)}",
     ".pf-ladder{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}",
-    ".pf-rung{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 4px;border:1px solid var(--line);border-radius:12px;background:var(--card);text-align:center;min-width:0}",
-    ".pf-rung b{font-size:11px;line-height:1.15;min-height:2.3em;display:flex;align-items:center}",
+    ".pf-rung{display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 3px;border:1px solid var(--line);border-radius:12px;background:var(--card);text-align:center;min-width:0}",
+    ".pf-rung b{font-size:11px;line-height:1.1;min-height:2.2em;display:flex;align-items:center}.pf-rung .pf-rp{font-size:11px}",
     ".pf-nav{position:relative}.pf-next.locked .pf-nav svg{filter:grayscale(1) brightness(.7)}.pf-nlk{position:absolute;right:6px;bottom:6px;font-size:20px}",
     ".pf-next.locked{border-style:dashed;border-color:var(--line)}",
     ".pf-wrap .pf-h{margin:12px 2px 6px}",
+    ".pf-nboost{margin:6px 0 2px;padding:6px 8px;border-radius:8px;background:color-mix(in srgb,var(--hot,#D85A30) 12%,transparent);font-size:12px;line-height:1.35}",
+    ".pf-nboost b{display:block;color:var(--hot,#D85A30);font-size:13px}.pf-nboost small{display:block;color:var(--mute);font-size:11px;margin-top:1px}",
+    ".pf-rx{font-size:10px;font-weight:700;color:var(--hot,#D85A30)}",
     ".pf-lk{position:absolute;right:-4px;bottom:-4px;font-size:13px;filter:none}",
     ".pf-rav{position:relative;width:40px;height:40px;flex:none;border-radius:10px}.pf-rav svg{display:block;width:100%;height:100%;border-radius:10px}",
     ".pf-rb{flex:1;min-width:0;display:flex;flex-direction:column}.pf-rb b{font-size:14px}.pf-rb small{font-size:11px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
@@ -491,39 +494,37 @@
       st.textContent = CSS;
       document.head.appendChild(st);
     }
-    var msg = null, pop = false, sure = false;
+    var msg = null, pop = false;
     function num(f, d) { try { return api[f] ? Number(api[f]()) : d; } catch (e) { return d; } }
+    function multAt(st) { try { return api.multAt ? Number(api.multAt(st)) : 1; } catch (e) { return 1; } }
+    var BOOSTS = "On Rush answers, lightning, mastery and quiz. Not casino, daily or real life.";
     function cur() { return clampStage(api.stage ? api.stage() : 0); }
     function render() {
       var n = cur(), coins = Number(api.coins()) || 0, S = STAGES[n], last = STAGES.length - 1, h = [];
       h.push('<div class="pf-wrap">');
       h.push('<div class="pf-top pf-top2"><div class="pf-av' + (pop ? " pf-pop" : "") + '">' + avatarSVG({ equipped: stageLook(n), size: 140 }) + "</div>");
       h.push('<div class="pf-side"><div class="pf-lvl">Stage ' + (n + 1) + " of " + STAGES.length + '</div><div class="pf-sname">' + S.name + '</div><div class="pf-sline">' + S.line + "</div>" +
-        (num("rebirths", 0) ? '<div class="pf-reb">Rebirth ' + num("rebirths", 0) + " · Rush coins ×" + num("coinMult", 1) + "</div>" : "") +
+        '<div class="pf-reb">Rush coins ×' + num("coinMult", 1) + "</div>" +
         '<div class="pf-sbar"><i style="width:' + Math.round(n / last * 100) + '%"></i></div>' +
         '<div class="pf-money"><small>coins</small><b>' + fmt(coins) + " 🪙</b></div></div></div>");
       pop = false;
       if (msg) h.push('<div class="pf-msg ' + msg.kind + '">' + msg.text + "</div>");
       if (n < last) {
         var N = STAGES[n + 1], can = coins >= N.price, gets = stageGets(n + 1);
-        h.push('<div class="pf-next' + (can ? "" : " locked") + '"><div class="pf-nav">' + avatarSVG({ equipped: stageLook(n + 1), size: 96 }) + (can ? "" : '<span class="pf-nlk">🔒</span>') + '</div><div class="pf-nb">' +
+        h.push('<div class="pf-next' + (can ? "" : " locked") + '"><div class="pf-nav">' + avatarSVG({ equipped: stageLook(n + 1), size: 84 }) + (can ? "" : '<span class="pf-nlk">🔒</span>') + '</div><div class="pf-nb">' +
           '<div class="pf-nlab">Next life</div><div class="pf-nname">' + N.name + '</div><div class="pf-nline">' + N.line + "</div>" +
           (gets.length ? '<div class="pf-ngets">New: ' + gets.join(", ") + "</div>" : "") +
+          '<div class="pf-nboost"><b>Rush coins ×' + num("coinMult", 1) + " → ×" + multAt(n + 1) + '</b><small>' + BOOSTS + "</small></div>" +
           '<button class="pf-btn ' + (can ? "buy" : "poor") + '" data-act="up">' + (can ? "Move up · " + fmt(N.price) + " 🪙" : fmt(N.price - coins) + " more 🪙 to go") + "</button></div></div>");
-      } else {
-        var nm = num("nextMult", 1.5), same = nm === num("coinMult", 1);
-        h.push('<div class="pf-next top"><div class="pf-nb"><div class="pf-nname">You made it. Rebirth?</div><div class="pf-nline">Start over as Homeless with <b>0 coins</b>. ' +
-          (same ? "You're at the max boost already, so this is just for the climb." : "Every coin you earn in Root Rush is worth <b>×" + nm + "</b> from then on, forever.") +
-          " Casino wins don't get the boost.</div>" +
-          '<button class="pf-btn ' + (sure ? "buy" : "") + '" data-act="rebirth">' + (sure ? "Tap again: lose all coins and restart" : "♻ Rebirth" + (same ? "" : " · coins ×" + nm)) + "</button></div></div>");
-      }
+      } else h.push('<div class="pf-next top"><div class="pf-nb"><div class="pf-nname">You made it.</div><div class="pf-nline">Filthy rich. You own islands.</div>' +
+        '<div class="pf-nboost"><b>Top boost: Rush coins ×' + num("coinMult", 1) + "</b><small>" + BOOSTS + "</small></div></div></div>");
       // the whole ladder as a compact grid, Homeless first; everything above you is grayed out and locked
       h.push('<div class="pf-h">The ladder <small>' + (n + 1) + " / " + STAGES.length + '</small></div><div class="pf-ladder">');
       for (var i = 0; i <= last; i++) {
         var cls = i < n ? "done" : i === n ? "now" : i === n + 1 ? "lock next" : "lock";
         h.push('<div class="pf-rung ' + cls + '"><div class="pf-rav">' + avatarSVG({ equipped: stageLook(i), size: 40, crop: "head" }) + (i > n ? '<span class="pf-lk">🔒</span>' : "") + "</div>" +
           '<b>' + STAGES[i].name + "</b>" +
-          '<div class="pf-rp">' + (i < n ? "✓" : i === n ? "You" : fmt(STAGES[i].price)) + "</div></div>");
+          '<div class="pf-rp">' + (i < n ? "✓" : i === n ? "You" : fmt(STAGES[i].price)) + ' <span class="pf-rx">×' + multAt(i) + "</span></div></div>");
       }
       h.push("</div></div>");
       el.innerHTML = h.join("");
@@ -533,12 +534,6 @@
     el.onclick = function (e) {
       var tg = e.target && e.target.closest ? e.target.closest("[data-act]") : null;
       if (!tg || !el.contains(tg)) return;
-      if (tg.getAttribute("data-act") === "rebirth") {
-        if (!sure) { sure = true; snd("click"); render(); return; }
-        sure = false;
-        if (api.rebirth && api.rebirth()) { snd("buy"); pop = true; msg = { kind: "good", text: "Reborn! Back on the road, Rush coins ×" + num("coinMult", 1) + "." }; }
-        render(); return;
-      }
       if (tg.getAttribute("data-act") !== "up") return;
       var n = cur(); if (n >= STAGES.length - 1) return;
       var N = STAGES[n + 1];
