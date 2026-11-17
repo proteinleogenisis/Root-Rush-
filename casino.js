@@ -1939,26 +1939,32 @@
       var t = el.querySelector("#czl-jp"); if (t) t.textContent = jp.toLocaleString("en-US");
     }, JACKPOT_TICK_MS);
     try { globalThis.addEventListener("resize", function () { if (!live() || view !== "lobby") return; if (Math.abs(fullTall() + fullWide() - drawnTall) > 8) render(); else fitLobby(); }); } catch (e) { /* ignore */ }
+    // The zoom runs on the full-screen floor itself when it is showing: a transform on the stage around it
+    // would make the fixed floor sit inside the stage for the length of the zoom, then snap back (a visible jump on iPad)
+    function zoomEl() { var room = document.body.classList.contains("cz-fs") && stage.querySelector(".cz-room"); return room || stage; }
+    var ZOOM_CLS = ["cz-outg", "cz-outl", "cz-inl", "cz-ing"];
+    function unzoom(el) { ZOOM_CLS.forEach(function (c) { el.classList.remove(c); }); el.style.transformOrigin = ""; }
     function go(v, from) {
       if (navBusy || !live() || v === view) return;
       if (v === "lobby" && locked()) return;
       navBusy = true;
+      var out = zoomEl();
       if (from && from.getBoundingClientRect) {
-        var r = from.getBoundingClientRect(), s = stage.getBoundingClientRect();
-        stage.style.transformOrigin = ((r.left + r.width / 2 - s.left) / s.width * 100) + "% " + ((r.top + r.height / 2 - s.top) / s.height * 100) + "%";
+        var r = from.getBoundingClientRect(), s = out.getBoundingClientRect();
+        out.style.transformOrigin = ((r.left + r.width / 2 - s.left) / s.width * 100) + "% " + ((r.top + r.height / 2 - s.top) / s.height * 100) + "%";
       }
       bgFill(true);
-      stage.className = "cz-stage " + (v === "lobby" ? "cz-outg" : "cz-outl");
+      unzoom(out); out.classList.add(v === "lobby" ? "cz-outg" : "cz-outl");
       snd("click");
       later(function () {
         navBusy = false;
         if (!live()) return;
         view = v;
-        stage.style.transformOrigin = "";
-        stage.className = "cz-stage " + (v === "lobby" ? "cz-inl" : "cz-ing");
+        unzoom(out); unzoom(stage);
         render();
-        // drop the zoom class when it's done: a finished transform animation would still pin the full-screen floor inside the stage
-        later(function () { if (live() && view === v) stage.className = "cz-stage"; }, ms(ZOOM_MS) + 60);
+        var inn = zoomEl();
+        inn.classList.add(v === "lobby" ? "cz-inl" : "cz-ing");
+        later(function () { if (live() && view === v) unzoom(inn); }, ms(ZOOM_MS) + 60);
       }, ms(ZOOM_MS));
     }
 
