@@ -628,6 +628,7 @@
   var AISLE_X = 64;              // the rows of machines further back along the sides
   var TITLE_SCALE = 0.82, TITLE_BACK = 0.6; // game title size (x the old neon size) and how dark the panel behind it is
   var SIDE_Z = 0.17, SIDE_X = 16, HL_SCALE = 0.58, BJ_SCALE = 0.75, SIDE_LABEL = 30; // straight ahead: blackjack and higher/lower side by side (distance, how far apart, table size, sign height)
+  var STOOL_GAP = 93.3, ROPE_GAP = 268; // Salon: space between bar stools, and between the brass rope posts
   var LOOK = 1;               // which way you're looking: 0 left, 1 straight, 2 right, 3 the salon (kept while the app is open)
   // the back of the room (crowd, far machines) is blurred this much and covered by a haze this strong
   var DOF_FAR_BLUR = 3, DOF_HAZE = 0.45;
@@ -934,13 +935,23 @@
         '<g transform="translate(232 392)"><rect x="-9" y="-16" width="18" height="16" rx="2" fill="#d98b2b" fill-opacity=".6" stroke="#fff" stroke-width=".8"/><rect x="-6" y="-14" width="7" height="6" rx="1" fill="#e8f6ff" opacity=".8"/></g>',
         '<g transform="translate(300 392)"><rect x="-6" y="-52" width="12" height="40" rx="5" fill="#0f3d20"/><rect x="-3" y="-64" width="6" height="14" rx="1.5" fill="#0f3d20"/><rect x="-3.2" y="-66" width="6.4" height="6" rx="1" fill="#d9b86a"/><rect x="-6" y="-36" width="12" height="11" fill="#f2e6b8"/><rect x="-7" y="-12" width="14" height="12" rx="2" fill="#c9a24a" opacity=".85"/></g>');
       // empty stools in front of the bar
-      [40, 130, 230, 320].forEach(function (x) {
+      // stools all along the bar (the same spacing keeps going on wide screens)
+      for (k = Math.floor((X0 - 40) / STOOL_GAP) - 1; k <= Math.ceil((XR - 40) / STOOL_GAP) + 1; k++) {
+        var x = r1(40 + k * STOOL_GAP);
+        if (x < X0 - 30 || x > XR + 30) continue;
         s.push('<rect x="' + (x - 2) + '" y="540" width="4" height="70" fill="#c9a24a"/><ellipse cx="' + x + '" cy="610" rx="16" ry="4" fill="#8f7a55"/>',
           '<ellipse cx="' + x + '" cy="538" rx="26" ry="9" fill="#5a0d1e"/><ellipse cx="' + x + '" cy="534" rx="24" ry="7" fill="#8e1530"/><ellipse cx="' + (x - 6) + '" cy="532" rx="9" ry="2.4" fill="#fff" opacity=".18"/>');
-      });
-      // velvet ropes on brass posts
-      s.push('<path d="M-6 600 Q20 618 46 600" fill="none" stroke="#8e1530" stroke-width="4"/><path d="M314 600 Q340 618 366 600" fill="none" stroke="#8e1530" stroke-width="4"/>');
-      [46, 314].forEach(function (x) { s.push('<rect x="' + (x - 2.5) + '" y="596" width="5" height="44" fill="#d9b86a"/><circle cx="' + x + '" cy="594" r="5" fill="#f3e6c4"/>'); });
+      }
+      // velvet ropes on brass posts all along the front, with the gap in the middle as the way in
+      var posts = [];
+      for (k = Math.floor((X0 - 46) / ROPE_GAP) - 1; k <= Math.ceil((XR - 46) / ROPE_GAP) + 1; k++) posts.push(46 + k * ROPE_GAP);
+      posts = posts.filter(function (x) { return x > X0 - ROPE_GAP && x < XR + ROPE_GAP; });
+      for (k = 0; k + 1 < posts.length; k++) {
+        if (posts[k] === 46) continue; // the way in: no rope between the two middle posts
+        var a1 = posts[k], a2 = posts[k + 1];
+        s.push('<path d="M' + a1 + ' 600 Q' + r1((a1 + a2) / 2) + ' 618 ' + a2 + ' 600" fill="none" stroke="#8e1530" stroke-width="4"/>');
+      }
+      posts.forEach(function (x) { if (x >= X0 - 10 && x <= XR + 10) s.push('<rect x="' + (x - 2.5) + '" y="596" width="5" height="44" fill="#d9b86a"/><circle cx="' + x + '" cy="594" r="5" fill="#f3e6c4"/>'); });
       LBL.push(plate(180, 382, "THE BAR · ORDER A DRINK", "#d9b86a", 13, 0));
       ZONES.push(["bar", 0, 140, 360, 420]);
     }
