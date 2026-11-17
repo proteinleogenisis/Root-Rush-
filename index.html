@@ -19,15 +19,21 @@
 #drunk{position:fixed;inset:0;pointer-events:none;z-index:60;display:none;overflow:hidden}
 body.drunk #drunk{display:block}
 #drunk i{position:absolute;inset:-12%;display:block}
-.dk-blur{-webkit-backdrop-filter:blur(var(--dk-blur,0px));backdrop-filter:blur(var(--dk-blur,0px));-webkit-mask:radial-gradient(ellipse 50% 42% at 50% 50%,transparent 40%,#000 100%);mask:radial-gradient(ellipse 50% 42% at 50% 50%,transparent 40%,#000 100%);animation:dk-swirl 6.5s ease-in-out infinite}
-@keyframes dk-swirl{0%,100%{transform:translate(-4%,1.5%) rotate(-3deg)}50%{transform:translate(4%,-1.5%) rotate(3deg)}}
-.dk-tint{background:radial-gradient(circle at 50% 50%,transparent 35%,var(--dk-tint,#f5c542) 125%);opacity:calc(var(--dk,0) * .6);mix-blend-mode:screen;animation:dk-hue 10s linear infinite}
+.dk-blur{-webkit-backdrop-filter:blur(var(--dk-blur,0px));backdrop-filter:blur(var(--dk-blur,0px));-webkit-mask:radial-gradient(ellipse 48% 40% at 50% 50%,transparent 22%,#000 85%);mask:radial-gradient(ellipse 48% 40% at 50% 50%,transparent 22%,#000 85%);animation:dk-swirl 6s ease-in-out infinite}
+@keyframes dk-swirl{0%,100%{transform:translate(-5%,2%) rotate(-4deg)}50%{transform:translate(5%,-2%) rotate(4deg)}}
+.dk-tint{background:radial-gradient(ellipse at 50% 50%,transparent 22%,var(--dk-tint,#f5c542) 95%);opacity:calc(var(--dk,0) * .8);mix-blend-mode:screen;animation:dk-hue 8s linear infinite}
 @keyframes dk-hue{to{filter:hue-rotate(360deg)}}
-body.drunk{animation:dk-dv 3.4s ease-in-out infinite}
-@keyframes dk-dv{0%,100%{text-shadow:calc(var(--dk-dv,0px) * -1) 0 0 rgba(255,90,170,.38)}50%{text-shadow:var(--dk-dv,0px) 1px 0 rgba(90,200,255,.38)}}
-body.drunk .cz-pv svg,body.drunk .cz-bg svg{animation:dk-sway 5.5s ease-in-out infinite;transform-origin:50% 60%}
-@keyframes dk-sway{0%,100%{transform:rotate(calc(var(--dk-sway,0deg) * -1)) translateX(calc(var(--dk-sway,0deg) / 1deg * -2px))}50%{transform:rotate(var(--dk-sway,0deg)) translateX(calc(var(--dk-sway,0deg) / 1deg * 2px))}}
-@media (prefers-reduced-motion:reduce){.dk-blur,.dk-tint,body.drunk,body.drunk .cz-pv svg{animation:none}}
+.dk-dark{background:radial-gradient(ellipse at 50% 50%,transparent 42%,#000 112%);animation:dk-pulse 4s ease-in-out infinite}
+@keyframes dk-pulse{0%,100%{opacity:calc(var(--dk,0) * .45)}50%{opacity:calc(var(--dk,0) * .85)}}
+/* the screen itself: sways, goes soft, and sees double (two colored ghost copies). Only transform moves, the filter stays put (cheaper on phones). */
+body.drunk :is(#home,#learn,#end,#train,#profile,#check),body.drunk #game>:not(#qc),body.drunk:not(.cz-fs) #casino .cz-stage,body.drunk .cz-pv svg{
+  filter:blur(var(--dk-cb,0px)) drop-shadow(var(--dk-dv,0px) 0 0 rgba(255,70,170,.55)) drop-shadow(calc(var(--dk-dv,0px) * -1) 2px 0 rgba(70,210,255,.5));
+  animation:dk-wob 4.6s ease-in-out infinite;transform-origin:50% 40%}
+@keyframes dk-wob{0%,100%{transform:rotate(calc(var(--dk-rot,0deg) * -1)) translateX(calc(var(--dk-shift,0px) * -1)) skewX(calc(var(--dk-rot,0deg) * .4))}50%{transform:rotate(var(--dk-rot,0deg)) translateX(var(--dk-shift,0px)) skewX(calc(var(--dk-rot,0deg) * -.4))}}
+/* the Rush question card: much lighter, never blurred, so it stays readable */
+body.drunk #game>#qc{filter:drop-shadow(var(--dk-dvl,0px) 0 0 rgba(255,70,170,.45)) drop-shadow(calc(var(--dk-dvl,0px) * -1) 1px 0 rgba(70,210,255,.45));animation:dk-wobl 4.6s ease-in-out infinite}
+@keyframes dk-wobl{0%,100%{transform:rotate(calc(var(--dk-rotl,0deg) * -1)) translateX(calc(var(--dk-shift,0px) * -.3))}50%{transform:rotate(var(--dk-rotl,0deg)) translateX(calc(var(--dk-shift,0px) * .3))}}
+@media (prefers-reduced-motion:reduce){.dk-blur,.dk-tint,.dk-dark,body.drunk :is(#home,#learn,#end,#train,#profile,#check),body.drunk #game>*,body.drunk #casino .cz-stage,body.drunk .cz-pv svg{animation:none}}
 .hk-link{display:block;margin:10px auto 0;background:none;border:0;color:var(--mute);font:inherit;font-size:14px;text-decoration:underline;text-underline-offset:3px;padding:6px}
 .hk-top{margin-bottom:18px}.hk-lab{display:block;font-size:13px;color:var(--mute);margin-bottom:6px}
 .hk-in{width:100%;font:inherit;font-size:20px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);outline:none}
@@ -1908,18 +1914,21 @@ function toggleCalc(on){calcOpen=on===undefined?!calcOpen:on;$("calc").classList
 
 // ---- Salon drinks (casino.js holds the drink list and the math): pretend drunk look, screen effects only ----
 const DRUNK_FULL=5;         // servings in you for the full effect
-const DRUNK_BLUR_MAX=7;     // px of blur at the screen edges at full effect
-const DRUNK_DV_MAX=4;       // px the text "sees double" at full effect
-const DRUNK_RUSH_TEXT=0.35; // in a Rush the double text is this much of normal, so questions stay readable
-const DRUNK_SWAY_MAX=2.2;   // degrees the casino floor sways at full effect
+const DRUNK_BLUR_MAX=14;    // px of blur at the screen edges at full effect
+const DRUNK_SOFT_MAX=1.6;   // px the whole screen goes soft at full effect (never the Rush question card)
+const DRUNK_DV_MAX=6;       // px apart the two ghost copies sit ("seeing double") at full effect
+const DRUNK_RUSH_TEXT=0.35; // the Rush question card gets this share of the ghosting and sway, so questions stay readable
+const DRUNK_SWAY_MAX=2.5;   // degrees the screen sways at full effect
+const DRUNK_SHIFT_MAX=8;    // px the screen drifts side to side at full effect
 const DRUNK_TICK_MS=4000;   // how often the effect updates as it wears off
 let drunkSt=LS.get("drunk",null);
 function drunkLvl(){try{return RRCasino.logic.buzzAt(drunkSt,Date.now())}catch(e){return 0}}
 function drunkApply(){const l=drunkLvl(),k=Math.min(1,l/DRUNK_FULL),rush=curScreen==="game",r=document.documentElement.style;
-  if(!$("drunk")){const d=document.createElement("div");d.id="drunk";d.setAttribute("aria-hidden","true");d.innerHTML='<i class="dk-blur"></i><i class="dk-tint"></i>';document.body.appendChild(d)}
+  if(!$("drunk")){const d=document.createElement("div");d.id="drunk";d.setAttribute("aria-hidden","true");d.innerHTML='<i class="dk-blur"></i><i class="dk-tint"></i><i class="dk-dark"></i>';document.body.appendChild(d)}
   document.body.classList.toggle("drunk",k>0.02);
   r.setProperty("--dk",k.toFixed(3));r.setProperty("--dk-blur",(k*DRUNK_BLUR_MAX).toFixed(1)+"px");
-  r.setProperty("--dk-dv",((rush?DRUNK_RUSH_TEXT:1)*k*DRUNK_DV_MAX).toFixed(2)+"px");r.setProperty("--dk-sway",(k*DRUNK_SWAY_MAX).toFixed(2)+"deg");
+  r.setProperty("--dk-cb",(k*DRUNK_SOFT_MAX).toFixed(2)+"px");r.setProperty("--dk-dv",(k*DRUNK_DV_MAX).toFixed(2)+"px");r.setProperty("--dk-dvl",(k*DRUNK_DV_MAX*DRUNK_RUSH_TEXT).toFixed(2)+"px");
+  r.setProperty("--dk-rot",(k*DRUNK_SWAY_MAX).toFixed(2)+"deg");r.setProperty("--dk-rotl",(k*DRUNK_SWAY_MAX*DRUNK_RUSH_TEXT).toFixed(2)+"deg");r.setProperty("--dk-shift",(k*DRUNK_SHIFT_MAX).toFixed(1)+"px");
   r.setProperty("--dk-tint",(drunkSt&&drunkSt.tint)||"#f5c542")}
 setInterval(drunkApply,DRUNK_TICK_MS);setTimeout(drunkApply,0);
 const api={
