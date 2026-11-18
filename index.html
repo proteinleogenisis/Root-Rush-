@@ -2277,7 +2277,9 @@ const TYPE_ANSWERS=true;
 const TYPE_CHOICE_KEYS=["entry"];   // "which keypresses" questions stay multiple choice
 const noRealMemo={};
 function noRealKey(k){if(!(k in noRealMemo)){let f=false;for(let i=0;i<40&&!f;i++){try{f=/^(not a real|no real)/i.test(RRType.plain(GEN[k]().c))}catch(e){}}noRealMemo[k]=f}return noRealMemo[k]}
-function typable(p,k){return TYPE_ANSWERS&&!!window.RRType&&!p.type&&!p.words&&!TYPE_CHOICE_KEYS.includes(k)&&RRType.canType(p.c)}
+// Nov 18, the student's request: Rush and training are multiple choice again; only the final quiz is typed
+const TYPE_ONLY_IN_QUIZ=true;
+function typable(p,k){return TYPE_ANSWERS&&(!TYPE_ONLY_IN_QUIZ||!!(st&&st.quiz))&&!!window.RRType&&!p.type&&!p.words&&!TYPE_CHOICE_KEYS.includes(k)&&RRType.canType(p.c)}
 function typeBox(p,k){
   st.cur.typed=true;st.ty="";const box=$("opts"),pc=RRType.plain(p.c),pe=RRType.plain(p.ex||"")+" "+RRType.plain(p.q||""),eq=/=/.test(pc);
   // letter keys only when the answer has letters in it (not for "x = 3" answers): the answer's and the question's letters
