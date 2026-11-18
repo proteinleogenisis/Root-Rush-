@@ -359,25 +359,25 @@ body.calc-open.paper-only .wrap{padding-bottom:440px}
 .gear{font:inherit;font-size:15px;cursor:pointer;padding:4px 10px}
 .sheet{max-height:85vh;overflow:auto;z-index:15}
 .set-row{display:flex;justify-content:space-between;align-items:center;font-size:15px}
-/* Home: the casino is a slim gold marquee strip, smaller than a tile but the loudest thing on the page.
-   CASINO_STRIP_H is its height; the shimmer sweeps every 3.2s and the bulbs chase along the edges. */
-:root{--czs-h:46px}
-.tiles{grid-template-columns:repeat(2,1fr)}
-.cz-strip{position:relative;display:block;width:100%;height:var(--czs-h);margin:0 0 12px;padding:0;border-radius:12px;overflow:hidden;border:1.5px solid #e9c46a;
-  background:radial-gradient(120% 140% at 50% 0%,#5a0f3c 0%,#2a0624 55%,#12020f 100%);box-shadow:0 0 0 1px #6b4a12 inset,0 0 14px rgba(255,79,163,.35),0 4px 14px rgba(0,0,0,.35);color:#f3e6c4}
-.cz-strip .czs-in{position:relative;z-index:2;display:flex;align-items:center;justify-content:center;gap:10px;height:100%}
-.cz-strip .czs-t{font-family:Cinzel,Georgia,serif;font-weight:700;font-size:19px;letter-spacing:.32em;text-transform:uppercase;padding-left:.32em;
+/* Home: the casino is a square (1:1) gold marquee next to Learn and Check: small, but the loudest thing on the page.
+   Bulbs chase round all four edges; the shimmer sweeps every 3.2s. */
+.tiles{grid-template-columns:1fr 1fr min(32%,150px);align-items:stretch}
+.cz-strip{position:relative;display:block;width:100%;aspect-ratio:1/1;margin:0;padding:0;border-radius:14px;overflow:hidden;border:1.5px solid #e9c46a;
+  background:radial-gradient(120% 120% at 50% 20%,#5a0f3c 0%,#2a0624 55%,#12020f 100%);box-shadow:0 0 0 1px #6b4a12 inset,0 0 14px rgba(255,79,163,.35),0 4px 14px rgba(0,0,0,.35);color:#f3e6c4}
+.cz-strip .czs-in{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;height:100%}
+.cz-strip .czs-t{font-family:Cinzel,Georgia,serif;font-weight:700;font-size:clamp(12px,3.4vw,22px);letter-spacing:.1em;text-transform:uppercase;padding-left:.1em;
   background:linear-gradient(180deg,#fff6cf 0%,#f0cf74 45%,#c9962c 60%,#fbe9a0 100%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 6px rgba(255,79,163,.55))}
-.cz-strip .czs-d{color:#ff4fa3;font-size:10px;text-shadow:0 0 6px #ff4fa3}
-.cz-strip .czs-c{position:absolute;right:12px;display:flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:#ffe08a}
-.cz-strip .czs-c svg,.cz-strip .czs-c i{width:14px;height:14px}
-.cz-strip .czs-bulbs{position:absolute;inset:2px 8px;z-index:1;pointer-events:none;
-  background:radial-gradient(circle,#ffe08a 0 1.5px,rgba(255,200,90,.35) 2px,transparent 2.6px) 0 0/11px 6px repeat-x,radial-gradient(circle,#ffe08a 0 1.5px,rgba(255,200,90,.35) 2px,transparent 2.6px) 5.5px 100%/11px 6px repeat-x;
+.cz-strip .czs-d{color:#ff4fa3;font-size:8px;letter-spacing:.3em;text-shadow:0 0 6px #ff4fa3}
+.cz-strip .czs-c{display:flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:#ffe08a}
+.cz-strip .czs-c svg,.cz-strip .czs-c i{width:13px;height:13px}
+.cz-strip .czs-bulbs{position:absolute;inset:3px;z-index:1;pointer-events:none;
+  --bb:radial-gradient(circle,#ffe08a 0 1.4px,rgba(255,200,90,.35) 1.9px,transparent 2.5px);
+  background:var(--bb) 0 0/10px 6px repeat-x,var(--bb) 5px 100%/10px 6px repeat-x,var(--bb) 0 0/6px 10px repeat-y,var(--bb) 100% 5px/6px 10px repeat-y;
   animation:czsChase 1.1s linear infinite}
-@keyframes czsChase{to{background-position:11px 0,-5.5px 100%}}
-.cz-strip .czs-shine{position:absolute;top:0;bottom:0;left:-40%;width:30%;z-index:3;pointer-events:none;background:linear-gradient(100deg,transparent,rgba(255,240,200,.35),transparent);animation:czsShine 3.2s ease-in-out infinite}
-@keyframes czsShine{0%,55%{transform:translateX(0)}100%{transform:translateX(480%)}}
-.cz-strip:active{transform:scale(.97)}
+@keyframes czsChase{to{background-position:10px 0,-5px 100%,0 -10px,100% 15px}}
+.cz-strip .czs-shine{position:absolute;top:0;bottom:0;left:-60%;width:45%;z-index:3;pointer-events:none;background:linear-gradient(100deg,transparent,rgba(255,240,200,.35),transparent);animation:czsShine 3.2s ease-in-out infinite}
+@keyframes czsShine{0%,55%{transform:translateX(0)}100%{transform:translateX(380%)}}
+.cz-strip:active{transform:scale(.96)}
 @media (prefers-reduced-motion:reduce){.cz-strip .czs-bulbs,.cz-strip .czs-shine{animation:none}}
 /* Rush: coin balance in the top corner */
 .g-coins{display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border-radius:999px;border:1px solid color-mix(in srgb,#e9c46a 60%,var(--line));background:var(--card);font-weight:700;font-size:15px;color:var(--ink)}
@@ -426,8 +426,8 @@ body.boot #home .hpane.on :is(.tile,.card):nth-child(2){animation-delay:.04s}bod
     <div class="tiles">
       <button class="tile" id="learnBtn">Learn</button>
       <button class="tile" id="checkBtn">Check</button>
+      <button class="cz-strip" id="casinoBtn" aria-label="Open the casino">Casino</button>
     </div>
-    <button class="cz-strip" id="casinoBtn" aria-label="Open the casino">Casino</button>
     <div class="goal" id="goal"><span class="check" id="goalBox"></span><span id="goalTxt">Daily goal: finish 1 run</span></div>
     <div class="mini mute" id="rushMix"></div>
     <div class="mini mute">Rank <b id="hRank">Square one</b> · Runs <b id="hRuns">0</b> · Freezes <b id="hFrz">0 / 2</b></div>
@@ -1940,7 +1940,7 @@ function home(){
   if(dayPassed(selDay)){$("mSlot").innerHTML=`<span class="mbadge">Day ${D.n} complete ✓${nxd?` · Day ${DAYS[nxd].n} unlocked`:""}</span>`;$("start").innerHTML=icon("play")+"Review Rush · every skill";$("start").classList.remove("hidden")}
   else if(mc===mt){$("mSlot").appendChild(mkBtn("big quizbtn",`Take the final quiz · ${qN} questions`,()=>start({quiz:true})));const n=document.createElement("div");n.className="mini mute";n.textContent=`No timer. Get ${qNeed===qN?"all "+qN:qNeed+" of "+qN} right to unlock ${nxd?"Day "+DAYS[nxd].n:"the next level"}. Skills you miss drop back to 60 mastery.`;$("mSlot").appendChild(n);$("start").classList.add("hidden")}
   else{$("start").innerHTML=icon("play")+"Play Rush";$("start").classList.remove("hidden")}
-  $("casinoBtn").innerHTML=`<span class="czs-bulbs"></span><span class="czs-in"><span class="czs-d">◆</span><span class="czs-t">Casino</span><span class="czs-d">◆</span><span class="czs-c">${icon("coin")}${econ.coins.toLocaleString()}</span></span><span class="czs-shine"></span>`;tile("checkBtn","check","Check","homework");$("hCoins").textContent=econ.coins.toLocaleString();renderProfBtn();
+  $("casinoBtn").innerHTML=`<span class="czs-bulbs"></span><span class="czs-in"><span class="czs-d">◆ ◆ ◆</span><span class="czs-t">Casino</span><span class="czs-c">${icon("coin")}${econ.coins.toLocaleString()}</span></span><span class="czs-shine"></span>`;tile("checkBtn","check","Check","homework");$("hCoins").textContent=econ.coins.toLocaleString();renderProfBtn();
   $("heroEye").textContent=`Unit 5 · Day ${D.n}`+(selDay===[...DAY_ORDER].reverse().find(dayUnlocked)?" · Current day":" · Review");$("heroTitle").textContent=D.t;$("heroRules").innerHTML=D.rules;$("rushMix").textContent=dayPassed(selDay)?"Review mode: every skill, just for practice":masteredCount(selDay)===LESSONS[selDay].length?"":D.mix+" · mastered skills are skipped";
   $("hBest").textContent=b.toLocaleString();$("hRank").textContent=rank(b);$("hRuns").textContent=runs;
   $("hDay").textContent=liveStreak();$("hFrz").textContent=day.freezes+" / 2";
