@@ -601,8 +601,8 @@ const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()
 const sup=(m,n)=>`<sup>${P(m)}/${R(n)}</sup>`;
 
 const ROOT={2:"square",3:"cube",4:"4th",5:"5th"},NTH={2:"2nd",3:"3rd",4:"4th",5:"5th"};
-const TAGS={entry:"Typing it in",bottom:"Bottom = root",neg:"Negative bases",sols:"How many answers",iso:"Isolate first",shift:"Undo in reverse",order:"Order the steps",spot:"Spot the mistake",line:"Estimate the root",rules:"Exponent rules",radmul:"Multiply and divide radicals",simp:"Simplest form",vars:"Roots of variables",like:"Like radicals",spot2:"Spot the mistake (5.2)",gparent:"Parent root graphs",gshift:"Shifts of radical graphs",gstretch:"Stretches and reflections",gwrite:"Write the rule",gdomain:"Domain and range",gconic:"Sideways parabola and circle"};
-const LESSONS={"5.1":["entry","bottom","neg","sols","iso","shift","order","line"],"5.2":["rules","radmul","simp","vars","like"],"5.3":["gparent","gshift","gstretch","gwrite","gdomain","gconic"]};
+const TAGS={entry:"Typing it in",bottom:"Bottom = root",neg:"Negative bases",sols:"How many answers",iso:"Isolate first",shift:"Undo in reverse",order:"Order the steps",spot:"Spot the mistake",line:"Estimate the root",rules:"Exponent rules",radmul:"Multiply and divide radicals",simp:"Simplest form",vars:"Roots of variables",like:"Like radicals",spot2:"Spot the mistake (5.2)",gparent:"Parent root graphs",gshift:"Shifts of radical graphs",gstretch:"Stretches and reflections",gmatch:"Match the graph",gdomain:"Domain and range",gerror:"Spot the graphing mistake"};
+const LESSONS={"5.1":["entry","bottom","neg","sols","iso","shift","order","line"],"5.2":["rules","radmul","simp","vars","like"],"5.3":["gparent","gshift","gstretch","gmatch","gdomain","gerror"]};
 
 const SUPD={"0":"⁰","1":"¹","2":"²","3":"³","4":"⁴","5":"⁵","6":"⁶","7":"⁷","8":"⁸","9":"⁹","−":"⁻"};
 function sp(n){return String(n).split("").map(c=>SUPD[c]||c).join("")}
@@ -808,7 +808,7 @@ spot2(){
 // Answers that are plain math (c and w) use only typeable characters (digits, x, y, √ ∛ ^ ± − / ( ) ≥ ≤), no HTML tags,
 // so the typing keypad can take them. Wording answers (translate 3 right...) stay multiple choice.
 const g53n=n=>n<0?"−"+(-n):String(n);
-const rtN=(n,x)=>n===3?Math.cbrt(x):Math.sqrt(x);
+const rtN=(n,x)=>n===3?Math.cbrt(x):n===4?(x<0?NaN:Math.pow(x,.25)):Math.sqrt(x);
 const gAr=a=>a===1?"":a===-1?"−":a===.5?"½":a===-.5?"−½":a===1/3?"⅓":a===.25?"¼":g53n(a);
 const hx=h=>h===0?"x":h>0?`x − ${h}`:`x + ${-h}`;
 const kS=k=>k===0?"":k>0?` + ${k}`:` − ${-k}`;
@@ -845,58 +845,89 @@ function gGraph(o){
   return `<svg class="g53" viewBox="0 0 ${W} ${H}" role="img" aria-label="graph">${h}</svg>`}
 const gp=(x,y)=>`(${g53n(x)}, ${g53n(y)})`;
 const gpt=(x,y,dx,dy,an)=>({x,y,lab:gp(x,y),dx,dy,an});
-const gF=(n)=>n===2?"√x":"∛x";
+const gF=(n)=>n===2?"√x":n===3?"∛x":"∜x";
+// Colors used in the walkthroughs match the lessons: h (inside, sideways) = .ch, k (outside, up/down) = .ck, a (stretch) = .ca
+const cH=t=>`<span class="ch">${t}</span>`,cK=t=>`<span class="ck">${t}</span>`,cA=t=>`<span class="ca">${t}</span>`;
+// Small graph for a walkthrough step: gray dashed parent, purple answer, start point labeled. st = [x, y] of the start/center.
+function wkG(n,f,d,st,extra){
+  const lb=st?[{x:st[0],y:st[1],lab:gp(st[0],st[1]),dx:st[0]>3?-6:6,dy:st[1]<-3?-8:14,an:st[0]>3?"end":"start"}]:[];
+  return gGraph({x:[-8,10],y:[-7,7],curves:[{f:x=>rtN(n,x),d:n===3?[-12,12]:[0,12],col:"var(--mute)",dash:1,w:2},{f,d}],pts:lb.concat(extra||[])})}
+const wkD=(n,h)=>n===3?[h-12,h+12]:[h,h+14];
+// Which two points are on g? good = two points that really are on g; slips = classic wrong points, each checked numerically against f
+function g53twoPts(f,good,slips,q,ex,walk,why){
+  const T=p=>gp(p[0],p[1]),seen=[],bad=[];
+  slips.forEach(p=>{const t=T(p);if(seen.includes(t)||good.some(g=>T(g)===t))return;seen.push(t);const y=f(p[0]);if(isFinite(y)&&Math.abs(y-p[1])<1e-9)return;bad.push(p)});
+  if(bad.length<4)throw new Error("g53twoPts: not enough wrong points");
+  const c=`${T(good[0])} and ${T(good[1])}`,ch=g53txt(c,[`${T(good[0])} and ${T(bad[0])}`,`${T(bad[1])} and ${T(good[1])}`,`${T(bad[2])} and ${T(bad[3])}`]);
+  return{...ch,words:1,q,ex,walk,why}}
 const GEN53={};
 // ---------- gparent ----------
 function g53parent(v){
-  v=v||pick(["graph","graph","pts","dr","thru"]);const n=pick([2,3]),F=gF(n),fx=s=>`f(x) = ${s}`;
+  v=v||pick(["graph","graph","pts","dr","dr","thru","expo","expo"]);const n=pick([2,3,4]),F=gF(n),fx=s=>`f(x) = ${s}`,pw=n===2?"²":n===3?"³":"⁴";
   if(v==="graph"){
-    const sv=gGraph({x:n===2?[-3,11]:[-10,10],y:n===2?[-2,4]:[-3,3],curves:[{f:x=>rtN(n,x),d:n===2?[0,11]:[-10,10]}],
-      pts:n===2?[gpt(0,0,6,14),gpt(1,1,-6,-7,"end"),gpt(4,2,6,14),{x:9,y:3}]:[gpt(-8,-2,-6,-8,"end"),gpt(0,0,6,-8),gpt(8,2,0,14,"middle"),{x:-1,y:-1},{x:1,y:1}]});
-    const ch=n===2?g53txt(fx("√x"),[fx("∛x"),fx("−√x"),fx("√(−x)")]):g53txt(fx("∛x"),[fx("√x"),fx("x^3"),fx("−∛x")]);
+    const sv=n===2?gGraph({x:[-3,11],y:[-2,4],curves:[{f:x=>rtN(2,x),d:[0,11]}],pts:[gpt(0,0,6,14),gpt(1,1,-6,-7,"end"),gpt(4,2,6,14),{x:9,y:3}]})
+      :n===3?gGraph({x:[-10,10],y:[-3,3],curves:[{f:x=>rtN(3,x),d:[-10,10]}],pts:[gpt(-8,-2,-6,-8,"end"),gpt(0,0,6,-8),gpt(8,2,0,14,"middle"),{x:-1,y:-1},{x:1,y:1}]})
+      :gGraph({x:[-2,18],y:[-1,4],curves:[{f:x=>rtN(4,x),d:[0,18]}],pts:[gpt(0,0,6,14),gpt(1,1,-6,-7,"end"),gpt(16,2,-6,-8,"end")]});
+    const ch=n===2?g53txt(fx("√x"),[fx("∛x"),fx("−√x"),fx("√(−x)")]):n===3?g53txt(fx("∛x"),[fx("√x"),fx("x^3"),fx("−∛x")]):g53txt(fx("∜x"),[fx("√x"),fx("∛x"),fx("−∜x")]);
     return{...ch,q:`This is the graph of a parent function. Which one?${sv}`,ex:"f(x) = ?",
-      walk:[[n===2?"(0, 0), (1, 1), (4, 2)":"(−8, −2), (0, 0), (8, 2)","Read the labeled points off the graph"],[n===2?"x ≥ 0 only":"left and right both exist","The square root curve stops at 0 on the left; the cube root keeps going"],[ch.c,n===2?"Starts at the origin and curves up to the right: y = √x":"Passes through the origin, rising on both sides: y = ∛x. (x³ would go through (2, 8) instead)"]],
-      why:n===2?`√x only exists for x ≥ 0, starts at (0, 0), and passes through (1, 1) and (4, 2). −√x would drop down, and √(−x) would go left.`:`∛x exists for every x, passes through (0, 0), and (8, 2) because 2³ = 8. x³ is the opposite relationship: (2, 8).`}}
+      walk:[[n===2?"(0, 0)  (1, 1)  (4, 2)":n===3?"(−8, −2)  (0, 0)  (8, 2)":"(0, 0)  (1, 1)  (16, 2)","Read the labeled points"],[n===3?"left AND right":"starts at 0, goes right",n===3?"Cube roots take negatives":"Even roots stop at x = 0"],[ch.c,n===2?"Up and right: the square root":n===3?"Rising on both sides: cube root":"2⁴ = 16, so (16, 2): 4th root"]],
+      why:n===2?"√x starts at (0, 0) and goes up-right. −√x goes down and √(−x) goes left.":n===3?"∛x goes through (0, 0) and (8, 2). x³ is the reverse: (2, 8).":"∜x reaches (16, 2) because 2⁴ = 16. √x would reach (16, 4)."}}
   if(v==="pts"){
-    const P=n===2?[[0,0],[1,1],[4,2],[9,3]]:[[-8,-2],[-1,-1],[0,0],[1,1],[8,2]],bad=n===2?[[4,2],[9,3]]:[[8,2],[-8,-2]],d=pick(bad);
-    const base=(n===2?[[0,0],[1,1],d]:[[-1,-1],[0,0],d]),tx=(m)=>base.map(p=>p===d?m:p),ps=a=>a.map(p=>gp(p[0],p[1])).join(", ");
+    const P=n===2?[[0,0],[1,1],[4,2],[9,3]]:n===3?[[-8,-2],[-1,-1],[0,0],[1,1],[8,2]]:[[0,0],[1,1],[16,2],[81,3]],bad=n===2?[[4,2],[9,3]]:n===3?[[8,2],[-8,-2]]:[[16,2],[81,3]],d=pick(bad);
+    const base=(n===3?[[-1,-1],[0,0],d]:[[0,0],[1,1],d]),tx=(m)=>base.map(p=>p===d?m:p),ps=a=>a.map(p=>gp(p[0],p[1])).join(", ");
     const [dx,dy]=d,c=ps(base);
     const ch=g53txt(c,[ps(tx([dy,dx])),ps(tx([-dx,dy])),ps(tx([dx,n===2?dy*dy:dy*2])),ps(tx([dx,-dy]))]);
     return{...ch,words:1,q:`Which three points are all on the graph of f(x) = ${F}?`,ex:`f(x) = ${F}`,
-      walk:[[`f(${dx}) = ${rad(n,g53n(dx))} = ${dy}`,`Put x = ${g53n(dx)} in: the ${ROOT[n]} root of ${g53n(dx)} is ${dy}`],[gp(dx,dy),"x first, then y. Swapping them gives a point that isn't on the graph"],[c,"The other two points check out the same way"]],
-      why:`Every point is (x, ${F}). For x = ${g53n(dx)}: ${rad(n,g53n(dx))} = ${dy}, so the point is ${gp(dx,dy)}. A swapped pair like ${gp(dy,dx)} is not on this graph.`}}
+      walk:[[`x = ${g53n(dx)}`,"Put the x-value into the root"],[`${rad(n,g53n(dx))} = ${dy}`,`Because ${dy}${pw} = ${g53n(dx)}`],[gp(dx,dy),"x first, then y"],[c,"The other two points work the same way"]],
+      why:`Each point is (x, ${F}), so ${gp(dx,dy)} works. A swapped pair like ${gp(dy,dx)} is not on the graph.`}}
   if(v==="dr"){
-    const c=n===2?"Domain: x ≥ 0; Range: y ≥ 0":"Domain: all real numbers; Range: all real numbers";
-    const ch=n===2?g53txt(c,["Domain: all real numbers; Range: y ≥ 0","Domain: x ≥ 0; Range: all real numbers","Domain: x > 0; Range: y > 0"]):g53txt(c,["Domain: x ≥ 0; Range: y ≥ 0","Domain: all real numbers; Range: y ≥ 0","Domain: x ≥ 0; Range: all real numbers"]);
+    const c=n!==3?"Domain: x ≥ 0; Range: y ≥ 0":"Domain: all real numbers; Range: all real numbers";
+    const ch=n!==3?g53txt(c,["Domain: all real numbers; Range: y ≥ 0","Domain: x ≥ 0; Range: all real numbers","Domain: x > 0; Range: y > 0"]):g53txt(c,["Domain: x ≥ 0; Range: y ≥ 0","Domain: all real numbers; Range: y ≥ 0","Domain: x ≥ 0; Range: all real numbers"]);
     return{...ch,words:1,q:`Find the domain and range of f(x) = ${F}.`,ex:`f(x) = ${F}`,
-      walk:n===2?[["x ≥ 0","You can't take the square root of a negative number, so x must be 0 or more"],["y ≥ 0","A square root is never negative, and it equals 0 at x = 0"],[c,"0 is included, so it's ≥, not >"]]:[["any x works","The cube root of a negative number is a real number: ∛(−8) = −2"],["any y comes out","y can be negative, zero or positive"],[c,"Both are all real numbers"]],
-      why:n===2?`√x needs x ≥ 0 and only gives answers ≥ 0, and (0, 0) is on the graph, so 0 is included.`:`∛x is defined for every x (∛(−8) = −2) and gives every y. Cube roots never restrict anything.`}}
+      walk:n!==3?[["x ≥ 0","No root of a negative number"],["y ≥ 0","A root is never negative"],[c,"0 is included, so ≥ not >"]]:[["any x works","∛(−8) = −2 is fine"],["any y comes out","Up and down forever"],[c,"Both are all real numbers"]],
+      why:n!==3?"Even roots need x ≥ 0 and give y ≥ 0. Only cube roots take every x.":"Cube roots take negatives, so domain and range are all real numbers."}}
+  if(v==="expo"){
+    const m=n===4?4:3,a=m===3?pick([1,1,2,3,-1,-2,-3]):1,h=(TF()?1:-1)*ri(1,5),toRad=TF(),inner=hx(h),ex=`${gAr(a)}(${inner})^(1/${m})`,rd=fstr(m,a,inner,0),o=m===3?2:3;
+    const w1=[`(${cH(inner)})^(1/${m})`,`The bottom of 1/${m} is the root`],w2=[rad(m,`(${cH(inner)})`),"All of the parentheses goes under"],w3=[a===1?rd:`${cA(gAr(a)||"−")} stays in front`,a===1?"Nothing else changes":"It still multiplies the root"];
+    const walk=toRad?[w1,w2,w3]:[w3,w2,w1].filter((x,i)=>a!==1||i>0);
+    if(toRad){const ch=g53txt(`g(x) = ${rd}`,[`g(x) = ${fstr(m,a,hx(-h),0)}`,`g(x) = ${gAr(a)}${rad(m,"x")}${kS(h)}`,`g(x) = ${fstr(o,a,inner,0)}`,`g(x) = ${gAr(a)}${rad(m,"x")}`]);
+      return{...ch,words:1,q:`Which function is the same as g(x) = ${ex}?`,ex:`g(x) = ${ex}`,walk,why:`A power of 1/${m} is a ${ROOT[m]} root of the WHOLE parentheses, not just x.`}}
+    const ch=g53txt(`g(x) = ${ex}`,[`g(x) = ${gAr(a)}(${hx(-h)})^(1/${m})`,`g(x) = ${gAr(a)}(${inner})^${m}`,`g(x) = ${gAr(a)}(${inner})^(1/${o})`,`g(x) = ${gAr(a)}x^(1/${m})${kS(h)}`]);
+    return{...ch,words:1,q:`Which is the same as g(x) = ${rd}?`,ex:`g(x) = ${rd}`,walk:[[rad(m,`(${cH(inner)})`),`${ROOT[m]} root of the parentheses`],[`(${cH(inner)})^(1/${m})`,`The root index goes in the exponent`],[`g(x) = ${ex}`,"Keep everything inside together"]],why:`The ${ROOT[m]} root is the power 1/${m}, and ${inner} stays together inside the parentheses.`}}
   // thru
-  const P=n===2?[[4,2],[9,3],[16,4],[25,5]]:[[-8,-2],[-27,-3],[8,2],[27,3]],[px,py]=pick(P),c=fx(F);
-  const ch=n===2?g53txt(c,[fx("∛x"),fx("−√x"),fx("√(−x)")]):g53txt(c,[fx("√x"),fx("−∛x"),fx("∛(−x)")]);
+  const P=n===2?[[4,2],[9,3],[16,4],[25,5]]:n===3?[[-8,-2],[-27,-3],[8,2],[27,3]]:[[16,2],[81,3]],[px,py]=pick(P),c=fx(F);
+  const ch=n===2?g53txt(c,[fx("∛x"),fx("−√x"),fx("√(−x)")]):n===3?g53txt(c,[fx("√x"),fx("−∛x"),fx("∛(−x)")]):g53txt(c,[fx("√x"),fx("∛x"),fx("−∜x"),fx("∜(−x)")]);
   return{...ch,q:`Which function's graph passes through ${gp(px,py)}?`,ex:gp(px,py),
-    walk:[[`x = ${g53n(px)}`,"Put the x-value into each choice"],[`${F.replace("x",g53n(px))} = ${g53n(py)}`,`${rad(n,g53n(px))} = ${g53n(py)} because ${g53n(py)}${n===2?"²":"³"} = ${g53n(px)}`],[c,"The others give a different y, or no real answer at all"]],
-    why:`Test the point: ${rad(n,g53n(px))} = ${g53n(py)}, which matches. The other choices give a different y (or are not defined at x = ${g53n(px)}).`}}
+    walk:[[`x = ${g53n(px)}`,"Put the x-value into each choice"],[`${rad(n,g53n(px))} = ${g53n(py)}`,`Because ${g53n(py)}${pw} = ${g53n(px)}`],[c,"The others give a different y"]],
+    why:`${rad(n,g53n(px))} = ${g53n(py)}, so only this one hits ${gp(px,py)}. The others give another y or no real answer.`}}
 GEN53.gparent=()=>g53parent();
 // ---------- gshift ----------
+const hIn=h=>cH(`x ${h>0?"−":"+"} ${Math.abs(h)}`),kOut=k=>cK(`${k>0?"+":"−"} ${Math.abs(k)}`);
 function g53shift(v){
-  v=v||pick(["desc","desc","graph","start","one"]);const n=pick([2,3]),F=gF(n),mag=()=>ri(1,7),sg=()=>Math.random()<.5?1:-1;
+  v=v||pick(["desc","desc","graph","start","one","pt","pt"]);const n=pick([2,3]),F=gF(n),mag=()=>ri(1,7),sg=()=>Math.random()<.5?1:-1;
   if(v==="one"){const horiz=TF(),m=mag(),s=sg(),h=horiz?s*m:0,k=horiz?0:s*m,gx=fstr(n,1,hx(h),k);
     const dirs=["left","right","up","down"],right=horiz?(s>0?"right":"left"):(s>0?"up":"down"),mk=d=>`a translation ${unit(m)} ${d}`;
     return{c:mk(right),w:dirs.filter(d=>d!==right).map(mk),words:1,q:`Describe the transformation of f(x) = ${F} represented by g(x) = ${gx}.`,ex:`g(x) = ${gx}`,
-      walk:horiz?[[gx,`The ${h>0?"minus":"plus"} sign is inside, next to x`],[h>0?`x − ${h}: RIGHT ${h}`:`x + ${-h}: LEFT ${-h}`,"Inside the root, the direction is the opposite of what you'd guess from the sign"],[mk(right),"Nothing is added outside the root, so there's no up or down"]]:[[gx,`The ${k>0?"+":"−"} ${m} is outside the root`],[k>0?`+ ${k}: UP ${k}`:`− ${-k}: DOWN ${-k}`,"Outside the root, it moves up or down exactly as written"],[mk(right),"Nothing inside the root changed, so there's no left or right"]],
-      why:horiz?`A number inside the root with x moves the graph sideways, backwards from the sign: x ${h>0?"−":"+"} ${m} moves it ${right} ${m}.`:`A number added outside the root moves the graph up or down as written: ${k>0?"+":"−"} ${m} moves it ${right} ${m}.`}}
+      walk:horiz?[[`${hIn(h)} is inside the root`,"Inside moves left or right"],[cH(`x ${h>0?"−":"+"} ${m} = 0  →  x = ${h}`),"Warm-up: set the inside to 0"],[cH(h>0?`RIGHT ${m}`:`LEFT ${m}`),h>0?"Minus inside means right":"Plus inside means left"],[mk(right),"Nothing outside: no up or down"]]
+        :[[`${kOut(k)} is outside the root`,"Outside moves up or down"],[cK(k>0?`UP ${m}`:`DOWN ${m}`),k>0?"Plus outside means up":"Minus outside means down"],[mk(right),"Nothing inside: no left or right"]],
+      why:horiz?`Inside the root, ${h>0?"minus means RIGHT, not left":"plus means LEFT, not right"}.`:`Outside the root, ${k>0?"+ means UP":"− means DOWN"}, as written.`}}
   if(v==="desc"){let h=sg()*mag(),k=sg()*mag();while(Math.abs(h)===Math.abs(k))k=sg()*mag();
     const gx=fstr(n,1,hx(h),k),mk=(hh,kk)=>`a translation ${hDir(hh)} and ${kDir(kk)}`,c=mk(h,k);
     const ch=g53txt(c,[mk(-h,k),mk(Math.sign(h)*Math.abs(k),Math.sign(k)*Math.abs(h)),mk(h,-k),mk(-Math.sign(h)*Math.abs(k),Math.sign(k)*Math.abs(h))]);
     return{...ch,words:1,q:`Describe the transformation of f(x) = ${F} represented by g(x) = ${gx}.`,ex:`g(x) = ${gx}`,
-      walk:[[`x ${h>0?"−":"+"} ${Math.abs(h)} inside the root`,`Inside = left/right, and it works backwards: ${h>0?"minus means RIGHT":"plus means LEFT"}`],[`${k>0?"+":"−"} ${Math.abs(k)} outside the root`,`Outside = up/down, as written: ${k>0?"plus means UP":"minus means DOWN"}`],[c,`${hDir(h)}, ${kDir(k)}. The first number is for x (h), the second for y (k)`]],
-      why:`In g(x) = ${n===2?"√":"∛"}(x − h) + k, ${R("h")} slides it sideways (backwards from its sign) and ${P("k")} slides it up or down (as written). Here h = ${h} and k = ${k}: ${hDir(h)}, ${kDir(k)}.`}}
+      walk:[[cH(`x ${h>0?"−":"+"} ${Math.abs(h)} = 0  →  x = ${h}`),"Warm-up: set the inside to 0"],[cH(hDir(h)),h>0?"Minus inside means right":"Plus inside means left"],[cK(`${kOut(k)}  →  ${kDir(k)}`),k>0?"Plus outside means up":"Minus outside means down"],[c,"First x (left/right), then y"],[wkG(n,fnF(n,1,h,k),wkD(n,h),[h,k]),"Gray moved to purple"]],
+      why:`Inside the root, ${h>0?"minus means RIGHT, not left":"plus means LEFT, not right"}. Outside works as written.`}}
   if(v==="start"){let h=sg()*ri(1,6),k=sg()*ri(1,6);while(Math.abs(h)===Math.abs(k))k=sg()*ri(1,6);const gx=fstr(n,1,hx(h),k),c=gp(h,k),nm=n===2?"starting point":"center point";
     const ch=g53txt(c,[gp(-h,k),gp(k,h),gp(h,-k),gp(-k,h)]);
     return{...ch,words:1,q:`What is the ${nm} of the graph of g(x) = ${gx}?`,ex:`g(x) = ${gx}`,
-      walk:[[`f(x) = ${F} has its ${nm} at (0, 0)`,"Start from the parent graph"],[`x ${h>0?"−":"+"} ${Math.abs(h)}  →  x-coordinate ${g53n(h)}`,"The sign flips: x − 3 means x = +3 (set x − 3 = 0)"],[`${k>0?"+":"−"} ${Math.abs(k)}  →  y-coordinate ${g53n(k)}`,"The number outside is the y-coordinate as written"],[c,"(h, k)"]],
-      why:`Set the inside to 0: x ${h>0?"−":"+"} ${Math.abs(h)} = 0 gives x = ${g53n(h)}. The number outside is y = ${g53n(k)}. The ${nm} moves from (0, 0) to ${c}.`}}
+      walk:[[`${F} starts at (0, 0)`,"Start from the parent"],[cH(`x ${h>0?"−":"+"} ${Math.abs(h)} = 0  →  x = ${h}`),"Inside: set it to zero"],[cK(`${k>0?"+":"−"} ${Math.abs(k)}  →  y = ${k}`),"Outside: y is as written"],[c,"The point is (x, y)"],[wkG(n,fnF(n,1,h,k),wkD(n,h),[h,k]),"The dot is the start"]],
+      why:`Inside is the opposite of its sign: ${hx(h)} = 0 gives x = ${g53n(h)}. Outside is as written: y = ${g53n(k)}.`}}
+  if(v==="pt"){const n2=pick([2,2,3]),h=sg()*ri(1,5),k=sg()*ri(1,5),F2=gF(n2),gx=fstr(n2,1,hx(h),k),f=fnF(n2,1,h,k);
+    const par=n2===2?[[0,0],[1,1],[4,2],[9,3]]:[[-8,-2],[-1,-1],[0,0],[1,1],[8,2]],ps=shuffle(par.slice()),[p1,p2]=ps,mv=p=>[p[0]+h,p[1]+k];
+    const slips=[];[p1,p2].forEach(p=>{slips.push([p[0]-h,p[1]+k],[p[0]+h,p[1]-k],[p[0]-h,p[1]-k],[p[0],p[1]],[p[1]+h,p[0]+k])});
+    return g53twoPts(f,[mv(p1),mv(p2)],slips,`Which two points are both on the graph of g(x) = ${gx}?`,`g(x) = ${gx}`,
+      [[`${gp(p1[0],p1[1])}  and  ${gp(p2[0],p2[1])}`,`Easy points on f(x) = ${F2}`],[`${cH(hDir(h))}, ${cK(kDir(k))}`,"Move each point the same way"],[`${gp(p1[0],p1[1])} → ${gp(...mv(p1))}`,`${g53n(h)} to x, ${g53n(k)} to y`],[`${gp(p2[0],p2[1])} → ${gp(...mv(p2))}`,"Same move"],[wkG(n2,f,wkD(n2,h),null,[{x:mv(p1)[0],y:mv(p1)[1],lab:gp(...mv(p1)),dx:6,dy:14},{x:mv(p2)[0],y:mv(p2)[1],lab:gp(...mv(p2)),dx:6,dy:-8}]),"Both dots are on purple"]],
+      `Add h to every x and k to every y. Subtracting h by mistake gives a point that is not on g.`)}
   // graph: which equation
   let h=sg()*ri(1,4),k=sg()*ri(1,3);while(Math.abs(h)===Math.abs(k))k=sg()*ri(1,3);const gx=fstr(n,1,hx(h),k),f=fnF(n,1,h,k);
   const dom=n===2?[0,11]:[-10,11];
@@ -904,156 +935,172 @@ function g53shift(v){
   const mkc=(hh,kk)=>[`g(x) = ${fstr(n,1,hx(hh),kk)}`,fnF(n,1,hh,kk)];
   const ch=g53cho(mkc(h,k),[mkc(-h,k),mkc(k,h),mkc(h,-k),mkc(-k,h)]);
   return{...ch,q:`The purple graph g is a translation of the dashed gray graph f(x) = ${F}. Which rule gives g?${sv}`,ex:"g(x) = ?",
-    walk:[[`${n===2?"Starting":"Center"} point of g: ${gp(h,k)}`,"Read it off the graph. The gray parent starts at (0, 0)"],[`x moved ${hDir(h)}`,`So the inside is x ${h>0?"−":"+"} ${Math.abs(h)}: right goes with minus, left goes with plus`],[`y moved ${kDir(k)}`,`So ${k>0?"+":"−"} ${Math.abs(k)} goes outside`],[ch.c,"Put it together"]],
-    why:`The ${n===2?"start":"center"} moved from (0, 0) to ${gp(h,k)}. Sideways by ${g53n(h)} means x ${h>0?"−":"+"} ${Math.abs(h)} inside (backwards from the sign), up/down by ${g53n(k)} means ${k>0?"+":"−"} ${Math.abs(k)} outside.`}}
+    walk:[[`${n===2?"Start":"Center"} ${gp(h,k)}`,"Read it off the graph"],[cH(hDir(h)),`So inside: ${hIn(h)}`],[cK(kDir(k)),`So outside: ${kOut(k)}`],[ch.c,"Put it together"],[wkG(n,f,wkD(n,h),[h,k]),"Gray moved to purple"]],
+    why:`Sideways goes inside, backwards: ${h>0?"right means minus":"left means plus"}. Up/down goes outside, as written.`}}
 GEN53.gshift=()=>g53shift();
 // ---------- gstretch ----------
 const vS=m=>m>1?`vertical stretch by a factor of ${m}`:`vertical shrink by a factor of 1/${Math.round(1/m)}`;
 const hS=m=>m>1?`horizontal stretch by a factor of ${m}`:`horizontal shrink by a factor of 1/${Math.round(1/m)}`;
+const trWords=(t,h,k)=>t==="h"?`a translation ${hDir(h)}`:t==="k"?`a translation ${kDir(k)}`:`a translation ${hDir(h)} and ${kDir(k)}`;
+const trWalk=(t,h,k)=>t==="h"?[`${hIn(h)} inside`,h>0?"Minus inside means right":"Plus inside means left"]:t==="k"?[`${kOut(k)} outside`,k>0?"Plus outside means up":"Minus outside means down"]:[`${hIn(h)} inside, ${kOut(k)} outside`,"Inside backwards, outside as written"];
 function g53stretch(v){
-  v=v||pick(["a","a","neg","b","b","refl","reflg","pt"]);const n=pick([2,3]),F=gF(n);
+  v=v||pick(["a","a","neg","b","b","refl","reflg","pt","st","st","rt","rtc","pt2"]);const n=pick([2,3]),F=gF(n);
   if(v==="a"){const a=pick([2,3,4,5,.5,1/3,.25]),inv=1/a,gx=`${gAr(a)}${rad(n,"x")}`,c=vS(a);
     const ch=g53txt(c,[hS(a),vS(inv),hS(inv)]);
     return{...ch,words:1,q:`Describe the transformation of f(x) = ${F} represented by g(x) = ${gx}.`,ex:`g(x) = ${gx}`,
-      walk:[[gx,`The ${gAr(a)} is multiplied on the outside, after the root is found`],[`outside = changes y = VERTICAL`,"A number inside the root, next to x, would change x instead"],[c,a>1?`${a} is bigger than 1, so it stretches (taller)`:`${gAr(a)} is between 0 and 1, so it shrinks (flatter): 1/${Math.round(1/a)}`]],
-      why:`A number multiplying the whole root changes y, so it's a ${R("vertical")} change. ${a>1?`More than 1 stretches`:`Between 0 and 1 shrinks`} it. (Inside the root it would be horizontal.)`}}
+      walk:[[`${cA(gAr(a))}${rad(n,"x")}`,"The number is outside the root"],["outside → y changes","So it is VERTICAL"],[c,a>1?"More than 1: stretch":"Between 0 and 1: shrink"]],
+      why:"A number OUTSIDE the root is vertical. Inside the root, next to x, it would be horizontal."}}
   if(v==="neg"){const m=pick([2,3,.5]),a=-m,gx=`${gAr(a)}√x`,mk=(r,t)=>`reflection in the ${r} and ${t}`,c=mk("x-axis",vS(m));
     const ch=g53txt(c,[mk("y-axis",vS(m)),mk("x-axis",hS(m)),mk("x-axis",vS(1/m)),mk("y-axis",hS(m))]);
     return{...ch,words:1,q:`Describe the transformation of f(x) = √x represented by g(x) = ${gx}.`,ex:`g(x) = ${gx}`,
-      walk:[[gx,"The minus sign is in front of the whole root, on the outside"],[`− on the outside: flips y = x-axis`,"A minus inside the root, with x, would flip the y-axis"],[c,`And the ${m>1?m:"1/"+Math.round(1/m)} outside is a vertical change`]],
-      why:`A minus outside the root flips the graph over the x-axis. The number ${m>1?m:"1/"+Math.round(1/m)} outside stretches/shrinks vertically.`}}
+      walk:[[gx,"The minus is in front of the root"],["− outside → flips y","That is the x-axis"],[`${cA(m>1?m:"1/"+Math.round(1/m))} outside`,"A vertical stretch or shrink"],[c,"Put both together"]],
+      why:"A minus in FRONT of the root flips over the x-axis, not the y-axis."}}
   if(v==="b"){const inv=TF();let b;
     if(!inv)b=pick(n===2?[2,3,5,6]:[2,3,5,6,7]);else b=pick([2,3,5]);
     const gx=inv?`${rad(n,`(x/${b})`)}`:`${rad(n,`(${b}x)`)}`,m=inv?b:1/b,c=hS(m);
     const w=inv?[hS(1/b),vS(b),vS(1/b)]:[hS(b),vS(b),vS(1/b)];
     return{c,w,words:1,q:`Describe the transformation of f(x) = ${F} represented by g(x) = ${gx}.`,ex:`g(x) = ${gx}`,
-      walk:[[gx,inv?`The x is divided by ${b}, inside the root`:`The ${b} is multiplied with x, inside the root`],[`inside = changes x = HORIZONTAL`,"Inside is backwards again: multiplying x by more than 1 SHRINKS the graph sideways"],[c,inv?`Dividing x by ${b} stretches it sideways by ${b}`:`Multiplying x by ${b} shrinks it sideways by 1/${b}`]],
-      why:`A number with x inside the root changes x, so it's ${R("horizontal")}, and it works backwards: ${inv?`x/${b} stretches by ${b}`:`${b}x shrinks by 1/${b}`}.`}}
+      walk:[[gx,`The ${b} is inside, next to x`],["inside → x changes","So it is HORIZONTAL"],["Inside is backwards",inv?`÷${b} stretches it`:`×${b} shrinks it`],[c,"Done"]],
+      why:`Inside the root it works backwards: ${inv?`x/${b} STRETCHES`:`${b}x SHRINKS`} the graph sideways.`}}
   if(v==="refl"){const t=pick(["x","y","both"]),gx=t==="x"?"−√x":t==="y"?"√(−x)":"−√(−x)",c=t==="x"?"reflection in the x-axis":t==="y"?"reflection in the y-axis":"reflection in the x-axis and the y-axis";
     const all=["reflection in the x-axis","reflection in the y-axis","reflection in the x-axis and the y-axis","reflection in the line y = x"];
     return{c,w:all.filter(s=>s!==c),words:1,q:`Describe the transformation of f(x) = √x represented by g(x) = ${gx}.`,ex:`g(x) = ${gx}`,
-      walk:[[gx,"Where is the minus sign: outside the root, inside next to x, or both?"],[t==="x"?"outside → flips y":t==="y"?"inside → flips x":"both places → both flips",t==="x"?"Every y-value changes sign: the graph goes down":t==="y"?"Every x-value changes sign: the graph goes left":"The graph goes down and left"],[c,"Done"]],
-      why:`A minus ${R("outside")} the root flips y (over the x-axis). A minus ${R("inside")}, with x, flips x (over the y-axis).`}}
+      walk:[[gx,"Where is the minus sign?"],[t==="x"?"outside → flips y":t==="y"?"inside → flips x":"both places",t==="x"?"The graph goes down":t==="y"?"The graph goes left":"Down and left"],[c,"Done"]],
+      why:"A minus OUTSIDE the root flips y (x-axis). A minus INSIDE, with x, flips x (y-axis)."}}
   if(v==="reflg"){const t=pick(["x","y","both","none"]),sx=t==="y"||t==="both"?-1:1,sy=t==="x"||t==="both"?-1:1,f=x=>sy*Math.sqrt(sx*x),nm=t==="x"?"−√x":t==="y"?"√(−x)":t==="both"?"−√(−x)":"√x";
     const sv=gGraph({x:[-10,10],y:[-4,4],curves:[{f,d:sx>0?[0,10]:[-10,0]}],pts:[{x:sx*1,y:sy*1},{x:sx*4,y:sy*2,lab:gp(sx*4,sy*2),dx:sx>0?-6:6,dy:sy>0?-8:14,an:sx>0?"end":"start"}]});
     const all=["g(x) = √x","g(x) = −√x","g(x) = √(−x)","g(x) = −√(−x)"],c=`g(x) = ${nm}`;
     return{c,w:all.filter(s=>s!==c),q:`Which rule gives this graph?${sv}`,ex:"g(x) = ?",
-      walk:[[gp(sx*4,sy*2),`Read the labeled point. For f(x) = √x the point would be (4, 2)`],[`x ${sx<0?"changed sign":"same sign"}, y ${sy<0?"changed sign":"same sign"}`,"x changed sign = minus inside the root. y changed sign = minus outside"],[c,"Check: the left/right side and the up/down side"]],
-      why:`Compare with (4, 2) on √x. ${sx<0?"x became −4, so the minus is inside (√(−x)). ":"x stayed 4, so no minus inside. "}${sy<0?"y became −2, so the minus is outside (−√).":"y stayed 2, so no minus outside."}`}}
+      walk:[[gp(sx*4,sy*2),"Read the labeled point"],["Parent: (4, 2)","Compare the two points"],[`x ${sx<0?"flipped":"same"}, y ${sy<0?"flipped":"same"}`,"x flipped: minus inside the root"],[c,"y flipped: minus in front"],[wkG(2,f,sx>0?[0,12]:[-12,0],null,[{x:sx*4,y:sy*2,lab:gp(sx*4,sy*2),dx:sx>0?-6:6,dy:sy>0?-8:14,an:sx>0?"end":"start"}]),"Purple is the flipped gray"]],
+      why:`${sx<0?"x became −4: minus INSIDE the root. ":"x stayed 4: no minus inside. "}${sy<0?"y became −2: minus in FRONT.":"y stayed 2: no minus in front."}`}}
+  if(v==="st"){const n2=pick([2,2,3]),F2=gF(n2),a=pick([2,3,4,5,.5,1/3,.25]),t=pick(["h","k","hk"]),sg=()=>TF()?1:-1,h=t==="k"?0:sg()*ri(1,6),k=t==="h"?0:sg()*ri(1,6),gx=fstr(n2,a,hx(h),k);
+    const mk=(s,tr)=>`a ${s} and ${tr}`,tr=trWords(t,h,k),trF=trWords(t,-h,-k),c=mk(vS(a),tr);
+    const ch=g53txt(c,[mk(hS(a),tr),mk(vS(a),trF),mk(vS(1/a),tr),mk(hS(1/a),trF)]);
+    return{...ch,words:1,q:`Describe the transformation of f(x) = ${F2} represented by g(x) = ${gx}.`,ex:`g(x) = ${gx}`,
+      walk:[[`${cA(gAr(a))} multiplies the root`,"Outside: VERTICAL stretch or shrink"],[cA(a>1?`stretch by ${a}`:`shrink by 1/${Math.round(1/a)}`),a>1?"More than 1 stretches":"Between 0 and 1 shrinks"],trWalk(t,h,k),[c,"Stretch, then translate"]],
+      why:`The ${gAr(a)} in front is a vertical change. ${t==="k"?(k>0?"Outside, + means UP.":"Outside, − means DOWN."):(h>0?"Inside, minus means RIGHT, not left.":"Inside, plus means LEFT, not right.")}`}}
+  if(v==="rt"||v==="rtc"){const cube=v==="rtc",n2=cube?3:2,F2=gF(n2),t=cube?pick(["k","k","h","hk"]):pick(["h","k","hk"]),sg=()=>TF()?1:-1,h=t==="k"?0:sg()*ri(1,6),k=t==="h"?0:sg()*ri(1,6),gx=fstr(n2,-1,hx(h),k);
+    const tr=trWords(t,h,k),trF=trWords(t,-h,-k),X="a reflection in the x-axis",c=`${X} and ${tr}`;
+    let cands;
+    if(cube){const part=t==="hk"?[`${X} and ${trWords("h",h,k)}`,`${X} and ${trWords("k",h,k)}`]:t==="k"?[`${X} and a translation ${unit(Math.abs(k))} left`,`${X} and a translation ${unit(Math.abs(k))} right`]:[`${X} and a translation ${unit(Math.abs(h))} up`,`${X} and a translation ${unit(Math.abs(h))} down`];
+      cands=[`${X} and ${trF}`,tr,...part]}
+    else cands=[`a reflection in the y-axis and ${tr}`,`${X} and ${trF}`,tr,`a reflection in the x-axis and the y-axis and ${tr}`];
+    const ch=g53txt(c,cands);
+    return{...ch,words:1,q:`Describe the transformation of f(x) = ${F2} represented by g(x) = ${gx}.`,ex:`g(x) = ${gx}`,
+      walk:[["− in front of the root","Outside minus: x-axis reflection"],trWalk(t,h,k),[c,"Reflect first, then translate"],[wkG(n2,fnF(n2,-1,h,k),wkD(n2,h),[h,k]),"Gray flipped, then moved"]],
+      why:`A minus in front of the root flips over the x-axis. ${t==="h"?(h>0?"Inside, minus means RIGHT.":"Inside, plus means LEFT."):t==="k"?(k>0?"Outside, + means UP.":"Outside, − means DOWN."):"Inside is backwards, outside is as written."}`}}
+  if(v==="pt2"){const sg=()=>TF()?1:-1,a=pick([2,3,4,-1,-2,-3]),h=sg()*ri(1,5),k=TF()?0:sg()*ri(1,5),gx=fstr(2,a,hx(h),k),f=fnF(2,a,h,k),[p1,p2]=shuffle([[0,0],[1,1],[4,2],[9,3]]).slice(0,2),mv=p=>[p[0]+h,a*p[1]+k];
+    const slips=[];[p1,p2].forEach(p=>{slips.push([p[0]-h,a*p[1]+k],[p[0]+h,p[1]+k],[a*p[0]+h,p[1]+k],[p[0]+h,a*p[1]-k],[p[0]+h,p[1]*a*a+k])});
+    return g53twoPts(f,[mv(p1),mv(p2)],slips,`Which two points are both on the graph of g(x) = ${gx}?`,`g(x) = ${gx}`,
+      [[`${gp(p1[0],p1[1])}  and  ${gp(p2[0],p2[1])}`,"Easy points on f(x) = √x"],[`${cH("x "+(h>0?"+ ":"− ")+Math.abs(h))},  ${cA("y × "+g53n(a))}${k?`,  ${cK((k>0?"+ ":"− ")+Math.abs(k))}`:""}`,"The rule for moving each point"],[`${gp(p1[0],p1[1])} → ${gp(...mv(p1))}`,"Apply the rule"],[`${gp(p2[0],p2[1])} → ${gp(...mv(p2))}`,"Same rule"],[wkG(2,f,[h,h+14],null,[{x:mv(p1)[0],y:mv(p1)[1],lab:gp(...mv(p1)),dx:6,dy:14},{x:mv(p2)[0],y:mv(p2)[1],lab:gp(...mv(p2)),dx:6,dy:-8}]),"Both dots are on purple"]],
+      `The ${g53n(a)} multiplies each y, and the shift moves x by ${g53n(h)}. Forgetting the ${g53n(a)} gives a point that is not on g.`)}
   // pt: which point is on the graph
-  if(TF()){const a=pick([3,4,5]),[x0,y0]=[4,2],c=gp(4,2*a),gx=`${a}√x`;
+  if(TF()){const a=pick([3,4,5]),c=gp(4,2*a),gx=`${a}√x`;
     const ch=g53txt(c,[gp(4*a,2),gp(4,2+a),gp(4+a,2),gp(4,a)]);
     return{...ch,words:1,q:`Which point is on the graph of g(x) = ${gx}?`,ex:`g(x) = ${gx}`,
-      walk:[[`g(4) = ${a}·√4`,"Try x = 4: the root part is easy"],[`= ${a}·2 = ${2*a}`,`${a}√4 = ${2*a}`],[c,"The ones with y = 2 would be on f(x) = √x, not on g"]],
-      why:`g(4) = ${a}·√4 = ${2*a}, so (4, ${2*a}) is on the graph. The other points don't fit: for example g(${4*a}) isn't 2.`}}
+      walk:[[`g(4) = ${cA(a)}·√4`,"Try x = 4: easy root"],[`= ${a}·2 = ${2*a}`,"√4 = 2 first"],[c,"y = 2 would be f, not g"]],
+      why:`g(4) = ${a}·2 = ${2*a}. The ${a} multiplies y; y = 2 belongs to f(x) = √x.`}}
   const c=gp(8,4),ch=g53txt(c,[gp(4,2),gp(2,4),gp(16,4),gp(8,8)]);
   return{...ch,words:1,q:`Which point is on the graph of g(x) = √(2x)?`,ex:"g(x) = √(2x)",
-    walk:[[`g(8) = √(2·8)`,"Try x = 8: the 2 is inside, so multiply x by 2 first"],[`= √16 = 4`,"Then take the root"],[c,"The other points fail: for example g(4) = √8, not 2"]],
-    why:`g(8) = √(2 · 8) = √16 = 4, so (8, 4) is on the graph. g(4) = √8 ≈ 2.83, not 2, so (4, 2) is not.`}}
+    walk:[[`g(8) = √(${cA("2")}·8)`,"Try x = 8: the 2 is inside"],[`= √16 = 4`,"Multiply first, then root"],[c,"g(4) = √8, not 2"]],
+    why:"The 2 is inside, so it multiplies x first: g(8) = √16 = 4."}}
 GEN53.gstretch=()=>g53stretch();
-// ---------- gwrite ----------
-function g53write(v){
-  v=v||pick(["rs","rs","graph","vs","hs","yr"]);const sg=()=>Math.random()<.5?1:-1;
-  const G=s=>`g(x) = ${s}`;
-  if(v==="rs"){const n=pick([2,3]),F=gF(n),h=sg()*ri(1,6),k=sg()*ri(1,6),R0=(hh,kk,neg)=>[G(`${neg?"−":""}${rx(n,hx(hh))}${kS(kk)}`),x=>(neg?-1:1)*rtN(n,x-hh)+kk];
-    const ch=g53cho(R0(h,k,1),[R0(h,-k,1),R0(-h,k,1),R0(h,k,0),R0(k,h,1),R0(-h,-k,1)]);
-    return{...ch,q:`Let g be a reflection in the x-axis, <b>followed by</b> a translation ${hDir(h)} and ${kDir(k)}, of the graph of f(x) = ${F}. Write a rule for g.`,ex:"g(x) = ?",
-      walk:[[`−${F}`,"First step: reflect in the x-axis. Put a minus in front"],[`−${rx(n,hx(h))}`,`Second step, sideways: ${hDir(h)} means x ${h>0?"−":"+"} ${Math.abs(h)} inside (backwards from the direction's sign)`],[ch.c,`Then ${kDir(k)}: ${k>0?"+":"−"} ${Math.abs(k)} added at the end, and it is not flipped, because the reflection happened first`]],
-      why:`Do the steps in order. Reflect: −${F}. Slide ${hDir(h)}: ${R("x "+(h>0?"−":"+")+" "+Math.abs(h))} inside. Slide ${kDir(k)}: ${P(kS(k).trim())} outside. If you flipped last, the ${Math.abs(k)} would flip too.`}}
-  if(v==="yr"){const k=sg()*ri(1,5),R0=(s,f)=>[G(s),f],c=R0(`√(−x)${kS(k)}`,x=>Math.sqrt(-x)+k);
-    const ch=g53cho(c,[R0(`−√x${kS(k)}`,x=>-Math.sqrt(x)+k),R0(`√(−x)${kS(-k)}`,x=>Math.sqrt(-x)-k),R0(`√x${kS(k)}`,x=>Math.sqrt(x)+k),R0(`√(−x${k>0?" + ":" − "}${Math.abs(k)})`,x=>Math.sqrt(-x+k))]);
-    return{...ch,q:`Let g be a reflection in the y-axis, <b>followed by</b> a translation ${kDir(k)}, of the graph of f(x) = √x. Write a rule for g.`,ex:"g(x) = ?",
-      walk:[["√(−x)","Reflect in the y-axis: the minus goes inside, with x"],[ch.c,`Then ${kDir(k)}: ${k>0?"+":"−"} ${Math.abs(k)} goes outside, at the end`]],
-      why:`A y-axis reflection puts the minus inside, with x: √(−x). Moving ${kDir(k)} adds ${k>0?"+":"−"} ${Math.abs(k)} outside. A minus in front, like −√x, would flip over the x-axis instead.`}}
-  if(v==="graph"){let h=sg()*ri(1,4),k=sg()*ri(1,3);const f=x=>-Math.sqrt(x-h)+k,R0=(hh,kk,neg)=>[G(`${neg?"−":""}√(${hx(hh)})${kS(kk)}`),x=>(neg?-1:1)*Math.sqrt(x-hh)+kk];
-    const sv=gGraph({x:[-6,10],y:[-5,5],curves:[{f,d:[h,h+12]}],pts:[gpt(h,k,-6,-8,"end"),gpt(h+4,k-2,0,14,"middle")]});
-    const ch=g53cho(R0(h,k,1),[R0(-h,k,1),R0(h,-k,1),R0(h,k,0),R0(k,h,1)]);
-    return{...ch,q:`The graph is a reflection and a translation of f(x) = √x. Write a rule for g.${sv}`,ex:"g(x) = ?",
-      walk:[["It goes down to the right","The parent goes UP, so there's a reflection in the x-axis: a minus in front"],[`Starts at ${gp(h,k)}`,`${hDir(h)} means x ${h>0?"−":"+"} ${Math.abs(h)} inside; ${kDir(k)} means ${k>0?"+":"−"} ${Math.abs(k)} outside`],[ch.c,"Check with the second point: x moved 4 from the start, and y dropped 2 (that's −√4)"]],
-      why:`It heads down instead of up, so the root is negative. It starts at ${gp(h,k)}: inside x ${h>0?"−":"+"} ${Math.abs(h)}, outside ${k>0?"+":"−"} ${Math.abs(k)}. Check: 4 steps right of the start is ${gp(h+4,k-2)}, and −√4 = −2.`}}
-  if(v==="vs"){const n=pick([2,3]),F=gF(n),m=pick([2,3,4]),horiz=TF(),s=sg(),d=ri(1,6)*s,R0=(t,f)=>[G(t),f];let c,cands;
-    if(horiz){const h=d;c=R0(`${m}${rx(n,hx(h))}`,x=>m*rtN(n,x-h));
-      cands=[R0(`${m}${rx(n,hx(-h))}`,x=>m*rtN(n,x+h)),R0(rad(n,`(${m}x ${h>0?"−":"+"} ${Math.abs(h)})`),x=>rtN(n,m*x-h)),R0(`${m}${rad(n,"x")}${kS(h)}`,x=>m*rtN(n,x)+h),R0(`${rx(n,hx(h))}${kS(m)}`,x=>rtN(n,x-h)+m)]}
-    else{const k=d;c=R0(`${m}${rad(n,"x")}${kS(k)}`,x=>m*rtN(n,x)+k);
-      cands=[R0(`${m}${rx(n,hx(k))}`,x=>m*rtN(n,x-k)),R0(`${m}${rad(n,"x")}${kS(-k)}`,x=>m*rtN(n,x)-k),R0(`${rad(n,"x")}${kS(k)}`,x=>rtN(n,x)+k),R0(`${m}(${rad(n,"x")}${kS(k)})`,x=>m*(rtN(n,x)+k))]}
-    const ch=g53cho(c,cands);
-    return{...ch,q:`Let g be a vertical stretch by a factor of ${m}, <b>followed by</b> a translation ${horiz?hDir(d):kDir(d)}, of the graph of f(x) = ${F}. Write a rule for g.`,ex:"g(x) = ?",
-      walk:[[`${m}${rad(n,"x")}`,`Vertical stretch by ${m}: multiply the whole root by ${m}`],[ch.c,horiz?`${hDir(d)}: x ${d>0?"−":"+"} ${Math.abs(d)} goes inside the root, next to x. The ${m} stays in front`:`${kDir(d)}: ${d>0?"+":"−"} ${Math.abs(d)} goes at the end. The ${m} only multiplies the root`]],
-      why:`Stretch first: ${m}${rad(n,"x")}. Then slide: ${horiz?`a sideways slide changes the x inside the root`:`an up/down slide is added after the stretched root`}. The ${m} multiplies only the root.`}}
-  // hs: horizontal shrink then translation
-  const m=pick([2,3,5,6]),k=sg()*ri(1,6),R0=(t,f)=>[G(t),f];
-  const ch=g53cho(R0(`√(${m}x)${kS(k)}`,x=>Math.sqrt(m*x)+k),[R0(`√(x/${m})${kS(k)}`,x=>Math.sqrt(x/m)+k),R0(`√(${m}x)${kS(-k)}`,x=>Math.sqrt(m*x)-k),R0(`${m}√x${kS(k)}`,x=>m*Math.sqrt(x)+k),R0(`√(${m}x${k>0?" + ":" − "}${Math.abs(k)})`,x=>Math.sqrt(m*x+k))]);
-  return{...ch,q:`Let g be a horizontal shrink by a factor of 1/${m}, <b>followed by</b> a translation ${kDir(k)}, of the graph of f(x) = √x. Write a rule for g.`,ex:"g(x) = ?",
-    walk:[[`√(${m}x)`,`Horizontal shrink by 1/${m}: multiply x by ${m}, inside the root (a shrink is backwards: it multiplies)`],[ch.c,`${kDir(k)}: ${k>0?"+":"−"} ${Math.abs(k)} goes at the end, outside the root`]],
-    why:`A horizontal change works on x inside the root, and it's backwards: shrink by 1/${m} means ${m}x. Then ${kDir(k)} adds ${k>0?"+":"−"} ${Math.abs(k)} outside.`}}
-GEN53.gwrite=()=>g53write();
+// ---------- gmatch ----------
+const g53R=(h,k)=>[`g(x) = ${fstr(2,1,hx(h),k)}`,fnF(2,1,h,k)];
+function g53match(v){
+  v=v||pick(["graph","graph","graph","start","which"]);const sg=()=>TF()?1:-1,typ=pick(["h","k","hk","hk"]);
+  const h=typ==="k"?0:sg()*ri(1,5),k=typ==="h"?0:sg()*ri(1,5),R0=g53R(h,k),rule=fstr(2,1,hx(h),k);
+  const cands=[g53R(-h,k),g53R(h,-k),g53R(-h,-k),g53R(k,h),g53R(-k,h),g53R(k,-h),g53R(-k,-h)];
+  const s1=[gp(h,k),"Read the start on the grid"],
+    s2=[h===0?cH("no number inside"):cH(`x ${h>0?"−":"+"} ${Math.abs(h)}`),h===0?"On the y-axis: no left/right":`${h>0?"Right":"Left"} ${Math.abs(h)}: ${h>0?"minus":"plus"} goes inside`],
+    s3=[k===0?cK("no number outside"):cK(`${k>0?"+":"−"} ${Math.abs(k)}`),k===0?"On the x-axis: no up/down":`${k>0?"Up":"Down"} ${Math.abs(k)}: written outside`],
+    s4=[R0[0],"Put the pieces together"],s5=[wkG(2,R0[1],[h,h+14],[h,k]),"Gray moved to purple"];
+  const why=h!==0&&k===0?`√(x ${h>0?"−":"+"} ${Math.abs(h)}) moves ${h>0?"RIGHT":"LEFT"}; √x ${h>0?"+":"−"} ${Math.abs(h)} would move it ${h>0?"UP":"DOWN"}.`
+    :h===0?`√x ${k>0?"+":"−"} ${Math.abs(k)} moves ${k>0?"UP":"DOWN"}; √(x ${k>0?"−":"+"} ${Math.abs(k)}) would move it ${k>0?"RIGHT":"LEFT"}.`
+    :`Inside is backwards: ${hx(h)} is ${h>0?"RIGHT":"LEFT"}. Outside is as written: ${k>0?"+":"−"} ${Math.abs(k)} is ${k>0?"UP":"DOWN"}.`;
+  if(v==="graph"){
+    const sv=gGraph({x:[-7,9],y:[-6,6],curves:[{f:fnF(2,1,h,k),d:[h,h+16]}],pts:[{x:h,y:k},{x:h+1,y:k+1},{x:h+4,y:k+2}]});
+    return{...g53cho(R0,cands),q:`Match the function with its graph. Which rule gives this graph?${sv}`,ex:"g(x) = ?",words:1,walk:[s1,s2,s3,s4,s5],why}}
+  if(v==="start"){
+    const ch=g53txt(gp(h,k),[gp(-h,k),gp(h,-k),gp(-h,-k),gp(k,h),gp(-k,h),gp(0,h),gp(0,-h),gp(h,h),gp(k,k)]);
+    return{...ch,words:1,q:`Where does the graph of g(x) = ${rule} start?`,ex:`g(x) = ${rule}`,walk:[[h===0?cH("nothing inside"):cH(`x ${h>0?"−":"+"} ${Math.abs(h)} = 0  →  x = ${h}`),"Set the inside to zero"],[k===0?cK("nothing outside"):cK(`${k>0?"+":"−"} ${Math.abs(k)}  →  y = ${k}`),"Outside is the y-coordinate"],[gp(h,k),"x first, then y"],s5],why}}
+  return{...g53cho(R0,cands),words:1,q:`Which function's graph starts at ${gp(h,k)}?`,ex:`Start: ${gp(h,k)}`,walk:[[gp(h,k),"x is inside, y is outside"],s2,s3,s4,s5],why}}
+GEN53.gmatch=()=>g53match();
+// ---------- gerror ----------
+const g53eq=(p,q)=>p[0]===q[0]&&p[1]===q[1];
+function g53errTypes(h,k){return{
+  x:{key:"x",s:`The graph was shifted ${unit(Math.abs(h))} ${h>0?"left":"right"} instead of ${h>0?"right":"left"}`,st:[-h,k],why:`Inside the root, ${h>0?"minus means RIGHT, not left":"plus means LEFT, not right"}.`},
+  y:{key:"y",s:`The graph was shifted ${unit(Math.abs(k))} ${k>0?"down":"up"} instead of ${k>0?"up":"down"}`,st:[h,-k],why:`Outside the root, ${k>0?"+ means UP":"− means DOWN"}, as written.`},
+  b:{key:"b",s:"Both shifts went the wrong way: left/right and up/down were reversed",st:[-h,-k],why:"Inside is backwards (x − 3 is right). Outside is as written (+ 2 is up)."},
+  w:{key:"w",s:"The x- and y-coordinates of the start point were swapped",st:[k,h],why:"The inside number gives x and the outside number gives y, in that order."},
+  r:{key:"r",s:"The graph was reflected in the x-axis, so it goes down from the start instead of up",st:[h,k],ref:1,why:"Only a minus in FRONT of the root flips it down. There is none here."},
+  l:{key:"l",s:"The graph was reflected in the y-axis, so it goes left from the start instead of right",st:[h,k],ref:1,why:"Only a minus INSIDE the root, with x, sends it left. There is none here."}}}
+function g53error(v){
+  v=v||pick(["desc","desc","graph","graph","fix"]);const sg=()=>TF()?1:-1;
+  for(let tries=0;tries<400;tries++){
+    const h=sg()*ri(1,5),k=sg()*ri(1,5);if(h===k)continue;
+    const E=g53errTypes(h,k),keys=v==="graph"?["x","y","b","w","r","l"]:["x","y","b","w"],t=E[pick(keys)],S=t.st,rule=fstr(2,1,hx(h),k);
+    const valid=o=>o.key!==t.key&&(t.ref?(o.ref||!g53eq(o.st,[h,k])):(o.ref||!g53eq(o.st,S)));
+    const others=keys.map(x=>E[x]).filter(o=>o.key!==t.key);
+    if(v!=="graph"&&!others.every(valid))continue;
+    const good=others.filter(valid);if(good.length<3)continue;
+    const s1=[cH(`x ${h>0?"−":"+"} ${Math.abs(h)} = 0  →  x = ${h}`),"Where should it start? x first"],s2=[cK(`${k>0?"+":"−"} ${Math.abs(k)}  →  y = ${k}`),"Outside gives the y-coordinate"],s3=[`Should start ${gp(h,k)}`,"The correct start"],s5=[wkG(2,fnF(2,1,h,k),[h,h+14],[h,k]),"Correct graph: start labeled"];
+    if(v==="fix"){const ch=g53txt(gp(h,k),[gp(S[0],S[1]),...others.map(o=>gp(o.st[0],o.st[1]))]);
+      return{...ch,words:1,q:`A student graphed f(x) = ${rule} but made it start at ${gp(S[0],S[1])}. Where should the graph start?`,ex:`f(x) = ${rule}`,walk:[s1,s2,[gp(h,k),"x first, then y"],[`Student: ${gp(S[0],S[1])}`,"That start is wrong"],s5],why:`${t.why} The start is ${gp(h,k)}, not ${gp(S[0],S[1])}.`}}
+    const wr=v==="graph"?shuffle(good.slice()).slice(0,3):others,ch={c:t.s,w:wr.map(o=>o.s)};
+    const walk=[s1,s2,s3,[t.ref?`Starts ${gp(h,k)}, goes ${t.key==="r"?"down":"left"}`:`Student: ${gp(S[0],S[1])}`,t.ref?"The start is right: check direction":"Compare with the correct start"],[t.s,"That is the error"]];
+    const why=t.why;
+    if(v==="desc")return{...ch,words:1,q:`Describe and correct the error. A student graphed f(x) = ${rule} and started the graph at ${gp(S[0],S[1])}. What was the error?`,ex:`f(x) = ${rule}`,walk,why};
+    const f=t.key==="r"?x=>-Math.sqrt(x-h)+k:t.key==="l"?x=>Math.sqrt(h-x)+k:x=>Math.sqrt(x-S[0])+S[1],d=t.key==="l"?[h-16,h]:[S[0],S[0]+16],right=S[0]>2;
+    const sv=gGraph({x:[-7,9],y:[-6,6],curves:[{f,d}],pts:[gpt(S[0],S[1],right?-6:6,S[1]>3?14:-8,right?"end":"start")]});
+    return{...ch,words:1,q:`This is a student's graph of f(x) = ${rule}. What is the error?${sv}`,ex:`f(x) = ${rule}`,walk:[s1,s2,s3,[t.s,"That is the error"],s5],why}}
+  throw new Error("g53error: no valid case")}
+GEN53.gerror=()=>g53error();
 // ---------- gdomain ----------
 const dr=(dom,ran)=>`Domain: ${dom}; Range: ${ran}`;
+const gFa=a=>a===1?"":a===-1?"−":(a>0&&a<1)?`(1/${Math.round(1/a)})`:(a<0&&a>-1)?`−(1/${Math.round(-1/a)})`:g53n(a);
 function g53domain(v){
-  v=v||pick(["sq","sq","cube","yrefl","graph","dom","ran"]);const sg=()=>Math.random()<.5?1:-1;
-  if(v==="sq"||v==="dom"||v==="ran"){const a=pick([1,2,3,.5,-1,-2,-3]);let h=sg()*ri(1,5),k=sg()*ri(1,5);while(Math.abs(h)===Math.abs(k))k=sg()*ri(1,5);
-    const gx=fstr(2,a,hx(h),k),rg=a>0?"≥":"≤",nr=a>0?"≤":"≥",dm=`x ≥ ${g53n(h)}`,rn=`y ${rg} ${g53n(k)}`;
-    const walk=[[`${hx(h)} ≥ 0`,"The inside of a square root can't be negative"],[dm,`Solve it: ${h>0?`add ${h}`:`subtract ${-h}`}. The start is at x = ${g53n(h)}`],[`${a>0?"a > 0: goes UP":"a < 0: goes DOWN"} from y = ${g53n(k)}`,a>0?"The root part is ≥ 0, so y is k or more":"The root part is flipped to ≤ 0, so y is k or less"],[rn,"Domain comes from the inside, range from k and the sign of a"]];
-    const why=`${R("Domain")}: the inside of the root must be ≥ 0, so ${hx(h)} ≥ 0, so ${dm}. ${P("Range")}: the graph starts at y = ${g53n(k)} and goes ${a>0?"up (a is positive)":"down (a is negative)"}, so ${rn}.`;
-    if(v==="dom")return{...g53txt(dm,[`x ≥ ${g53n(-h)}`,`x ≤ ${g53n(h)}`,`x ≥ ${g53n(k)}`,`x ≤ ${g53n(-h)}`]),q:`Find the domain of g(x) = ${gx}. (Write it as an inequality in x.)`,ex:`g(x) = ${gx}`,walk:walk.slice(0,2),why:`The inside of the root must be ≥ 0: ${hx(h)} ≥ 0, so ${dm}.`};
-    if(v==="ran")return{...g53txt(rn,[`y ${nr} ${g53n(k)}`,`y ${rg} ${g53n(-k)}`,`y ${rg} ${g53n(h)}`,`y ${nr} ${g53n(-k)}`]),q:`Find the range of g(x) = ${gx}. (Write it as an inequality in y.)`,ex:`g(x) = ${gx}`,walk:walk.slice(2),why:`The graph starts at y = ${g53n(k)} and goes ${a>0?"up (a is positive)":"down (a is negative)"}, so ${rn}.`};
-    const c=dr(dm,rn),ch=g53txt(c,shuffle([dr(`x ≥ ${g53n(-h)}`,rn),dr(dm,`y ${nr} ${g53n(k)}`),dr(`x ≤ ${g53n(h)}`,rn),dr(`x ≥ ${g53n(k)}`,`y ${rg} ${g53n(h)}`)]));
-    return{...ch,words:1,q:`Find the domain and range of g(x) = ${gx}.`,ex:`g(x) = ${gx}`,walk,why}}
-  if(v==="cube"){const a=pick([2,3,-1,-2]),h=sg()*ri(1,5),k=sg()*ri(1,5),gx=fstr(3,a,hx(h),k),all="all real numbers",rg=a>0?"≥":"≤",c=dr(all,all);
-    const ch=g53txt(c,[dr(`x ≥ ${g53n(h)}`,all),dr(all,`y ${rg} ${g53n(k)}`),dr(`x ≥ ${g53n(h)}`,`y ${rg} ${g53n(k)}`)]);
-    return{...ch,words:1,q:`Find the domain and range of g(x) = ${gx}.`,ex:`g(x) = ${gx}`,
-      walk:[["∛ of anything is a real number","Even negative numbers have a cube root: ∛(−8) = −2"],["Domain: all real numbers","No restriction on x, no matter what is inside"],["Range: all real numbers","The graph keeps going up on one side and down on the other"]],
-      why:`Cube roots work for negative numbers too, so nothing restricts x, and the graph goes up forever on one side and down forever on the other. Shifting by ${g53n(h)} and ${g53n(k)} doesn't change that.`}}
-  if(v==="yrefl"){const a=pick([1,-1,2,-2]),k=sg()*ri(1,5),gx=`${gAr(a)}√(−x)${kS(k)}`,rg=a>0?"≥":"≤";
-    const mk=(d,r)=>dr(`x ${d} 0`,`y ${r} ${g53n(k)}`),c=mk("≤",rg),ch=g53txt(c,[mk("≥",rg),mk("≤",a>0?"≤":"≥"),mk("≥",a>0?"≤":"≥")]);
-    return{...ch,words:1,q:`Find the domain and range of g(x) = ${gx}.`,ex:`g(x) = ${gx}`,
-      walk:[["−x ≥ 0","The inside can't be negative. Here the inside is −x"],["x ≤ 0","Multiply both sides by −1: the inequality flips. Domain: x ≤ 0"],[`${a>0?"a > 0: up":"a < 0: down"} from y = ${g53n(k)}`,`Range: y ${rg} ${g53n(k)}`]],
-      why:`Inside: −x ≥ 0, so x ≤ 0 (the graph goes LEFT). The graph starts at y = ${g53n(k)} and goes ${a>0?"up":"down"}: y ${rg} ${g53n(k)}.`}}
-  // graph: four direction combos at the same start point
-  const h=sg()*ri(1,4),k=sg()*ri(1,3),sx=sg(),sy=sg(),f=x=>sy*Math.sqrt(sx*(x-h))+k;
-  const sv=gGraph({x:[-7,9],y:[-5,5],curves:[{f,d:sx>0?[h,h+13]:[h-13,h]}],pts:[gpt(h,k,sx>0?-6:6,sy>0?14:-8,sx>0?"end":"start")]});
-  const mk=(dx,dy)=>dr(`x ${dx>0?"≥":"≤"} ${g53n(h)}`,`y ${dy>0?"≥":"≤"} ${g53n(k)}`),c=mk(sx,sy);
-  return{c,w:[mk(-sx,sy),mk(sx,-sy),mk(-sx,-sy)],words:1,q:`Which are the domain and range of the function graphed here?${sv}`,ex:`Start: ${gp(h,k)}`,
-    walk:[[`Start ${gp(h,k)}`,"The graph begins here, and that's where the domain and range begin"],[`goes ${sx>0?"right":"left"}`,`Domain: x ${sx>0?"≥":"≤"} ${g53n(h)} (${sx>0?"all x to the right of the start":"all x to the left of the start"})`],[`goes ${sy>0?"up":"down"}`,`Range: y ${sy>0?"≥":"≤"} ${g53n(k)}`]],
-    why:`Read where it starts, ${gp(h,k)}, and which way it heads. It goes ${sx>0?"right":"left"} (domain x ${sx>0?"≥":"≤"} ${g53n(h)}) and ${sy>0?"up":"down"} (range y ${sy>0?"≥":"≤"} ${g53n(k)}).`}}
+  v=v||pick(["sq","sq","s12","s4","cube","cube","s5","s6","graph","dom","ran"]);const sg=()=>Math.random()<.5?1:-1,nm=pick(["g","h"]);
+  const all="all real numbers";
+  if(v==="graph"){
+    const h=sg()*ri(1,4),k=sg()*ri(1,3),sx=sg(),sy=sg(),f=x=>sy*Math.sqrt(sx*(x-h))+k;
+    const sv=gGraph({x:[-7,9],y:[-5,5],curves:[{f,d:sx>0?[h,h+13]:[h-13,h]}],pts:[gpt(h,k,sx>0?-6:6,sy>0?14:-8,sx>0?"end":"start")]});
+    const mk=(dx,dy)=>dr(`x ${dx>0?"≥":"≤"} ${g53n(h)}`,`y ${dy>0?"≥":"≤"} ${g53n(k)}`),c=mk(sx,sy);
+    return{c,w:[mk(-sx,sy),mk(sx,-sy),mk(-sx,-sy)],words:1,q:`Which are the domain and range of the function graphed here?${sv}`,ex:`Start: ${gp(h,k)}`,
+      walk:[[gp(h,k),"Where the graph starts"],[`goes ${sx>0?"right":"left"}`,`So x ${sx>0?"≥":"≤"} ${g53n(h)}`],[`goes ${sy>0?"up":"down"}`,`So y ${sy>0?"≥":"≤"} ${g53n(k)}`],[c,"Domain is x, range is y"]],
+      why:`Domain is how far left/right it goes (x). Range is how far up/down (y). It starts at ${gp(h,k)}.`}}
+  let n=2,a=1,h=0,k=0,form="rad";
+  if(v==="s12"){k=sg()*ri(1,6)}
+  else if(v==="s3"){n=3;a=pick([2,3,4,-1,-2,-3,-4])}
+  else if(v==="s4"){a=1/ri(2,6);h=sg()*ri(1,6)}
+  else if(v==="s5"){n=3;a=pick([-3,-2,2,3,-1,4,-4]);h=sg()*ri(1,5);form="exp"}
+  else if(v==="s6"){n=4;a=pick([1,1,-1,2]);if(TF()){h=sg()*ri(1,4)}if(TF()){k=sg()*ri(1,4)}}
+  else if(v==="cube"){n=3;a=pick([2,3,4,-1,-2,-3,-4]);h=pick([0,0,sg()*ri(1,5)]);k=pick([0,0,sg()*ri(1,5)]);form=h!==0&&TF()?"exp":"rad"}
+  else{n=pick([2,2,2,4]);a=pick([1,2,3,-1,-2,-3,.5,1/3,.25,.2,-.5]);h=sg()*ri(1,5);k=sg()*ri(1,5);while(Math.abs(h)===Math.abs(k))k=sg()*ri(1,5)}
+  const gx=form==="exp"?`${gFa(a)}(${hx(h)})^(1/${n})${kS(k)}`:`${gFa(a)}${rx(n,hx(h))}${kS(k)}`,odd=n===3;
+  const rg=a>0?"≥":"≤",nr=a>0?"≤":"≥",dm=`x ≥ ${g53n(h)}`,rn=`y ${rg} ${g53n(k)}`,hdr=nm+"(x) = "+gx,G=wkG(n,fnF(n,a,h,k),wkD(n,h),[h,k]);
+  if(odd){const c=dr(all,all),ch=g53txt(c,[dr(`x ≥ ${g53n(h)}`,all),dr(all,`y ${rg} ${g53n(k)}`),dr(`x ≥ ${g53n(h)}`,`y ${rg} ${g53n(k)}`),dr(all,"y ≥ 0")]);
+    return{...ch,words:1,q:`Find the domain and range of ${hdr}.`,ex:hdr,
+      walk:[[form==="exp"?`(${cH(hx(h))})^(1/3) = ∛(${hx(h)})`:"∛ of anything works",form==="exp"?"The exponent 1/3 is a cube root":"Even ∛(−8) = −2 is fine"],["Domain: all real numbers","No limit on x"],["Range: all real numbers","Up and down forever"],[G,"The graph never stops either way"]],
+      why:"Cube roots take negatives, so nothing restricts x or y. Only square and 4th roots do."}}
+  const word=n===2?"square":"4th";
+  const w1=[`${cH(hx(h))} ≥ 0`,"The inside can't be negative"],w2=[dm,h===0?"Nothing added: start at 0":`Solve it: start at x = ${g53n(h)}`],
+    w3=[cA(a>0?"a > 0":"a < 0")+` → ${a>0?"UP":"DOWN"}`,`Goes ${a>0?"up":"down"} from y = ${g53n(k)}`],w4=[rn,"Range starts at k"],w5=[G,"The dot is the start"];
+  const walk=[w1,w2,w3,w4,w5];
+  const why=`Domain: the inside must be ≥ 0, so ${dm}. Range: it starts at y = ${g53n(k)} and ${a>0?"goes up":"a is negative, so it goes DOWN"}: ${rn}.`;
+  if(v==="dom")return{...g53txt(dm,[`x ≥ ${g53n(-h)}`,`x ≤ ${g53n(h)}`,`x ≥ ${g53n(k)}`,`x ≤ ${g53n(-h)}`,`x ≥ ${g53n(h+1)}`,`x ≥ ${g53n(h-1)}`]),q:`Find the domain of ${hdr}. (Write it as an inequality in x.)`,ex:hdr,walk:[w1,w2,w5],why:`The inside must be ≥ 0: ${hx(h)} ≥ 0, so ${dm}.`};
+  if(v==="ran")return{...g53txt(rn,[`y ${nr} ${g53n(k)}`,`y ${rg} ${g53n(-k)}`,`y ${rg} ${g53n(h)}`,`y ${nr} ${g53n(-k)}`,`y ${rg} ${g53n(k+1)}`,`y ${rg} ${g53n(k-1)}`]),q:`Find the range of ${hdr}. (Write it as an inequality in y.)`,ex:hdr,walk:[w3,w4,w5],why:`It starts at y = ${g53n(k)} and ${a>0?"goes up (a is positive)":"goes DOWN (a is negative)"}: ${rn}.`};
+  const c=dr(dm,rn),ch=g53txt(c,shuffle([dr(`x ≥ ${g53n(-h)}`,rn),dr(dm,`y ${nr} ${g53n(k)}`),dr(`x ≤ ${g53n(h)}`,rn),dr(`x ≥ ${g53n(k)}`,`y ${rg} ${g53n(h)}`),dr(dm,`y ${rg} ${g53n(-k)}`),dr(all,rn),dr(dm,all)]));
+  return{...ch,words:1,q:`Find the domain and range of ${hdr}.`,ex:hdr,walk,why}}
 GEN53.gdomain=()=>g53domain();
-// ---------- gconic ----------
-function g53conic(v){
-  v=v||pick(["para","para","paratop","circ","circtop","circtop"]);
-  if(v==="para"||v==="paratop"){const a=pick([2,3,.5,-2,-3,-.5]),m=Math.abs(a),neg=a<0,s=neg?"−":"";
-    const rad1=m===.5?`${s}2x`:`${s}x/${m}`,radSw=m===.5?`${s}x/2`:`${s}${m}x`,radOp=m===.5?`${neg?"":"−"}2x`:`${neg?"":"−"}x/${m}`;
-    const eq=`x = ${a===.5?"(1/2)":a===-.5?"−(1/2)":g53n(a)}y<sup>2</sup>`,Y2="y<sup>2</sup>";
-    if(v==="para"){const c=`y = ±√(${rad1})`,ch=g53txt(c,[`y = ±√(${radSw})`,`y = √(${rad1})`,`y = ±√(${radOp})`]);
-      return{...ch,q:`Graph ${eq} by solving for y. Which gives both halves of the graph?`,ex:eq,
-        walk:[[eq,`Get ${Y2} alone`],[`${Y2} = ${rad1}`,m===.5?`Multiply both sides by 2: ${Y2} = ${s}2x. (Dividing by 1/2 is the same as multiplying by 2)`:`Divide both sides by ${g53n(a)}`],[c,"Square root both sides. Keep ± because both y and −y work"]],
-        why:`Solve for ${Y2} first: ${Y2} = ${rad1}. Then take the square root, and keep ±: ${c}. That's two functions: the top half (+) and the bottom half (−).`}}
-    const pts=m===.5?[[2,2],[8,4]]:[[m,1],[4*m,2]],X=x=>neg?-x:x,xm=Math.max(9,4*m+1);
-    const sv=gGraph({x:neg?[-xm,2]:[-2,xm],y:[-5,5],curves:[{f:x=>Math.sqrt(x/a),d:neg?[-14,0]:[0,14]},{f:x=>-Math.sqrt(x/a),d:neg?[-14,0]:[0,14],col:"var(--pow)"}],
-      pts:[gpt(X(pts[0][0]),pts[0][1],neg?6:-6,-8,neg?"start":"end"),{x:X(pts[0][0]),y:-pts[0][1]},gpt(X(pts[1][0]),pts[1][1],neg?6:-6,-8,neg?"start":"end")]});
-    const c=`y = √(${rad1})`,ch=g53txt(c,[`y = −√(${rad1})`,`y = ±√(${rad1})`,`y = √(${radSw})`]);
-    return{...ch,q:`The graph of ${eq} is shown. Which <b>single</b> function gives the top half (above the x-axis)?${sv}`,ex:eq,
-      walk:[[`${Y2} = ${rad1}`,`Solve for ${Y2}`],[`y = ±√(${rad1})`,"Two functions: + is the top half, − is the bottom half"],[c,`Check a point: at x = ${g53n(X(pts[0][0]))} the top half has y = ${pts[0][1]}`]],
-      why:`Solving gives y = ±√(${rad1}). The + part is above the x-axis (the top half): ${c}. Using ± would give both halves, and the other radicand mixes up multiplying and dividing.`}}
-  const r=pick([2,3,4,5,6]),r2=r*r,eq=`x<sup>2</sup> + y<sup>2</sup> = ${r2}`,base=`${r2} − x^2`,baseH=`${r2} − x<sup>2</sup>`;
-  if(v==="circ"){const c=`y = ±√(${base})`,w=[`y = ±√(x^2 − ${r2})`,`y = ±√(${r} − x^2)`,`y = ±√(${r2} + x^2)`];if(Math.random()<.3)w[0]=`y = √(${base})`;
-    return{c,w,q:`Solve ${eq} for y. Which gives both halves of the circle?`,ex:eq,
-      walk:[[eq,"Get y² alone: subtract x² from both sides"],[`y<sup>2</sup> = ${baseH}`,"The x² moves over and changes sign. Don't take the root of each piece separately"],[c,`Square root both sides, with ±. The ${r2} is r², so the radius is ${r}`]],
-      why:`Subtract x²: y² = ${baseH}. Then take the square root of the whole right side (not each term), with ±: ${c}.`}}
-  const top=TF(),s1=top?"":"−",c=`y = ${s1}√(${base})`,sv=gGraph({x:[-r-1,r+1],y:top?[-1,r+1]:[-r-1,1],curves:[{f:x=>(top?1:-1)*Math.sqrt(r2-x*x),d:[-r,r]}],pts:[gpt(r,0,-4,top?-8:14,"end"),gpt(-r,0,4,top?-8:14,"start"),gpt(0,top?r:-r,0,top?-8:14,"middle")]});
-  const all=[`y = √(${base})`,`y = −√(${base})`,`y = ±√(${base})`,`y = ${s1}√(${r} − x^2)`];
-  return{c,w:all.filter(x=>x!==c).slice(0,3),q:`The graph shows the ${top?"top":"bottom"} half of the circle ${eq}. Which <b>single</b> function gives it?${sv}`,ex:eq,
-    walk:[[`y<sup>2</sup> = ${baseH}`,"Solve for y²"],[`y = ±√(${base})`,"+ gives the top half, − gives the bottom half"],[c,`This graph is the ${top?"top":"bottom"} half, so use ${top?"+ (no sign in front)":"− (a minus in front)"}`]],
-    why:`Solving gives y = ±√(${base}). The graph is only the ${top?"top":"bottom"} half, so you keep ${top?"+":"−"}. Using ± would give the whole circle, and √(${r} − x²) would be a smaller circle (radius √${r}).`}}
-GEN53.gconic=()=>g53conic();
 Object.assign(GEN,GEN53);
-// Quiz-only types for the 5.3 final quiz: each pins a question style, wording as on the homework.
+// Quiz-only types for the 5.3 final quiz: each pins a question style, wording as on the homework (HW 5.3: 1-6 domain/range, 7-12 match, 13-15 describe, 16 error).
 const HW53={
-hw_par_gr:()=>g53parent("graph"),hw_par_dr:()=>g53parent("dr"),
-hw_sh_desc:()=>g53shift("desc"),hw_sh_graph:()=>g53shift("graph"),
-hw_st_a:()=>g53stretch(pick(["a","neg"])),hw_st_b:()=>g53stretch(pick(["b","reflg"])),
-hw_wr_two:()=>g53write(pick(["rs","vs","hs"])),hw_wr_graph:()=>g53write("graph"),
-hw_dom_sq:()=>g53domain("sq"),hw_dom_graph:()=>g53domain("graph"),
-hw_con_para:()=>g53conic("para"),hw_con_circ:()=>g53conic(pick(["circ","circtop"]))};
+hw_par_dr:()=>g53parent("dr"),hw_par_expo:()=>g53parent("expo"),
+hw_dom_12:()=>g53domain("s12"),hw_dom_4:()=>g53domain("s4"),hw_dom_3:()=>g53domain("s3"),hw_dom_56:()=>g53domain(pick(["s5","s6"])),
+hw_match_g:()=>g53match("graph"),hw_match_2:()=>g53match(pick(["graph","which"])),
+hw_desc_t:()=>g53shift("desc"),hw_pt_t:()=>g53shift("pt"),hw_desc_s:()=>g53stretch("st"),hw_desc_r:()=>g53stretch(pick(["rt","rtc"])),
+hw_err_d:()=>g53error("desc"),hw_err_g:()=>g53error(pick(["graph","fix"]))};
 const KEYS=Object.keys(GEN);
 // ---- Final quiz: homework-style questions ("Evaluate", "Solve", "Simplify" with the actual answer), one skill each.
 // HW_DAY lists the quiz for each day as [question type, skill]; a miss drops that skill back.
@@ -1110,7 +1157,7 @@ const HW_DAY={
   "5.1":[["hw_entry","entry"],["hw_entry","entry"],["bottom","bottom"],["bottom","bottom"],["neg","neg"],["mx_negfrac","neg"],["sols","sols"],["sols","sols"],
          ["hw_iso","iso"],["hw_iso","iso"],["hw_shift","shift"],["hw_shift","shift"],["hw_order","order"],["hw_order","order"],["line","line"],["line","line"]],
   "5.2":[["rules","rules"],["rules","rules"],["mz_negexp","rules"],["radmul","radmul"],["mz_mulsimp","radmul"],["simp","simp"],["simp","simp"],["vars","vars"],["vars","vars"],["like","like"],["mz_explike","like"]]};
-HW_DAY["5.3"]=[["hw_par_gr","gparent"],["hw_par_dr","gparent"],["hw_sh_desc","gshift"],["hw_sh_graph","gshift"],["hw_st_a","gstretch"],["hw_st_b","gstretch"],["hw_wr_two","gwrite"],["hw_wr_graph","gwrite"],["hw_dom_sq","gdomain"],["hw_dom_graph","gdomain"],["hw_con_para","gconic"],["hw_con_circ","gconic"]];
+HW_DAY["5.3"]=[["hw_par_dr","gparent"],["hw_par_expo","gparent"],["hw_dom_12","gdomain"],["hw_dom_4","gdomain"],["hw_dom_3","gdomain"],["hw_dom_56","gdomain"],["hw_match_g","gmatch"],["hw_match_2","gmatch"],["hw_desc_t","gshift"],["hw_pt_t","gshift"],["hw_desc_s","gstretch"],["hw_desc_r","gstretch"],["hw_err_d","gerror"],["hw_err_g","gerror"]];
 const MIX_SK={};Object.values(HW_DAY).forEach(L=>L.forEach(([g,k])=>{if(!Object.values(LESSONS).some(Ls=>Ls.includes(g)))MIX_SK[g]=[k]}));
 Object.assign(GEN,HW,HW53);Object.keys(HW).concat(Object.keys(HW53)).forEach(g=>{if(!TAGS[g])TAGS[g]=TAGS[MIX_SK[g]&&MIX_SK[g][0]]||g});
 function quizList(d){const L=(HW_DAY[d]||(LESSONS[d]||[]).flatMap(k=>[[k,k],[k,k]])).map(x=>x[0]);shuffle(L);
@@ -1235,14 +1282,28 @@ const LT_53=[
 [["gstretch"],()=>{const q=ri(2,5),t=TF();return{s:`g(x) = (1/${q})√x is a vertical ${t?"shrink":"stretch"} of f(x) = √x`,t,why:`Multiplying by a number between 0 and 1 shrinks the graph: y gets smaller.`}}],
 [["gstretch"],()=>{const a=pick([3,4,5]),t=TF();return{s:`The graph of g(x) = ${a}√x passes through (4, ${t?2*a:a+2})`,t,why:`g(4) = ${a}·√4 = ${a}·2 = ${2*a}.`}}],
 [["gstretch"],()=>{const t=TF();return{s:`g(x) = √(−x) is defined at x = ${t?"−4":"4"}`,t,why:t?"√(−(−4)) = √4 = 2: a real number.":"√(−4) is not a real number."}}],
-// gwrite
-[["gwrite"],()=>{const h=ri(2,8),t=TF();return{s:`Reflecting f(x) = √x in the x-axis, then moving it right ${h}, gives g(x) = −√(x ${t?"−":"+"} ${h})`,t,why:`Reflect: −√x. Right ${h}: x − ${h} inside.`}}],
-[["gwrite"],()=>{const h=ri(2,8),k=ri(2,8),t=TF();return{s:`Moving f(x) = √x ${h} left and ${k} up gives g(x) = √(x ${t?"+":"−"} ${h}) + ${k}`,t,why:`Left ${h} is x + ${h} inside (backwards); up ${k} is + ${k} outside.`}}],
-[["gwrite"],()=>{const m=ri(2,5),t=TF();return{s:`A vertical stretch by ${m} of f(x) = ∛x is g(x) = ${t?m+"∛x":"∛("+m+"x)"}`,t,why:`A vertical stretch multiplies the whole root: ${m}∛x. ∛(${m}x) is a horizontal change.`}}],
-[["gwrite"],()=>{const k=ri(2,8),t=TF();return{s:`Moving f(x) = √x down ${k} gives g(x) = ${t?"√x − "+k:"√(x − "+k+")"}`,t,why:`Down is outside the root: √x − ${k}. √(x − ${k}) would move it right.`}}],
-[["gwrite"],()=>{const t=TF();return{s:`Reflecting f(x) = √x in the y-axis gives g(x) = ${t?"√(−x)":"−√x"}`,t,why:"y-axis: the minus goes inside, with x."}}],
-[["gwrite"],()=>{const m=ri(2,5),t=TF();return{s:`A horizontal shrink by 1/${m} of f(x) = √x is g(x) = ${t?"√("+m+"x)":"√(x/"+m+")"}`,t,why:`Inside the root it works backwards: shrink by 1/${m} means ${m}x.`}}],
-[["gwrite"],()=>{const h=ri(2,8),t=TF();return{s:`Moving f(x) = ∛x right ${h} gives g(x) = ∛(x ${t?"−":"+"} ${h})`,t,why:`Right ${h} is x − ${h}: the minus goes with moving right.`}}],
+// gmatch
+[["gmatch"],()=>{const h=ri(1,9),t=TF();return{s:`The graph of g(x) = √(x + ${h}) starts at (${t?-h:h}, 0)`,t,why:`x + ${h} = 0 gives x = −${h}. Inside works backwards: plus means LEFT.`}}],
+[["gmatch"],()=>{const k=ri(1,9),t=TF();return{s:`The graph of g(x) = √x + ${k} starts at (0, ${t?k:-k})`,t,why:`The ${k} is outside the root, so it moves the graph up ${k}: the start is (0, ${k}).`}}],
+[["gmatch"],()=>{const h=ri(1,6),k=ri(1,6),t=TF();return{s:`The graph that starts at (${h}, ${k}) is g(x) = √(x ${t?"−":"+"} ${h}) + ${k}`,t,why:`Start x = ${h} means x − ${h} inside (backwards). The + ${k} outside is y = ${k}.`}}],
+[["gmatch"],()=>{const h=ri(1,9),t=TF();return{s:`The graphs of √(x − ${h}) and √x − ${h} are ${t?"different":"the same"}`,t,why:`√(x − ${h}) moves right ${h}. √x − ${h} moves down ${h}. Inside and outside are different moves.`}}],
+[["gmatch"],()=>{const h=ri(1,5),k=ri(1,5),t=TF();return{s:`The graph of h(x) = √(x + ${h}) − ${k} starts at (${t?-h:h}, −${k})`,t,why:`x + ${h} = 0 gives x = −${h}, and − ${k} is y = −${k}. The start is (−${h}, −${k}).`}}],
+[["gmatch"],()=>{const k=ri(2,9),t=TF();return{s:`g(x) = √x + ${k} moves f(x) = √x ${t?"up":"right"} ${k}`,t,why:`A number outside the root moves the graph up or down. Left or right needs it inside.`}}],
+[["gmatch"],()=>{const h=ri(1,6),k=ri(1,6),t=TF();return{s:`The graph of g(x) = √(x − ${h}) + ${k} starts ${t?"right of":"left of"} the y-axis`,t,why:`The start is x = ${h}, which is to the right of the y-axis (x = 0).`}}],
+// gerror
+[["gerror"],()=>{const h=ri(1,9),t=TF();return{s:`A graph of f(x) = √(x − ${h}) that starts at (${t?h:-h}, 0) is correct`,t,why:`x − ${h} = 0 gives x = ${h}. Starting at (−${h}, 0) would be shifted the wrong way.`}}],
+[["gerror"],()=>{const h=ri(1,9),t=TF();return{s:`A student graphs f(x) = √(x + ${h}) starting at (${h}, 0). The error is a shift ${t?"right instead of left":"left instead of right"}`,t,why:`x + ${h} = 0 gives x = −${h}, so it should go LEFT. The student went right.`}}],
+[["gerror"],()=>{const k=ri(1,9),t=TF();return{s:`A graph of f(x) = √x − ${k} that starts at (0, ${t?-k:k}) is correct`,t,why:`The − ${k} moves the graph down: it starts at (0, −${k}), not (0, ${k}).`}}],
+[["gerror"],()=>{const h=ri(1,6),k=ri(1,6),t=TF();return{s:`The correct start of f(x) = √(x − ${h}) − ${k} is (${t?h:-h}, −${k})`,t,why:`x − ${h} = 0 gives x = ${h}, and − ${k} is y = −${k}. The start is (${h}, −${k}).`}}],
+[["gerror"],()=>{const h=ri(1,4),k=ri(5,9),t=TF();return{s:`f(x) = √(x − ${h}) + ${k} starts at (${t?h+", "+k:k+", "+h})`,t,why:`x comes first: x = ${h} from the inside, y = ${k} from the outside. Swapped coordinates (${k}, ${h}) are a common error.`}}],
+[["gerror"],()=>{const t=TF();return{s:`If a graph of f(x) = √x goes down instead of up, the minus sign is ${t?"in front of the root":"inside the root"}`,t,why:"A minus outside the root flips y: the graph goes down. A minus inside flips x: it goes left."}}],
+[["gerror"],()=>{const t=TF();return{s:`If a graph of f(x) = √x opens to the left instead of the right, the minus sign is ${t?"inside":"outside"} the root`,t,why:"A minus inside the root, with x, flips left and right: √(−x)."}}],
+// extra gparent / gdomain items for ∜x and the 1/3 exponent
+[["gparent"],()=>{const r=ri(2,3),t=TF();return{s:`y = ∜x passes through (${r**4}, ${t?r:r**2})`,t,why:`∜${r**4} = ${r} because ${r}⁴ = ${r**4}.`}}],
+[["gparent"],()=>{const t=TF();return{s:`The domain of y = ∜x is ${t?"x ≥ 0":"all real numbers"}`,t,why:"Even roots (square, 4th) need x ≥ 0. Only odd roots take any x."}}],
+[["gparent"],()=>{const h=ri(1,9),t=TF();return{s:`(x + ${h})^(1/3) is the same as ${t?"∛(x + "+h+")":"∛x + "+h}`,t,why:"The exponent 1/3 applies to everything in the parentheses, so the whole x + "+h+" is under the cube root."}}],
+[["gdomain"],()=>{const k=ri(1,9),t=TF();return{s:`The domain of g(x) = ∜x − ${k} is ${t?"x ≥ 0":"x ≥ "+k}`,t,why:"The inside of the 4th root is just x, so x ≥ 0. The − "+k+" outside only moves the graph down."}}],
+[["gdomain"],()=>{const t=TF();return{s:`The range of g(x) = −3∛x is ${t?"all real numbers":"y ≤ 0"}`,t,why:"A cube root graph goes up and down forever, and flipping or stretching it keeps that."}}],
 // gdomain
 [["gdomain"],()=>{const h=ri(1,9),t=TF();return{s:`The domain of g(x) = √(x − ${h}) + 2 is x ≥ ${t?h:-h}`,t,why:`x − ${h} ≥ 0 gives x ≥ ${h}.`}}],
 [["gdomain"],()=>{const k=ri(1,9),t=TF();return{s:`The range of g(x) = √(x − 3) + ${k} is y ≥ ${t?k:3}`,t,why:`The graph starts at y = ${k} and goes up: y ≥ ${k}.`}}],
@@ -1251,14 +1312,6 @@ const LT_53=[
 [["gdomain"],()=>{const h=ri(2,9),t=TF();return{s:`The domain of g(x) = √(x + ${h}) is x ≥ ${t?-h:h}`,t,why:`x + ${h} ≥ 0 gives x ≥ −${h}.`}}],
 [["gdomain"],()=>{const t=TF();return{s:`The domain of g(x) = √(−x) is x ${t?"≤":"≥"} 0`,t,why:"−x ≥ 0 means x ≤ 0 (the graph goes left)."}}],
 [["gdomain"],()=>{const k=ri(2,9),t=TF();return{s:`The range of g(x) = 2∛x − ${k} is ${t?"all real numbers":"y ≥ −"+k}`,t,why:"A cube root graph goes up and down forever, so the range is all real numbers."}}],
-// gconic
-[["gconic"],()=>{const a=ri(2,5),t=TF();return{s:`Solving x = ${a}y² for y gives y = ±√(${t?"x/"+a:a+"x"})`,t,why:`Divide by ${a} (don't multiply): y² = x/${a}, so y = ±√(x/${a}).`}}],
-[["gconic"],()=>{const r=ri(2,7),t=TF();return{s:`Solving x² + y² = ${r*r} for y gives y = ±√(${t?r*r+" − x²":"x² − "+r*r})`,t,why:`Subtract x² from both sides: y² = ${r*r} − x².`}}],
-[["gconic"],()=>{const r=ri(2,7),t=TF();return{s:`y = √(${r*r} − x²) is the ${t?"top":"bottom"} half of x² + y² = ${r*r}`,t,why:"No minus in front means y is positive: the top half."}}],
-[["gconic"],()=>{const a=ri(2,5),t=TF();return{s:`y = −√(x/${a}) is the ${t?"bottom":"top"} half of x = ${a}y²`,t,why:"A minus in front makes y negative: the bottom half."}}],
-[["gconic"],()=>{const t=TF();return{s:`Solving x = y² for y gives ${t?"two functions: y = √x and y = −√x":"only one function: y = √x"}`,t,why:"Both √x and −√x square to x, so you keep ±."}}],
-[["gconic"],()=>{const r=ri(2,7),t=TF();return{s:`The graph of x² + y² = ${r*r} is a circle with radius ${t?r:r*r}`,t,why:`r² = ${r*r}, so r = ${r}.`}}],
-[["gconic"],()=>{const a=ri(2,5),t=TF();return{s:`The graph of x = −${a}y² opens to the ${t?"left":"right"}`,t,why:"A negative number in front means it opens left."}}]
 ];
 LT_53.forEach(([k,f])=>{LT53.push(f);LT53_SK.push(k)});
 
@@ -1486,12 +1539,12 @@ const SKILLS=[
 {k:"order",n:"Order the steps",rule:"Peel from the outside in: ± the constant, ÷ the coefficient, root, then the inside ±.",ex:`3(x + 5)² + 20 = 47<br>−20 → ÷3 → √ → −5<br>x = −2 or −8`},
 {k:"spot",n:"Spot the mistake",rule:"Check each line: right root? Sign kept? ± added? Isolated before rooting?",ex:`64<sup>3/2</sup> = (∛64)² ✗<br>64<sup>3/2</sup> = (√64)³ = 512 ✓`},
 {k:"line",n:"Estimate the root",rule:"List whole numbers to that power and see which two the number lands between.",ex:`3³ = 27 &lt; 50 &lt; 64 = 4³<br>so ∛50 is between 3 and 4`},
-{k:"gparent",L:"5.3",n:"Parent root graphs",rule:`y = √x starts at (0, 0) and only exists for x ≥ 0. y = ∛x goes through (0, 0) and exists for every x. Plot easy points: perfect squares for √, perfect cubes for ∛.`,ex:`√x: (0, 0) (1, 1) (4, 2) (9, 3)<br>∛x: (−8, −2) (−1, −1) (0, 0) (1, 1) (8, 2)`},
-{k:"gshift",L:"5.3",n:"Shifts of radical graphs",rule:`In g(x) = √(x − <span class="ch">h</span>) + <span class="ck">k</span>: the number inside works backwards (x − 3 is RIGHT 3), the number outside is as written (+ 2 is UP 2). The start moves from (0, 0) to (h, k).`,ex:`√(x − 3) + 2 starts at (3, 2)<br>√(x + 3) − 2 starts at (−3, −2)`},
-{k:"gstretch",L:"5.3",n:"Stretches and reflections",rule:`Outside the root = vertical (a). Inside, with x = horizontal, and backwards (b). A minus outside flips over the x-axis; a minus inside flips over the y-axis.`,ex:`2√x: vertical stretch by 2<br>√(2x): horizontal shrink by 1/2<br>−√x: x-axis · √(−x): y-axis`},
-{k:"gwrite",L:"5.3",n:"Write the rule",rule:`Follow the order given. Reflect or stretch first, then translate. Left/right goes inside next to x (backwards), up/down goes at the end.`,ex:`reflect in x-axis, then 3 right, 2 up:<br>g(x) = −√(x − 3) + 2`},
-{k:"gdomain",L:"5.3",n:"Domain and range",rule:`Inside of a square root must be ≥ 0, which gives the domain. The range starts at k: up (y ≥ k) if a is positive, down (y ≤ k) if a is negative. Cube roots: all real numbers.`,ex:`−2√(x + 3) + 1<br>Domain: x ≥ −3 · Range: y ≤ 1<br>∛(x − 4): all real numbers`},
-{k:"gconic",L:"5.3",n:"Sideways parabola and circle",rule:`Solve for y: you get two functions, + (top half) and − (bottom half). x = ay² gives y = ±√(x/a). x² + y² = r² gives y = ±√(r² − x²).`,ex:`x = 2y² → y = ±√(x/2)<br>x² + y² = 25 → y = ±√(25 − x²)`}];
+{k:"gparent",L:"5.3",n:"Parent root graphs",rule:`y = √x and y = ∜x start at (0, 0) and only exist for x ≥ 0. y = ∛x goes through (0, 0) and exists for every x. A power of 1/3 is a cube root: (x + 1)^(1/3) = ∛(x + 1).`,ex:`√x: (0, 0) (1, 1) (4, 2) (9, 3)<br>∜x: (0, 0) (1, 1) (16, 2)<br>∛x: (−8, −2) (0, 0) (8, 2)`},
+{k:"gshift",L:"5.3",n:"Shifts of radical graphs",rule:`In g(x) = √(x − <span class="ch">h</span>) + <span class="ck">k</span>: the number inside works backwards (x − 3 is RIGHT 3), the number outside is as written (+ 2 is UP 2). The start moves from (0, 0) to (h, k). To get two points on g, move two parent points the same way.`,ex:`√(x + 1) + 8: left 1, up 8<br>(0, 0) → (−1, 8), (1, 1) → (0, 9)`},
+{k:"gstretch",L:"5.3",n:"Stretches and reflections",rule:`Outside the root = vertical (a). Inside, with x = horizontal, and backwards (b). A minus outside flips over the x-axis; a minus inside flips over the y-axis. Describe the stretch or flip, then the translation.`,ex:`2√(x − 1): vertical stretch by 2, right 1<br>−∛x − 1: reflection in the x-axis, down 1`},
+{k:"gmatch",L:"5.3",n:"Match the graph",rule:`Find the start point (h, k) on the grid. Inside the root goes x − h (backwards), outside goes + k. Look-alikes: √(x + 3) moves LEFT, √x + 3 moves UP.`,ex:`starts (−3, −3): √(x + 3) − 3<br>starts (3, 0): √(x − 3)  ·  starts (0, 3): √x + 3`},
+{k:"gdomain",L:"5.3",n:"Domain and range",rule:`Inside of a square or 4th root must be ≥ 0, which gives the domain. The range starts at k: up (y ≥ k) if a is positive, down (y ≤ k) if a is negative. Cube roots: all real numbers.`,ex:`√x + 4: Domain x ≥ 0 · Range y ≥ 4<br>(1/5)√(x − 3): x ≥ 3 · y ≥ 0<br>−3(x + 1)^(1/3): all real numbers`},
+{k:"gerror",L:"5.3",n:"Spot the graphing mistake",rule:`Work out where the graph SHOULD start, then compare. A wrong start usually means a shift went the wrong way: inside works backwards (x − 2 is RIGHT 2).`,ex:`f(x) = √(x − 2) − 2 starts at (2, −2)<br>A graph starting at (−2, −2) shifted 2 left instead of 2 right`}];
 const ROAD=[["5.1","nth roots and rational exponents","Day 1"],["5.2","Properties of rational exponents and radicals","Day 2"],["5.3","Graphing radical functions","Day 3"],["5.4","Solving radical equations and inequalities","Next"],["Test","Review and unit test","Later"]];
 let sk=LS.get("skills",{}),hist=LS.get("hist",[]),openSkill=null;
 function recOf(k){const s=sk[k]||{};return s.rec||[]}
@@ -1751,14 +1804,6 @@ gstretch:{t:"The swing of a pendulum",use:`A pendulum's swing time in seconds is
   const out=()=>{o.innerHTML=`1.11 · √${L} = 1.11 · ${f2(Math.sqrt(L))} ≈ <b>${f2(T(L))} s</b>`};
   draw(0);out();rlTry(el);rlSlider(el,"Length (ft)",1,30,1,9,v=>{L=v;draw(0);out();return v+" ft"});
   return{play(){const Ts=T(L);rlTween(el,Math.max(2400,Ts*1000*2),t=>draw(.5*Math.sin(2*Math.PI*(t*Math.max(2400,Ts*1000*2)/1000)/Ts)))}}}},
-gwrite:{t:"Radius of a pizza from its area",use:`Area is A = πr². To go the other way, you write the radius as a radical function of the area: r = √(A/π). That's the rule you'd graph and use.`,
- ask:{q:`The area of a circle is <b>A = πr²</b>. Write r as a function of A, then find the radius of a pizza with area <b>78.5 in²</b>. (Use π ≈ 3.14.)`,c:"r = √(A/π), so 5 in",w:["r = √A · π, so 23 in","r = A/π, so 25 in"],
-  steps:[`A = πr²  →  r² = A/π`,`r = √(A/π)  (a radius is positive, so only the + root)`,`r = √(78.5 / 3.14) = √25 = <b>5 in</b>`]},
- ui(el){const sv=rlSvg(el,"0 0 300 130"),o=rlOut(el,"mono");let A=78.5;const r=a=>Math.sqrt(a/Math.PI);
-  const draw=p=>{const R=r(A)*p*9;sv.innerHTML=`<circle cx="150" cy="62" r="${R}" fill="var(--rlsand)" stroke="var(--hot)" stroke-width="3"/><line x1="150" y1="62" x2="${150+R}" y2="62" stroke="var(--ink)" stroke-width="2"/><text x="${150+R/2}" y="56" text-anchor="middle" class="rl-lab big">r = ${f2(r(A)*p)} in</text><text x="8" y="124" class="rl-lab">area ${f2(A)} in²</text>`};
-  const out=()=>{o.innerHTML=`r = √(${f2(A)} / π) = √${f2(A/Math.PI)} ≈ <b>${f2(r(A))} in</b>`};
-  draw(1);out();rlTry(el);rlSlider(el,"Area (in²)",10,300,5,78.5,v=>{A=v;draw(1);out();return v+" in²"});
-  return{play(){rlTween(el,1500,t=>draw(rlEase(t)))}}}},
 gdomain:{t:"A falling ball and the limits of a formula",use:`A ball dropped from 100 ft takes t = ¼√(100 − h) seconds to fall to height h. The inside of the root can't be negative, so h can only be 100 or less: the domain is built into the situation.`,
  ask:{q:`A ball is dropped from 100 ft. The time to fall to height h is <b>t = ¼√(100 − h)</b> seconds. How long until it hits the ground (h = 0)?`,c:"2.5 seconds",w:["10 seconds","25 seconds"],
   steps:[`t = ¼ · √(100 − 0) = ¼ · √100`,`= ¼ · 10 = <b>2.5 seconds</b>`,`Domain: 100 − h ≥ 0, so h ≤ 100. Heights above 100 ft would need √ of a negative: the ball was never up there`]},
@@ -1769,15 +1814,30 @@ gdomain:{t:"A falling ball and the limits of a formula",use:`A ball dropped from
   draw(0);out();rlTry(el);rlSlider(el,"Height h (ft)",0,100,1,0,v=>{h=v;draw(h);out();return v+" ft"});el.appendChild(row);
   row.appendChild(mkBtn("small","Try h = 120",()=>{o.innerHTML=`√(100 − 120) = √(−20) is not a real number. A ball dropped from 100 ft was never at 120 ft, so h = 120 is outside the domain.`}));
   return{play(){rlTween(el,2500,t=>{const tau=2.5*t;draw(Math.max(0,100-16*tau*tau))})}}}},
-gconic:{t:"Will the truck fit the tunnel?",use:`A tunnel shaped like the top half of a circle is the graph of y = √(r² − x²). At x feet from the center the roof is that high.`,
- ask:{q:`A tunnel is the top half of the circle <b>x² + y² = 100</b> (feet). A truck is <b>6 ft</b> wide, so each edge is 3 ft from the center. How tall can the truck be?`,c:"about 9.5 ft",w:["7 ft","10 ft"],
-  steps:[`Solve for y: y = √(100 − x²) (top half only, since the roof is above the road)`,`At x = 3: y = √(100 − 9) = √91`,`≈ <b>9.5 ft</b>`]},
- ui(el){const sv=rlSvg(el,"0 0 300 130"),o=rlOut(el,"mono");let x=3;const Y=v=>Math.sqrt(100-v*v);
-  const draw=p=>{const s=11,cx=150,gy=118,w=x*p;let d="";for(let v=-10;v<=10.01;v+=.5)d+=(v>-10?"L":"M")+(cx+v*s)+" "+(gy-Y(Math.min(10,v))*s)+" ";
-   sv.innerHTML=`<path d="${d}" fill="none" stroke="var(--root)" stroke-width="4"/><line x1="20" y1="${gy}" x2="280" y2="${gy}" stroke="var(--ink)" stroke-width="2"/><rect x="${cx-w*s}" y="${gy-Y(x)*s*p}" width="${2*w*s}" height="${Y(x)*s*p}" fill="var(--hot)" opacity=".8"/><text x="${cx}" y="${gy-Y(x)*s*p-5}" text-anchor="middle" class="rl-lab big">${f2(Y(x)*p)} ft tall</text><text x="${cx}" y="${gy-8}" text-anchor="middle" class="rl-lab" fill="#fff">${f2(2*w)} ft wide</text>`};
-  const out=()=>{o.innerHTML=`y = √(100 − ${x}²) = √${100-x*x} ≈ <b>${f2(Y(x))} ft</b>`};
-  draw(1);out();rlTry(el);rlSlider(el,"Edge from center (ft)",0,9,.5,3,v=>{x=v;draw(1);out();return v+" ft"});
-  return{play(){rlTween(el,1500,t=>draw(rlEase(t)))}}}}};
+gmatch:{t:"Which curve draws the ramp?",use:`A skate ramp curves up like √x. If the curve starts 4 ft out from the wall and 2 ft off the floor, its rule is h = √(x − 4) + 2: the inside number moves it along the floor, the outside number lifts it.`,
+ ask:{q:`A ramp curves up like the graph of √x. It starts <b>4 ft</b> out from the wall and <b>2 ft</b> above the floor. Which rule draws it?`,c:"h = √(x − 4) + 2",w:["h = √(x + 4) + 2","h = √(x − 2) + 4"],
+  steps:[`Start point: (4, 2). The 4 is a position along the floor (x), the 2 is a height (y)`,`Along the floor: x − 4 inside the root (minus moves it right)`,`Up off the floor: + 2 outside. The rule is <b>h = √(x − 4) + 2</b>`]},
+ ui(el){const sv=rlSvg(el,"0 0 300 150"),o=rlOut(el,"mono");let a=4,b=2;
+  const X=v=>26+v/12*262,Y=v=>132-v/9*116,F=v=>Math.sqrt(v-a)+b;
+  const draw=p=>{let g=`<line x1="26" y1="132" x2="292" y2="132" stroke="var(--mute)"/><line x1="26" y1="12" x2="26" y2="132" stroke="var(--mute)"/>`;
+   [0,3,6,9].forEach(v=>g+=`<text x="22" y="${Y(v)+4}" text-anchor="end" class="rl-lab">${v}</text>`);[0,4,8,12].forEach(v=>g+=`<text x="${X(v)}" y="146" text-anchor="middle" class="rl-lab">${v}</text>`);
+   let d="";for(let v=a;v<=12.01;v+=.25){const t=a+(v-a)*p;d+=(v>a?"L":"M")+X(t)+" "+Y(F(t))+" "}
+   g+=`<path d="${d}" fill="none" stroke="var(--root)" stroke-width="3"/><circle cx="${X(a)}" cy="${Y(b)}" r="5" fill="var(--hot)"/><text x="${X(a)+7}" y="${Y(b)+15}" class="rl-lab">starts (${a}, ${b})</text>`;sv.innerHTML=g};
+  const out=()=>{o.innerHTML=`Start (${a}, ${b})  →  h = √(x ${a?"− "+a:""}) + ${b}`.replace("√(x )","√x")};
+  draw(1);out();rlTry(el);rlSlider(el,"Out from wall (ft)",0,8,1,4,v=>{a=v;draw(1);out();return v+" ft"});rlSlider(el,"Height off floor (ft)",0,6,1,2,v=>{b=v;draw(1);out();return v+" ft"});
+  return{play(){rlTween(el,1600,t=>draw(rlEase(t)))}}}},
+gerror:{t:"The blueprint with a flipped shift",use:`A builder draws a curved wall from the rule y = √(x − 3) + 1. If the drawing starts 3 ft to the LEFT of the origin, the sign got flipped: inside the root, minus means RIGHT. Checking the start point catches it.`,
+ ask:{q:`A builder's drawing of <b>y = √(x − 3) + 1</b> starts at the point <b>(−3, 1)</b>. What is the mistake?`,c:"Shifted 3 left instead of 3 right",w:["Shifted 1 down instead of 1 up","The graph was reflected in the x-axis"],
+  steps:[`x − 3 = 0 gives x = 3, so the start should be <b>(3, 1)</b>`,`The drawing starts at (−3, 1): same height, wrong side`,`The 3 was moved the wrong way: <b>3 left instead of 3 right</b>`]},
+ ui(el){const sv=rlSvg(el,"0 0 300 150"),o=rlOut(el,"mono");let ok=0;
+  const X=v=>150+v*17,Y=v=>118-v*17;
+  const draw=p=>{let g=`<line x1="20" y1="118" x2="290" y2="118" stroke="var(--mute)"/><line x1="150" y1="12" x2="150" y2="132" stroke="var(--mute)"/>`;
+   [-6,-3,3,6,9].forEach(v=>g+=`<text x="${X(v)}" y="146" text-anchor="middle" class="rl-lab">${v}</text>`);
+   const mk=(s,col,dash)=>{let d="";for(let v=0;v<=9;v+=.25)d+=(v?"L":"M")+X(s+v)+" "+Y(Math.sqrt(v)+1)+" ";return `<path d="${d}" fill="none" stroke="${col}" stroke-width="3" ${dash?'stroke-dasharray="5 4"':""}/>`};
+   const s=-3+6*p;g+=mk(3,"var(--root)",1)+mk(s,"var(--hot)",0)+`<circle cx="${X(s)}" cy="${Y(1)}" r="5" fill="var(--hot)"/><text x="288" y="24" text-anchor="end" class="rl-lab big">starts (${Math.round(s*10)/10}, 1)</text>`;sv.innerHTML=g};
+  const out=()=>{o.innerHTML=ok?`Fixed: x − 3 = 0 gives <b>x = 3</b>, so it starts at (3, 1)`:`Drawn start (−3, 1). Should be (3, 1): 3 right, not 3 left`};
+  draw(0);out();rlTry(el);rlSlider(el,"Fix the drawing",0,6,1,0,v=>{ok=v===6?1:0;draw(v/6);out();return v===6?"fixed":v+" of 6"});
+  return{play(){rlTween(el,1800,t=>draw(rlEase(t)))}}}}};
 Object.assign(REAL,REAL53);
 const rlOpen=new Set();
 function renderReal(){const box=$("real");if(!box)return;const d=selDay,ks=LESSONS[d].filter(k=>REAL[k]);box.innerHTML="";
@@ -2008,13 +2068,13 @@ const LEARN53=[
    l3start()]},
  steps:[[`−√x`,"Minus outside: flips over the x-axis"],[`y → −y`,"Every y changes sign"],[`x − 2 = 0  →  x = 2`,"Now the start slides to x = 2"],[`Start at (2, 0), heads down`,"Flipped, then moved right 2"],[`√(−x)`,"Minus inside flips left and right"]],
  chk:{q:`Which function is f(x) = √x reflected in the y-axis?`,o:["g(x) = √(−x)","g(x) = −√x","g(x) = −√(−x)","g(x) = √x"],a:0,why:"The y-axis flips left and right, so x becomes −x inside the root: √(−x)."}},
-{hw:"5.3 · Writing the rule",t:"Write a rule for g",rule:`Each word in the task becomes one piece of the rule.<br>Do them in order: reflect first, then slide.`,
- prob:`Reflect f(x) = √x in the x-axis, then 3 right and 2 up.<div id="lAnim"></div>`,
- anim:{x:[-3,11],y:[-4,5],n:2,base:{...L3B,sd:0},
-  frames:[{},{},{a:-1},{h:3,ah:1},{k:2,ak:1},{sd:1}],
-  els:[l3par(2,11),l3main(2,0,-3,11),l3ah(),l3ak(),l3start()]},
- steps:[[`reflect → −  ·  right 3 → x − 3  ·  up 2 → + 2`,"Each word is one piece"],[`−√x`,"Reflect: minus in front"],[`−√(<span class="ch">x − 3</span>)`,"Right 3: x − 3 inside"],[`−√(x − 3) <span class="ck">+ 2</span>`,"Up 2: + 2 at the end"],[`g(x) = −√(x − 3) + 2`,"The start is at (3, 2)"]],
- chk:{q:`Reflect f(x) = √x in the x-axis, then translate 4 left and 1 down. Which rule is g?`,o:["g(x) = −√(x + 4) − 1","g(x) = −√(x − 4) − 1","g(x) = −√(x + 4) + 1","g(x) = √(x + 4) − 1"],a:0,why:"Reflect: −√x. Left 4: x + 4 inside. Down 1: − 1 at the end."}},
+{hw:"5.3 · Transformations",t:"Describe it, then give two points",rule:`Read g piece by piece: inside = left/right, outside = up/down.<br>Then move two parent points the same way.`,
+ prob:`f(x) = √x,  g(x) = √(x + 1) + 8<div id="lAnim"></div>`,
+ anim:{x:[-4,12],y:[-1,11],n:2,base:{...L3B,sd:0,d0:0,d1:0,d2:0},
+  frames:[{},{},{h:-1,ah:1},{k:8,ak:1},{},{d0:1},{d1:1},{d2:1}],
+  els:[l3par(2,12),l3main(2,0,-4,12),l3ah(),l3ak(),l3dot(-1,8,"d0",1,{dx:-6,dy:-8,an:"end"}),l3dot(0,9,"d1",1,{dx:6,dy:-8}),l3dot(3,10,"d2",1,{dx:6,dy:14})]},
+ steps:[[`Warm-up: x + 1 = 0  →  x = −1`,"Set the inside to zero"],[`<span class="ch">x + 1</span>  →  LEFT 1`,"Plus inside means left"],[`<span class="ck">+ 8</span>  →  UP 8`,"Plus outside means up"],[`Translation 1 left and 8 up`,"That is the description of g"],[`(0, 0)  →  (−1, 8)`,"Move a parent point left 1, up 8"],[`(1, 1)  →  (0, 9)`,"Same move, same result"],[`(4, 2)  →  (3, 10)`,"Check: √(3 + 1) + 8 = 10"]],
+ chk:{q:`Describe the transformation of f(x) = √x represented by g(x) = √(x − 2) + 5.`,o:["a translation 2 units right and 5 units up","a translation 2 units left and 5 units up","a translation 5 units right and 2 units up","a translation 2 units right and 5 units down"],a:0,why:"x − 2 inside means right 2 (backwards). + 5 outside means up 5, as written."}},
 {hw:"5.3 · Domain and range",t:"Domain and range of a radical graph",rule:`${P("Domain")}: the inside of the root can't be negative.<br>${R("Range")}: starts at k. Up if a > 0, down if a < 0.`,
  prob:`g(x) = −2√(x + 3) + 1<div id="lAnim"></div>`,
  anim:{x:[-6,7],y:[-6,4],n:2,base:{...L3B,a:-2,h:-3,k:1,par:0,m:0,sd:0},
@@ -2026,24 +2086,35 @@ const LEARN53=[
    l3start()]},
  steps:[[`Warm-up: x − 5 ≥ 0  →  x ≥ 5`,"Domain of √(x − 5)"],[`Now: −2√(x + 3) + 1`,"Same idea, bigger rule"],[`x + 3 ≥ 0`,"The inside can't be negative"],[`Domain: x ≥ −3`,"Subtract 3. Start at (−3, 1)"],[`a = −2 is negative`,"The graph goes DOWN from y = 1"],[`Range: y ≤ 1`,"1 or less"]],
  chk:{q:`Find the domain and range of g(x) = 3√(x − 2) − 4.`,o:["Domain: x ≥ 2; Range: y ≥ −4","Domain: x ≥ −2; Range: y ≥ −4","Domain: x ≥ 2; Range: y ≤ −4","Domain: x ≥ −4; Range: y ≥ 2"],a:0,why:"x − 2 ≥ 0 gives x ≥ 2. The graph starts at y = −4, and a = 3 is positive, so it goes up: y ≥ −4."}},
-{hw:"5.3 · Sideways parabola",t:"x = ay²: solve for y",rule:`A sideways parabola isn't one function of x.<br>Solve for y: the + gives the top half, the − the bottom.`,
- prob:`x = 2y²<div id="lAnim"></div>`,
- anim:{x:[-2,10],y:[-4,4],n:2,base:{pt:0,pb:0,dd:0},
-  frames:[{},{},{},{},{pt:1},{pb:1},{dd:1}],
-  els:[{t:"c",f:(S,x)=>Math.sqrt(x/2),d:()=>[0,10],col:"var(--root)",p:S=>S.pt},{t:"c",f:(S,x)=>-Math.sqrt(x/2),d:()=>[0,10],col:"var(--pow)",p:S=>S.pb},
-   l3dot(2,1,"dd",1,{dx:-6,dy:-8,an:"end"}),l3dot(2,-1,"dd",1,{dx:-6,dy:14,an:"end"})]},
- steps:[[`Warm-up: y² = 9  →  y = ±3`,"Two answers: + and −"],[`y² = x/2`,"Divide both sides by 2"],[`y = ±√(x/2)`,"Square root both sides. Keep ±"],[`Top: y = +√(x/2)`,"Plus draws the top half"],[`Bottom: y = −√(x/2)`,"Minus draws the bottom half"],[`Same x, opposite y`,"(2, 1) and (2, −1)"]],
- chk:{q:`Solve x = 3y² for y.`,o:["y = ±√(x/3)","y = ±√(3x)","y = √(x/3)","y = ±3√x"],a:0,why:"Divide by 3: y² = x/3. Then square root with ±. (Multiplying by 3 would be the wrong direction.)"}},
-{hw:"5.3 · Circles",t:"x² + y² = r²: solve for y",rule:`A circle is two radical functions too.<br>Get y² alone, root with ±: + is the top half, − the bottom.`,
- prob:`x<sup>2</sup> + y<sup>2</sup> = 16<div id="lAnim"></div>`,
- anim:{x:[-5,5],y:[-5,5],n:2,base:{pt:0,pb:0,d0:0,d1:0},
-  frames:[{},{d0:1},{},{},{pt:1},{pb:1},{d1:1}],
-  els:[{t:"c",f:(S,x)=>Math.sqrt(16-x*x),d:()=>[-4,4],col:"var(--root)",p:S=>S.pt},{t:"c",f:(S,x)=>-Math.sqrt(16-x*x),d:()=>[-4,4],col:"var(--pow)",p:S=>S.pb},
-   l3dot(0,4,"d0",1,{dx:8,dy:4}),l3dot(0,-4,"d0",1,{dx:8,dy:4}),l3dot(4,0,"d1",1,{dx:-4,dy:-9,an:"end"}),l3dot(-4,0,"d1",1,{dx:4,dy:-9,an:"start"})]},
- steps:[[`x = 0: y² = 16  →  y = ±4`,"Warm-up: top and bottom points"],[`y² = 16 − x²`,"Subtract x² from both sides"],[`y = ±√(16 − x²)`,"Root the whole right side"],[`Top: y = +√(16 − x²)`,"Plus draws the top half"],[`Bottom: y = −√(16 − x²)`,"Minus draws the bottom half"],[`Radius 4, since 16 = 4²`,"The sides are (±4, 0)"]],
- chk:{q:`Solve x² + y² = 9 for y.`,o:["y = ±√(9 − x²)","y = ±√(x² − 9)","y = ±(3 − x)","y = ±√(3 − x²)"],a:0,why:"Subtract x²: y² = 9 − x². Square root the whole thing. You can't take the root of each term separately."}}];
+{hw:"5.3 · Other roots",t:"Cube roots, fourth roots and the 1/3 exponent",rule:`x^(1/3) means ∛x, x^(1/4) means ∜x.<br>Even roots need x ≥ 0. Odd roots take any x.`,
+ prob:`h(x) = ∜x  and  g(x) = −3(x + 1)^(1/3)<div id="lAnim"></div>`,
+ anim:{x:[-6,18],y:[-7,4],n:4,base:{m:1,p:0,c:0,d0:0,d1:0,d2:0,e0:0,e1:0,e2:0},
+  frames:[{},{},{d0:1,d1:1,d2:1,p:1},{},{m:.2,d0:0,d1:0,d2:0},{c:1,e0:1,e1:1,e2:1},{}],
+  els:[{t:"c",f:(S,x)=>Math.pow(Math.max(x,0),.25),d:()=>[0,19],col:"var(--root)",op:S=>S.m,p:S=>S.p},{t:"c",f:(S,x)=>-3*Math.cbrt(x+1),d:()=>[-7,19],col:"var(--pow)",op:S=>S.c},
+   l3dot(0,0,"d0",1,{dx:6,dy:-8}),l3dot(1,1,"d1","",{}),l3dot(16,2,"d2",1,{dx:-6,dy:-8,an:"end"}),
+   l3dot(-2,3,"e0",1,{dx:6,dy:-8}),l3dot(-1,0,"e1",1,{dx:6,dy:-8}),l3dot(7,-6,"e2",1,{dx:-6,dy:-8,an:"end"})]},
+ steps:[[`Warm-up: 2⁴ = 16, so ∜16 = 2`,"A 4th root undoes a 4th power"],[`(0, 0)  (1, 1)  (16, 2)`,"Plot ∜x: it starts like √x"],[`Domain x ≥ 0, range y ≥ 0`,"Even roots can't take negatives"],[`(x + 1)^(1/3) = ∛(x + 1)`,"The 3 in 1/3 is the root"],[`−3∛(x + 1)`,"Left 1, flipped, stretched by 3"],[`Domain and range: all real numbers`,"Cube roots take any number"]],
+ chk:{q:`Find the domain and range of g(x) = −3(x + 1)^(1/3).`,o:["Domain: all real numbers; Range: all real numbers","Domain: x ≥ −1; Range: y ≤ 0","Domain: x ≥ −1; Range: all real numbers","Domain: all real numbers; Range: y ≤ 0"],a:0,why:"The exponent 1/3 is a cube root. Cube roots take any x and give any y, even after flipping, stretching and shifting."}},
+{hw:"5.3 · Matching graphs",t:"Match the graph",rule:`Read the start point (h, k) off the grid.<br>Inside goes x − h (backwards), outside goes + k.`,
+ prob:`Which rule is this? √(x + 3) − 3<div id="lAnim"></div>`,
+ anim:{x:[-7,9],y:[-5,5],n:2,base:{...L3B,sd:0,d0:0},
+  frames:[{},{k:3,ak:1},{k:0,ak:0,h:-3,ah:1},{k:-3,ak:1},{sd:1},{d0:1}],
+  els:[l3main(2,0,-7,9),l3ah(),l3ak(),l3start(),l3dot(-2,-2,"d0",1,{dx:6,dy:14})]},
+ steps:[[`Warm-up: √x + 3`,"Outside + 3: up 3, starts (0, 3)"],[`√(x + 3)`,"Inside + 3: left 3, starts (−3, 0)"],[`√(x + 3) − 3`,"Both: left 3 and down 3"],[`Start (−3, −3)`,"Read it off the grid"],[`Check x = −2`,"√(−2 + 3) − 3 = −2: on graph"]],
+ chk:{q:`Which rule matches a graph that starts at (4, −2)?`,o:["g(x) = √(x − 4) − 2","g(x) = √(x + 4) − 2","g(x) = √(x − 4) + 2","g(x) = √(x − 2) − 4"],a:0,why:"x = 4 comes from x − 4 inside (backwards). y = −2 comes from − 2 outside."}},
+{hw:"5.3 · Error analysis",t:"Spot the graphing mistake",rule:`Find where it SHOULD start, then compare.<br>Inside is backwards: x − 2 is RIGHT 2.`,
+ prob:`f(x) = √(x − 2) − 2<br>The student's graph starts at (−2, −2)<div id="lAnim"></div>`,
+ anim:{x:[-6,10],y:[-5,5],n:2,base:{...L3B,h:2,k:-2,m:0,par:0,w:1,vx:0,vy:0,ar:0,sd:0},
+  frames:[{},{},{vx:1},{vy:1},{m:1,sd:1},{ar:1}],
+  els:[{t:"c",f:(S,x)=>Math.sqrt(x+2)-2,d:()=>[-2,10],col:"var(--hot)",dash:1,op:S=>S.w},l3main(2,0,-6,10),
+   {t:"a",x1:2,y1:-5,x2:2,y2:5,nohead:1,dash:1,w:1.5,col:"var(--root)",op:S=>S.vx,lab:"x = 2",dx:4,dy:-75,an:"start"},
+   {t:"a",x1:-6,y1:-2,x2:10,y2:-2,nohead:1,dash:1,w:1.5,col:"var(--pow)",op:S=>S.vy},
+   {t:"a",x1:-2,y1:-2,x2:2,y2:-2,col:"var(--hot)",w:3,op:S=>S.ar,lab:"2 right",dy:-9},
+   l3dot(-2,-2,"w","(−2, −2)",{dx:-6,dy:14,an:"end"}),{t:"d",x:2,y:-2,op:S=>S.sd,col:"var(--ink)",lab:"(2, −2)",dx:6,dy:14}]},
+ steps:[[`The student started at (−2, −2)`,"Red dashed is the student's graph"],[`Warm-up: x − 2 = 0  →  x = 2`,"Where should √(x − 2) start?"],[`− 2 outside  →  y = −2`,"Outside works as written"],[`Correct start: (2, −2)`,"Right 2 and down 2"],[`Error: 2 LEFT, not 2 RIGHT`,"Minus inside means right"]],
+ chk:{q:`A student graphs f(x) = √(x + 3) + 1 starting at (3, 1). What is the error?`,o:["Shifted 3 right instead of 3 left","Shifted 1 up instead of 1 down","Reflected in the x-axis","Swapped the x- and y-coordinates"],a:0,why:"x + 3 = 0 gives x = −3, so it should start at (−3, 1). The student shifted 3 right instead of 3 left."}}];
 // Which skill each lesson trains (by lesson position). Every skill has at least one lesson.
-const LESSON_SKILL={"5.1":[["bottom"],["bottom"],["neg"],["bottom"],["entry"],["sols","iso","shift","order"],["line"]],"5.2":[["rules"],["rules"],["rules"],["rules"],["radmul"],["radmul"],["vars"],["vars"],["like"],["simp"]],"5.3":[["gparent"],["gparent"],["gshift"],["gshift","gstretch"],["gstretch"],["gstretch"],["gwrite"],["gdomain"],["gconic"],["gconic"]]};
+const LESSON_SKILL={"5.1":[["bottom"],["bottom"],["neg"],["bottom"],["entry"],["sols","iso","shift","order"],["line"]],"5.2":[["rules"],["rules"],["rules"],["rules"],["radmul"],["radmul"],["vars"],["vars"],["like"],["simp"]],"5.3":[["gparent"],["gparent"],["gshift"],["gshift","gstretch"],["gstretch"],["gstretch"],["gshift","gstretch"],["gdomain"],["gparent"],["gmatch"],["gerror"]]};
 const LEARNS={"5.1":LEARN51,"5.2":LEARN52,"5.3":LEARN53};
 let learnedBy=LS.get("learnedBy",null);if(!learnedBy){learnedBy={"5.1":[],"5.2":LS.get("learned52",[])};LS.set("learnedBy",learnedBy)}
 function LRN(){return LEARNS[selDay]}function LD(){return learnedBy[selDay]||(learnedBy[selDay]=[])}
