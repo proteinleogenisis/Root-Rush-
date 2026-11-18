@@ -1115,7 +1115,7 @@ function g53domain(v){
   const rg=a>0?"≥":"≤",nr=a>0?"≤":"≥",dm=`x ≥ ${g53n(h)}`,rn=`y ${rg} ${g53n(k)}`,hdr=nm+"(x) = "+gx,G=wkG(n,fnF(n,a,h,k),wkD(n,h),[h,k]);
   if(odd){const c=dr(all,all),ch=g53txt(c,[dr(`x ≥ ${g53n(h)}`,all),dr(all,`y ${rg} ${g53n(k)}`),dr(`x ≥ ${g53n(h)}`,`y ${rg} ${g53n(k)}`),dr(all,"y ≥ 0")]);
     return{...ch,words:1,q:`Find the domain and range of ${hdr}.`,ex:hdr,
-      walk:[[form==="exp"?`(${cH(hx(h))})^(1/3) = ∛(${hx(h)})`:"∛ of anything works",form==="exp"?"The exponent 1/3 is a cube root":"Even ∛(−8) = −2 is fine"],["Domain: all real numbers","No limit on x"],["Range: all real numbers","Up and down forever"],[G,"The graph never stops either way"]],
+      walk:[[form==="exp"?`(${cH(hx(h))})<sup>1/3</sup> = ∛(${hx(h)})`:"∛ of anything works",form==="exp"?"The exponent 1/3 is a cube root":"Even ∛(−8) = −2 is fine"],["Domain: all real numbers","No limit on x"],["Range: all real numbers","Up and down forever"],[G,"The graph never stops either way"]],
       why:"Cube roots take negatives, so nothing restricts x or y. Only square and 4th roots do."}}
   const word=n===2?"square":"4th";
   const w1=[`${cH(hx(h))} ≥ 0`,"The inside can't be negative"],w2=[dm,h===0?"Nothing added: start at 0":`Solve it: start at x = ${g53n(h)}`],
@@ -1335,7 +1335,7 @@ const LT_53=[
 // extra gparent / gdomain items for ∜x and the 1/3 exponent
 [["gparent"],()=>{const r=ri(2,3),t=TF();return{s:`y = ∜x passes through (${r**4}, ${t?r:r**2})`,t,why:`∜${r**4} = ${r} because ${r}⁴ = ${r**4}.`}}],
 [["gparent"],()=>{const t=TF();return{s:`The domain of y = ∜x is ${t?"x ≥ 0":"all real numbers"}`,t,why:"Even roots (square, 4th) need x ≥ 0. Only odd roots take any x."}}],
-[["gparent"],()=>{const h=ri(1,9),t=TF();return{s:`(x + ${h})^(1/3) is the same as ${t?"∛(x + "+h+")":"∛x + "+h}`,t,why:"The exponent 1/3 applies to everything in the parentheses, so the whole x + "+h+" is under the cube root."}}],
+[["gparent"],()=>{const h=ri(1,9),t=TF();return{s:`(x + ${h})<sup>1/3</sup> is the same as ${t?"∛(x + "+h+")":"∛x + "+h}`,t,why:"The exponent 1/3 applies to everything in the parentheses, so the whole x + "+h+" is under the cube root."}}],
 [["gdomain"],()=>{const k=ri(1,9),t=TF();return{s:`The domain of g(x) = ∜x − ${k} is ${t?"x ≥ 0":"x ≥ "+k}`,t,why:"The inside of the 4th root is just x, so x ≥ 0. The − "+k+" outside only moves the graph down."}}],
 [["gdomain"],()=>{const t=TF();return{s:`The range of g(x) = −3∛x is ${t?"all real numbers":"y ≤ 0"}`,t,why:"A cube root graph goes up and down forever, and flipping or stretching it keeps that."}}],
 // gdomain
@@ -1574,11 +1574,11 @@ const SKILLS=[
 {k:"order",n:"Order the steps",rule:"Peel from the outside in: ± the constant, ÷ the coefficient, root, then the inside ±.",ex:`3(x + 5)² + 20 = 47<br>−20 → ÷3 → √ → −5<br>x = −2 or −8`},
 {k:"spot",n:"Spot the mistake",rule:"Check each line: right root? Sign kept? ± added? Isolated before rooting?",ex:`64<sup>3/2</sup> = (∛64)² ✗<br>64<sup>3/2</sup> = (√64)³ = 512 ✓`},
 {k:"line",n:"Estimate the root",rule:"List whole numbers to that power and see which two the number lands between.",ex:`3³ = 27 &lt; 50 &lt; 64 = 4³<br>so ∛50 is between 3 and 4`},
-{k:"gparent",L:"5.3",n:"Parent root graphs",rule:`y = √x and y = ∜x start at (0, 0) and only exist for x ≥ 0. y = ∛x goes through (0, 0) and exists for every x. A power of 1/3 is a cube root: (x + 1)^(1/3) = ∛(x + 1).`,ex:`√x: (0, 0) (1, 1) (4, 2) (9, 3)<br>∜x: (0, 0) (1, 1) (16, 2)<br>∛x: (−8, −2) (0, 0) (8, 2)`},
+{k:"gparent",L:"5.3",n:"Parent root graphs",rule:`y = √x and y = ∜x start at (0, 0) and only exist for x ≥ 0. y = ∛x goes through (0, 0) and exists for every x. A power of 1/3 is a cube root: (x + 1)<sup>1/3</sup> = ∛(x + 1).`,ex:`√x: (0, 0) (1, 1) (4, 2) (9, 3)<br>∜x: (0, 0) (1, 1) (16, 2)<br>∛x: (−8, −2) (0, 0) (8, 2)`},
 {k:"gshift",L:"5.3",n:"Shifts of radical graphs",rule:`In g(x) = √(x − <span class="ch">h</span>) + <span class="ck">k</span>: the number inside works backwards (x − 3 is RIGHT 3), the number outside is as written (+ 2 is UP 2). The start moves from (0, 0) to (h, k). To get two points on g, move two parent points the same way.`,ex:`√(x + 1) + 8: left 1, up 8<br>(0, 0) → (−1, 8), (1, 1) → (0, 9)`},
 {k:"gstretch",L:"5.3",n:"Stretches and reflections",rule:`Outside the root = vertical (a). Inside, with x = horizontal, and backwards (b). A minus outside flips over the x-axis; a minus inside flips over the y-axis. Describe the stretch or flip, then the translation.`,ex:`2√(x − 1): vertical stretch by 2, right 1<br>−∛x − 1: reflection in the x-axis, down 1`},
 {k:"gmatch",L:"5.3",n:"Match the graph",rule:`Find the start point (h, k) on the grid. Inside the root goes x − h (backwards), outside goes + k. Look-alikes: √(x + 3) moves LEFT, √x + 3 moves UP.`,ex:`starts (−3, −3): √(x + 3) − 3<br>starts (3, 0): √(x − 3)  ·  starts (0, 3): √x + 3`},
-{k:"gdomain",L:"5.3",n:"Domain and range",rule:`Inside of a square or 4th root must be ≥ 0, which gives the domain. The range starts at k: up (y ≥ k) if a is positive, down (y ≤ k) if a is negative. Cube roots: all real numbers.`,ex:`√x + 4: Domain x ≥ 0 · Range y ≥ 4<br>(1/5)√(x − 3): x ≥ 3 · y ≥ 0<br>−3(x + 1)^(1/3): all real numbers`},
+{k:"gdomain",L:"5.3",n:"Domain and range",rule:`Inside of a square or 4th root must be ≥ 0, which gives the domain. The range starts at k: up (y ≥ k) if a is positive, down (y ≤ k) if a is negative. Cube roots: all real numbers.`,ex:`√x + 4: Domain x ≥ 0 · Range y ≥ 4<br>(1/5)√(x − 3): x ≥ 3 · y ≥ 0<br>−3(x + 1)<sup>1/3</sup>: all real numbers`},
 {k:"gerror",L:"5.3",n:"Spot the graphing mistake",rule:`Work out where the graph SHOULD start, then compare. A wrong start usually means a shift went the wrong way: inside works backwards (x − 2 is RIGHT 2).`,ex:`f(x) = √(x − 2) − 2 starts at (2, −2)<br>A graph starting at (−2, −2) shifted 2 left instead of 2 right`}];
 const ROAD=[["5.1","nth roots and rational exponents","Day 1"],["5.2","Properties of rational exponents and radicals","Day 2"],["5.3","Graphing radical functions","Day 3"],["5.4","Solving radical equations and inequalities","Next"],["Test","Review and unit test","Later"]];
 let sk=LS.get("skills",{}),hist=LS.get("hist",[]),openSkill=null;
@@ -2121,15 +2121,15 @@ const LEARN53=[
    l3start()]},
  steps:[[`Warm-up: x − 5 ≥ 0  →  x ≥ 5`,"Domain of √(x − 5)"],[`Now: −2√(x + 3) + 1`,"Same idea, bigger rule"],[`x + 3 ≥ 0`,"The inside can't be negative"],[`Domain: x ≥ −3`,"Subtract 3. Start at (−3, 1)"],[`a = −2 is negative`,"The graph goes DOWN from y = 1"],[`Range: y ≤ 1`,"1 or less"]],
  chk:{q:`Find the domain and range of g(x) = 3√(x − 2) − 4.`,o:["Domain: x ≥ 2; Range: y ≥ −4","Domain: x ≥ −2; Range: y ≥ −4","Domain: x ≥ 2; Range: y ≤ −4","Domain: x ≥ −4; Range: y ≥ 2"],a:0,why:"x − 2 ≥ 0 gives x ≥ 2. The graph starts at y = −4, and a = 3 is positive, so it goes up: y ≥ −4."}},
-{hw:"5.3 · Other roots",t:"Cube roots, fourth roots and the 1/3 exponent",rule:`x^(1/3) means ∛x, x^(1/4) means ∜x.<br>Even roots need x ≥ 0. Odd roots take any x.`,
- prob:`h(x) = ∜x  and  g(x) = −3(x + 1)^(1/3)<div id="lAnim"></div>`,
+{hw:"5.3 · Other roots",t:"Cube roots, fourth roots and the 1/3 exponent",rule:`x<sup>1/3</sup> means ∛x, x<sup>1/4</sup> means ∜x.<br>Even roots need x ≥ 0. Odd roots take any x.`,
+ prob:`h(x) = ∜x  and  g(x) = −3(x + 1)<sup>1/3</sup><div id="lAnim"></div>`,
  anim:{x:[-6,18],y:[-7,4],n:4,base:{m:1,p:0,c:0,d0:0,d1:0,d2:0,e0:0,e1:0,e2:0},
   frames:[{},{},{d0:1,d1:1,d2:1,p:1},{},{m:.2,d0:0,d1:0,d2:0},{c:1,e0:1,e1:1,e2:1},{}],
   els:[{t:"c",f:(S,x)=>Math.pow(Math.max(x,0),.25),d:()=>[0,19],col:"var(--root)",op:S=>S.m,p:S=>S.p},{t:"c",f:(S,x)=>-3*Math.cbrt(x+1),d:()=>[-7,19],col:"var(--pow)",op:S=>S.c},
    l3dot(0,0,"d0",1,{dx:6,dy:-8}),l3dot(1,1,"d1","",{}),l3dot(16,2,"d2",1,{dx:-6,dy:-8,an:"end"}),
    l3dot(-2,3,"e0",1,{dx:6,dy:-8}),l3dot(-1,0,"e1",1,{dx:6,dy:-8}),l3dot(7,-6,"e2",1,{dx:-6,dy:-8,an:"end"})]},
- steps:[[`Warm-up: 2⁴ = 16, so ∜16 = 2`,"A 4th root undoes a 4th power"],[`(0, 0)  (1, 1)  (16, 2)`,"Plot ∜x: it starts like √x"],[`Domain x ≥ 0, range y ≥ 0`,"Even roots can't take negatives"],[`(x + 1)^(1/3) = ∛(x + 1)`,"The 3 in 1/3 is the root"],[`−3∛(x + 1)`,"Left 1, flipped, stretched by 3"],[`Domain and range: all real numbers`,"Cube roots take any number"]],
- chk:{q:`Find the domain and range of g(x) = −3(x + 1)^(1/3).`,o:["Domain: all real numbers; Range: all real numbers","Domain: x ≥ −1; Range: y ≤ 0","Domain: x ≥ −1; Range: all real numbers","Domain: all real numbers; Range: y ≤ 0"],a:0,why:"The exponent 1/3 is a cube root. Cube roots take any x and give any y, even after flipping, stretching and shifting."}},
+ steps:[[`Warm-up: 2⁴ = 16, so ∜16 = 2`,"A 4th root undoes a 4th power"],[`(0, 0)  (1, 1)  (16, 2)`,"Plot ∜x: it starts like √x"],[`Domain x ≥ 0, range y ≥ 0`,"Even roots can't take negatives"],[`(x + 1)<sup>1/3</sup> = ∛(x + 1)`,"The 3 in 1/3 is the root"],[`−3∛(x + 1)`,"Left 1, flipped, stretched by 3"],[`Domain and range: all real numbers`,"Cube roots take any number"]],
+ chk:{q:`Find the domain and range of g(x) = −3(x + 1)<sup>1/3</sup>.`,o:["Domain: all real numbers; Range: all real numbers","Domain: x ≥ −1; Range: y ≤ 0","Domain: x ≥ −1; Range: all real numbers","Domain: all real numbers; Range: y ≤ 0"],a:0,why:"The exponent 1/3 is a cube root. Cube roots take any x and give any y, even after flipping, stretching and shifting."}},
 {hw:"5.3 · Matching graphs",t:"Match the graph",rule:`Read the start point (h, k) off the grid.<br>Inside goes x − h (backwards), outside goes + k.`,
  prob:`Which rule is this? √(x + 3) − 3<div id="lAnim"></div>`,
  anim:{x:[-7,9],y:[-5,5],n:2,base:{...L3B,sd:0,d0:0},
@@ -2152,6 +2152,10 @@ const LEARN53=[
 const LESSON_SKILL={"5.1":[["bottom"],["bottom"],["neg"],["bottom"],["entry"],["sols","iso","shift","order"],["line"]],"5.2":[["rules"],["rules"],["rules"],["rules"],["radmul"],["radmul"],["vars"],["vars"],["like"],["simp"]],"5.3":[["gparent"],["gparent"],["gshift"],["gshift","gstretch"],["gstretch"],["gstretch"],["gshift","gstretch"],["gdomain"],["gparent"],["gmatch"],["gerror"]]};
 const LEARNS={"5.1":LEARN51,"5.2":LEARN52,"5.3":LEARN53};
 let learnedBy=LS.get("learnedBy",null);if(!learnedBy){learnedBy={"5.1":[],"5.2":LS.get("learned52",[])};LS.set("learnedBy",learnedBy)}
+// Nov 18: Day 3 lessons 9 and 10 (positions 8, 9) became new lessons (roots, match the graph) when Day 3 was matched
+// to the real homework. Old saves (local or from the cloud) without the "5.3v2" marker get those two un-marked once.
+function learned53v2(L){if(!L||L["5.3v2"])return L;if(Array.isArray(L["5.3"]))L["5.3"]=L["5.3"].filter(i=>i!==8&&i!==9);L["5.3v2"]=[1];return L}
+learned53v2(learnedBy);LS.set("learnedBy",learnedBy);
 function LRN(){return LEARNS[selDay]}function LD(){return learnedBy[selDay]||(learnedBy[selDay]=[])}
 let li=0,lStep=0,lState=null;
 function openLearn(i){li=i==null?Math.max(0,LRN().findIndex((_,j)=>!LD().includes(j))):i;if(li<0)li=0;lStep=0;lState=null;renderLearn();show("learn");window.scrollTo(0,0)}
@@ -2199,6 +2203,7 @@ function mergeSave(c){
   (c.hist||[]).forEach(h=>{if(h&&!seen.has(key(h))){hist.push({...h});seen.add(key(h))}});
   hist.sort((a,b)=>(a.id||0)-(b.id||0));hist=hist.slice(-30);
   for(const d in (c.passed||{}))if(c.passed[d])passed[d]=true;
+  learned53v2(c.learnedBy);
   for(const d in (c.learnedBy||{}))learnedBy[d]=[...new Set([...(learnedBy[d]||[]),...(c.learnedBy[d]||[])])];
   if(c.econ&&typeof c.econ==="object")econMerge(c.econ);
   saveLocal();
