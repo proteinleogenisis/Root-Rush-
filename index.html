@@ -336,7 +336,8 @@ body.calc-open.paper-only .wrap{padding-bottom:440px}
 .wk-head{font-size:16px;line-height:1.5}
 .wk-here{background:var(--badbg);border-radius:8px;padding-left:6px;padding-right:6px}
 .wk-tag{color:var(--bad);font-style:normal;font-weight:700}
-.wk-sum{margin-top:12px;font-size:15px;border-top:1px solid var(--line);padding-top:10px}
+.wk-ansrow{display:block;margin-top:8px}.wk-ans{font-size:22px;line-height:1.4}
+.wk-sum{margin-top:12px;font-size:16px;line-height:1.5;background:var(--goodbg);border-left:4px solid var(--good);border-radius:8px;padding:10px 12px}.wk-sumh{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--good);margin-bottom:4px}
 .why .l-step .mono{font-size:17px}
 .quizbtn{background:var(--good);border-color:var(--good);margin-bottom:6px}
 #game.quizmode .race,#game.quizmode #mt{display:none}
@@ -612,6 +613,9 @@ function xp(b,num,den){if(num===0)return "1";const g=gcd(num,den);num/=g;den/=g;
   const s=num<0?"−"+(-num):String(num);return den===1?(num===1?`${b}`:`${b}<sup>${s}</sup>`):`${b}<sup>${s}/${den}</sup>`}
 function co(n){return n<0?"−"+(-n):String(n)}
 function uniq(c,cands){const out=[];cands.forEach(x=>{if(x!==c&&!out.includes(x)&&out.length<3)out.push(x)});return out}
+// uniq plus a reason per wrong choice: cands = [[text, why the student might have picked it], ...]. Returns {w, trap}; a text that two different slips would produce gets no reason.
+function uniqT(c,cands){const w=[],seen={};cands.forEach(([x,r])=>{if(x===c||!r)return;if(!(x in seen))seen[x]=r;else if(seen[x]!==r)seen[x]=null});
+  cands.forEach(([x])=>{if(x!==c&&!w.includes(x)&&w.length<3)w.push(x)});const trap={};w.forEach(x=>{if(seen[x])trap[x]=seen[x]});return{w,trap}}
 // Pair method for simplest form: break the number into small primes; every group of n matching primes escapes the root as one number
 function primeSplit(x){const f=[];for(let d=2;x>1;){if(x%d===0){f.push(d);x/=d}else d++}return f}
 function pairParts(x,n){const f=primeSplit(x),cnt={};f.forEach(d=>cnt[d]=(cnt[d]||0)+1);const groups=[],left=[];
@@ -620,58 +624,72 @@ function pairHtml(x,n){const{groups,left}=pairParts(x,n);return groups.map(d=>`<
 const GEN={
 entry(){
   if(Math.random()<.4){const b=pick([20,35,50,85,120,187,240,300]),n=pick([3,4,5,6]),m=pick([1,2,3]);const v=b**(m/n),c=v.toFixed(2);
-    return{walk:[[`${b}<sup>${m}/${n}</sup>`,"Use the calculator"],[`${b} ^ (${m} ÷ ${n})`,"Type it with the fraction in parentheses"],[`≈ ${c}`,"Round to two decimals"]],
-    q:`Use the calculator: ${b}<sup>${m}/${n}</sup> ≈ ?`,ex:`${b}${sup(m,n)}`,c,w:uniq(c,[(b**m/n).toFixed(2),(b**(1/n)*m).toFixed(2),(b**(m/(n+1))).toFixed(2),(b**(m/(n-1))).toFixed(2),(b**(1/n)).toFixed(2),(b**(n/m)).toFixed(2),(b*m/n).toFixed(2)]),
-    why:`Type ${b} ^ (${m} ÷ ${n}). Without the parentheses the calculator gives ${(b**m/n).toFixed(2)}.`};}
+    const U=uniqT(c,[[(b**m/n).toFixed(2),`That's ${b}^${m} ÷ ${n}: no parentheses, so it divided after the power.`],[(b**(1/n)*m).toFixed(2),`You took the root, then multiplied by ${m}. The ${m} is a power.`],[(b**(m/(n+1))).toFixed(2),`You used root ${n+1}. The root is the bottom number, ${n}.`],[(b**(m/(n-1))).toFixed(2),`You used root ${n-1}. The root is the bottom number, ${n}.`],[(b**(1/n)).toFixed(2),`You left out the power ${m} on top.`],[(b**(n/m)).toFixed(2),`You flipped the fraction. The top ${m} is the power.`],[(b*m/n).toFixed(2),`That's ${b} × ${m} ÷ ${n}. The fraction is an exponent, so use ^.`]]);
+    return{walk:[[`${b}<sup>${P(m)}/${R(n)}</sup>`,"The whole fraction is the exponent"],[`${b} ^ (${P(m)} ÷ ${R(n)})`,"Type it with parentheses"],[`≈ ${c}`,"Round to two decimals"]],
+    q:`Use the calculator: ${b}<sup>${m}/${n}</sup> ≈ ?`,ex:`${b}${sup(m,n)}`,c,w:U.w,trap:U.trap,
+    why:`Type ${b} ^ (${m} ÷ ${n}) with parentheses, or you get ${(b**m/n).toFixed(2)}.`};}
   const b=pick([8,16,27,32,64,81,125,243]),n=ri(2,5);let m=ri(1,4);if(m===n)m=n+1;
-  return{walk:[[`${b}<sup>${m}/${n}</sup>`,"The exponent is the whole fraction, so it has to stay together"],[`${b} ^ (${m}/${n})`,"Put the fraction in parentheses"],[`${b} ^ ${m} / ${n} = ${+(b**m/n).toFixed(2)}`,"Without them the calculator does the power first, then divides. Wrong"],[`${b} ^ (${m}/${n}) ≈ ${+(b**(m/n)).toFixed(2)}`,"With them you get the right value"]],q:`Which keypresses give ${b}<sup>${m}/${n}</sup>?`,ex:`${b}${sup(m,n)}`,
-  c:`${b} ^ (${m}/${n})`,w:[`${b} ^ ${m} / ${n}`,`${b} ^ (${n}/${m})`,`${b} × (${m}/${n})`],
-  why:`A fraction exponent needs parentheses. Without them the calculator does ${b}<sup>${m}</sup> first, then divides by ${n}.<span class="mono">${b} ^ (${m}/${n}) ✓</span>And the fraction stays in its original order: ${P("top")} over ${R("bottom")}.`};
+  const cw=[`${b} ^ ${m} / ${n}`,`${b} ^ (${n}/${m})`,`${b} × (${m}/${n})`];
+  return{walk:[[`${b}<sup>${P(m)}/${R(n)}</sup>`,"The whole fraction is the exponent"],[`${b} ^ (${P(m)} / ${R(n)})`,"So put it in parentheses"],[`${b} ^ ${m} / ${n} = ${+(b**m/n).toFixed(2)}`,"Without them: wrong. Power first, then ÷"]],q:`Which keypresses give ${b}<sup>${m}/${n}</sup>?`,ex:`${b}${sup(m,n)}`,
+  c:`${b} ^ (${m}/${n})`,w:cw,trap:{[cw[0]]:`No parentheses: the calculator does ${b}^${m} first, then divides by ${n}.`,[cw[1]]:`That flips it. The top ${m} is the power, the bottom ${n} is the root.`,[cw[2]]:`× multiplies. A fraction exponent needs the ^ key.`},
+  why:`A fraction exponent needs parentheses, or the calculator divides after the power.`};
 },
 bottom(){
   const r=ri(2,5),n=r===5?ri(2,3):ri(2,4);let m=ri(1,3);if(m===n)m=n===3?2:3;
   const b=r**n,ans=r**m;
   // real slips: root times power, forgot the power, forgot the root, power times index, wrong power on the root
-  const w=new Set();[r*m,r,b,ans*n,r**(n-m>0?n-m:m+1),r**(m+1),Math.round(b*m/n),r+m,ans+r,b-1,ans+n,ans+r+m].forEach(v=>{if(v!==ans&&v>0&&w.size<3)w.add(v)});
-  return{walk:[[`${b}<sup>${P(m)}/${R(n)}</sup>`,`Bottom ${n} = the root, top ${m} = the power`],[`(${R(rad(n,b))})<sup>${P(m)}</sup>`,"Root first, then the power"],[`${r}<sup>${m}</sup>`,`${rad(n,b)} = ${r} because ${r}<sup>${n}</sup> = ${b}`],[`${ans}`,`${r}<sup>${m}</sup> = ${ans}`]],q:`What does ${b}<sup>${m}/${n}</sup> equal?`,ex:`${b}${sup(m,n)}`,c:String(ans),w:[...w].map(String),
-  why:`The ${R("bottom")} is the root, the ${P("top")} is the power. Root first keeps it small:<span class="mono">${R(n===2?"√":n+"th root of")} ${b} = ${r}</span><span class="mono">${r}${P("^"+m)} = ${ans}</span>`};
+  const U=uniqT(String(ans),[[r*m,`That's ${r} × ${m}: you multiplied instead of using ${m} as a power.`],[r,`That's just the root ${r}. You forgot the power ${m}.`],[b,`That's ${b} itself. You never took the root.`],[ans*n,`That's ${ans} × ${n}: you multiplied by the bottom number.`],[r**(n-m>0?n-m:m+1),`You used the wrong power. The top number ${m} is the power.`],[r**(m+1),`The power is off by one. The top number is ${m}.`],[Math.round(b*m/n),`That's ${b} × ${m} ÷ ${n}: you did arithmetic, not root and power.`],[r+m,`That's ${r} + ${m}: you added the root and the power.`],[ans+r],[b-1],[ans+n],[ans+r+m]].filter(x=>x[0]>0).map(x=>[String(x[0]),x[1]]));
+  return{walk:[[`${b}<sup>${P(m)}/${R(n)}</sup>`,"Bottom = root, top = power"],[`(${R(rad(n,b))})<sup>${P(m)}</sup>`,"Root first, then the power"],[`${R(r)}<sup>${P(m)}</sup>`,`${rad(n,b)} = ${r}, since ${r}<sup>${n}</sup> = ${b}`],[`${ans}`,`${r}<sup>${m}</sup> = ${ans}`]],q:`What does ${b}<sup>${m}/${n}</sup> equal?`,ex:`${b}${sup(m,n)}`,c:String(ans),w:U.w,trap:U.trap,
+  why:`The ${R("bottom ("+n+")")} is the root and the ${P("top ("+m+")")} is the power: ${rad(n,b)} = ${r}, then ${r}<sup>${m}</sup> = ${ans}.`};
 },
 neg(){
   const n=ri(2,5),r=ri(2,n>=4?3:4),b=r**n,odd=n%2===1;
-  return{walk:odd?[[`(−${b})<sup>1/${R(n)}</sup>`,`The root is ${n}, which is odd`],[rad(n,`(−${b})`),"Odd roots of negatives are allowed"],[`−${r}`,`Check: (−${r})<sup>${n}</sup> = −${b}`]]:[[`(−${b})<sup>1/${R(n)}</sup>`,`The root is ${n}, which is even`],[rad(n,`(−${b})`),`Is there a number that gives −${b} when raised to the ${n}th power?`],["Not a real number",`No: (${r})<sup>${n}</sup> and (−${r})<sup>${n}</sup> are both +${b}`]],q:`What is (−${b})<sup>1/${n}</sup>?`,ex:`(−${b})<sup>1/${R(n)}</sup>`,c:odd?`−${r}`:"Not a real number",
-  w:odd?[`${r}`,"Not a real number",`±${r}`]:[`−${r}`,`${r}`,`±${r}`],
-  why:odd?`${R(n)} is odd, so a negative works. Negative × itself an odd number of times stays negative:<span class="mono">(−${r})^${n} = −${b}</span>`
-  :`${R(n)} is even. Any number to an even power is positive, so nothing gives −${b}.<span class="mono">even root of a negative → not real</span>Watch out: typing −${b} ^ (1/${n}) without parentheses shows −${r}. That's the calculator lying to you.`};
+  const w=odd?[`${r}`,"Not a real number",`±${r}`]:[`−${r}`,`${r}`,`±${r}`];
+  const trap=odd?{[w[0]]:`You dropped the minus. An odd root keeps it.`,[w[1]]:`Odd roots of negatives do work.`,[w[2]]:`± is for solving x^${n} = k. A root has one answer.`}
+    :{[w[0]]:`(−${r})^${n} is +${b}, not −${b}. An even root has no answer.`,[w[1]]:`${r}^${n} is +${b}, not −${b}.`,[w[2]]:`Neither ${r} nor −${r} gives −${b}.`};
+  return{walk:odd?[[`(−${b})<sup>1/${R(n)}</sup>`,`The root is ${R(n)}: odd`],[rad(n,`(−${b})`),"Odd root: a negative is allowed"],[`−${r}`,`Check: (−${r})<sup>${n}</sup> = −${b}`]]:[[`(−${b})<sup>1/${R(n)}</sup>`,`The root is ${R(n)}: even`],[rad(n,`(−${b})`),`Try ${r} and −${r} to the ${NTH[n]} power`],["Not a real number",`Both give +${b}, never −${b}`]],q:`What is (−${b})<sup>1/${n}</sup>?`,ex:`(−${b})<sup>1/${R(n)}</sup>`,c:odd?`−${r}`:"Not a real number",
+  w,trap,
+  why:odd?`${R(n)} is odd, so the negative stays: (−${r})<sup>${n}</sup> = −${b}.`
+  :`${R(n)} is even, so nothing gives −${b}. It is not a real number.`};
 },
 sols(){
-  const n=ri(2,5),r=ri(2,n>=4?3:5),even=n%2===0,negK=Math.random()<.3,k=negK?-(r**n):r**n;
+  const n=ri(2,5),r=ri(2,n>=4?3:5),even=n%2===0,negK=Math.random()<.3,k=negK?-(r**n):r**n,kt=String(k).replace("-","−");
   let c;if(even&&!negK)c=`x = ±${r}`;else if(even&&negK)c="No real solution";else if(!even&&!negK)c=`x = ${r}`;else c=`x = −${r}`;
   const all=[`x = ${r}`,`x = −${r}`,`x = ±${r}`,"No real solution"];
-  const why=even&&!negK?`The power ${P(n)} is even, so the sign disappears. Both work:<span class="mono">${r}^${n} = ${k} and (−${r})^${n} = ${k}</span>The calculator only shows ${r}. Adding the ± is your job.`
-  :even?`An even power can never be negative, so nothing works.<span class="mono">x^${n} ≥ 0 always</span>`
-  :negK?`The power ${P(n)} is odd, so the sign survives. Only the negative works:<span class="mono">(−${r})^${n} = ${k}</span>`
-  :`The power ${P(n)} is odd, so there's one answer and no ±:<span class="mono">(−${r})^${n} = −${r**n}, so that doesn't work</span>`;
-  return{walk:[[`x<sup>${n}</sup> = ${k}`,"Undo the power with a root"],...(even&&negK?[["No real solution",`x<sup>${n}</sup> can never be negative, because the power is even`]]:[[`x = ${rad(n,String(Math.abs(k)))}${negK?" (negative)":""}`,`Take the ${ROOT[n]} root`],[c,even?`Even power: ${r} and −${r} both work`:`Odd power: one answer, and the sign stays`]])],q:`Solve x<sup>${n}</sup> = ${k}`,ex:`x<sup>${P(n)}</sup> = ${k}`,c,w:all.filter(a=>a!==c),why};
+  const T=even&&!negK?{[all[0]]:`That's only the positive one. −${r} works too.`,[all[1]]:`That's only the negative one. ${r} works too.`,[all[3]]:`A positive number does have a ${ROOT[n]} root.`}
+    :even?{[all[0]]:`${r}^${n} is +${r**n}, not ${kt}. An even power is never negative.`,[all[1]]:`(−${r})^${n} is +${r**n}, not ${kt}. An even power is never negative.`,[all[2]]:`Neither ${r} nor −${r} gives ${kt}. An even power is never negative.`}
+    :!negK?{[all[1]]:`(−${r})^${n} is negative. ${kt} is positive.`,[all[2]]:`± only works for an even power. ${n} is odd.`,[all[3]]:`An odd power can be anything, so there is an answer.`}
+    :{[all[0]]:`${r}^${n} is positive. ${kt} needs the negative.`,[all[2]]:`± only works for an even power. ${n} is odd.`,[all[3]]:`An odd power can be negative, so −${r} works.`};
+  const why=even&&!negK?`The power ${P(n)} is even, so both ${r} and −${r} work. Add the ±.`
+  :even?`An even power is never negative, so there is no real solution.`
+  :`The power ${P(n)} is odd, so there is one answer and no ±.`;
+  return{walk:even&&negK?[[`x<sup>${P(n)}</sup> = ${kt}`,"Can anything to this power be negative?"],[`x<sup>${P(n)}</sup> ≥ 0`,`An even power is never negative`],["No real solution",`No number to the ${NTH[n]} power gives ${kt}`]]
+    :[[`x<sup>${P(n)}</sup> = ${kt}`,`Undo the power with a ${R("root")}`],[`x = ${R(rad(n,negK?kt:String(k)))}`,`The ${ROOT[n]} root of ${Math.abs(k)} is ${r}`],[c,even?`Even power: ${r} and −${r} both work`:negK?`Odd power: the negative stays`:`Odd power: one answer, no ±`]],
+  q:`Solve x<sup>${n}</sup> = ${k}`,ex:`x<sup>${P(n)}</sup> = ${k}`,c,w:all.filter(a=>a!==c),trap:T,why};
 },
 iso(){
   const a=ri(2,6),n=ri(2,4),r=ri(2,n===4?3:5),c=ri(4,60),d=a*r**n+c,rt=ROOT[n];
-  return{walk:[[`${a}x<sup>${n}</sup> + ${c} = ${d}`,"Goal: get x<sup>"+n+"</sup> by itself first"],[`${a}x<sup>${n}</sup> = ${d-c}`,`Subtract ${c} from both sides`],[`x<sup>${n}</sup> = ${r**n}`,`Divide both sides by ${a}`],[`x = ${n%2===0?"±":""}${r}`,`Now take the ${rt} root`]],words:1,q:`${a}x<sup>${n}</sup> + ${c} = ${d}. What do you do?`,ex:`${a}x<sup>${P(n)}</sup> + ${c} = ${d}`,
+  const cw=[[`Take the ${rt} root, then subtract ${c} and divide by ${a}`,`The root goes last. The + ${c} and × ${a} come off first.`],[`Divide by ${a}, subtract ${c}, then take the ${rt} root`,`Dividing first also divides the ${c}. Subtract ${c} first.`],[`Subtract ${c}, multiply by ${a}, then take the ${rt} root`,`To undo × ${a}, divide. Don't multiply.`],[`Subtract ${c}, take the ${rt} root, then divide by ${a}`,`The root comes last. Divide by ${a} before it.`]];
+  const ch=shuffle(cw.slice()).slice(0,3),trap={};ch.forEach(x=>trap[x[0]]=x[1]);
+  return{walk:[[`${a}x<sup>${P(n)}</sup> + ${c} = ${d}`,`Get x<sup>${P(n)}</sup> by itself first`],[`${a}x<sup>${P(n)}</sup> = ${d-c}`,`Subtract ${c} from both sides`],[`x<sup>${P(n)}</sup> = ${r**n}`,`Divide both sides by ${a}`],[`x = ${n%2===0?"±":""}${r}`,`Last: take the ${R(rt+" root")}`]],words:1,q:`${a}x<sup>${n}</sup> + ${c} = ${d}. What do you do?`,ex:`${a}x<sup>${P(n)}</sup> + ${c} = ${d}`,
   c:`Subtract ${c}, divide by ${a}, then take the ${rt} root`,
-  w:shuffle([`Take the ${rt} root, then subtract ${c} and divide by ${a}`,`Divide by ${a}, subtract ${c}, then take the ${rt} root`,`Subtract ${c}, multiply by ${a}, then take the ${rt} root`,`Subtract ${c}, take the ${rt} root, then divide by ${a}`]).slice(0,3),
-  why:`Get x<sup>${n}</sup> alone first: undo the + ${c}, then the × ${a}, and the ${P("power")} goes last:<span class="mono">x^${n} = (${d} − ${c}) / ${a} = ${r**n}</span><span class="mono">x = ${R(rt+" root")} of ${r**n} = ${r}</span>If you divide first, the ${c} gets divided too, so it's not ${c} anymore. ${n%2===0?`The power is even, so the full answer is x = ±${r}.`:""}`};
+  w:ch.map(x=>x[0]),trap,
+  why:`Get x<sup>${n}</sup> alone first (undo + ${c}, then × ${a}). The ${P("power")} comes off last.`};
 },
 shift(){
   const n=pick([3,5]),h=ri(2,15),k=ri(20,400),rt=ROOT[n];
-  return{walk:[[`(x + ${h})<sup>${n}</sup> = ${k}`,"The power was the last thing done to x, so undo it first"],[`x + ${h} = ${k}<sup>1/${n}</sup> ≈ ${(k**(1/n)).toFixed(2)}`,`Take the ${rt} root`],[`x ≈ ${(k**(1/n)-h).toFixed(2)}`,`Then subtract ${h}`]],words:1,q:`(x + ${h})<sup>${n}</sup> = ${k}. What do you do?`,ex:`(x + ${h})<sup>${P(n)}</sup> = ${k}`,
-  c:`Take the ${rt} root, then subtract ${h}`,w:shuffle([`Subtract ${h}, then take the ${rt} root`,`Take the ${rt} root, then add ${h}`,`Subtract ${h} from ${k}, then take the ${rt} root`,`Divide ${k} by ${n}, then subtract ${h}`]).slice(0,3),
-  why:`Undo things in reverse order. The ${P("power")} happened last, so the root goes first, then subtract ${h}:<span class="mono">x + ${h} = ${k} ^ (1/${n}) ≈ ${(k**(1/n)).toFixed(2)}</span><span class="mono">x ≈ ${(k**(1/n)-h).toFixed(2)}</span>`};
+  const cw=[[`Subtract ${h}, then take the ${rt} root`,`The power wraps the (x + ${h}). Undo the power first.`],[`Take the ${rt} root, then add ${h}`,`To undo + ${h}, subtract ${h}. Don't add.`],[`Subtract ${h} from ${k}, then take the ${rt} root`,`The ${h} is inside the parentheses with x. It isn't taken from ${k}.`],[`Divide ${k} by ${n}, then subtract ${h}`,`A power is undone with a root, not by dividing by ${n}.`]];
+  const ch=shuffle(cw.slice()).slice(0,3),trap={};ch.forEach(x=>trap[x[0]]=x[1]);
+  return{walk:[[`(x + ${h})<sup>${P(n)}</sup> = ${k}`,"The power is outside, so undo it first"],[`x + ${h} = ${rad(n,k)} ≈ ${(k**(1/n)).toFixed(2)}`,`Take the ${R(rt+" root")}`],[`x ≈ ${(k**(1/n)-h).toFixed(2)}`,`Then subtract ${h}`]],words:1,q:`(x + ${h})<sup>${n}</sup> = ${k}. What do you do?`,ex:`(x + ${h})<sup>${P(n)}</sup> = ${k}`,
+  c:`Take the ${rt} root, then subtract ${h}`,w:ch.map(x=>x[0]),trap,
+  why:`Undo in reverse order: the ${P("power")} was last, so the root goes first, then subtract ${h}.`};
 },
 order(){
   const a=ri(2,5),n=pick([2,3]),h=ri(2,9),c=ri(10,40),r=ri(1,4),d=a*r**n+c,rt=ROOT[n];
   const steps=[`Subtract ${c}`,`Divide by ${a}`,`Take the ${rt} root`,`Subtract ${h}`];
   // decoys look like real steps: wrong operation on the right number, or the wrong kind of root
   const decoy=pick([`Add ${c}`,`Divide by ${c}`,`Subtract ${a}`,`Add ${h}`,`Multiply by ${a}`,`Take the ${ROOT[n===2?3:2]} root`].filter(t=>!steps.includes(t)));
-  return{walk:[[`${a}(x + ${h})<sup>${n}</sup> + ${c} = ${d}`,"Peel from the outside in"],[`${a}(x + ${h})<sup>${n}</sup> = ${d-c}`,`Step 1: subtract ${c}`],[`(x + ${h})<sup>${n}</sup> = ${r**n}`,`Step 2: divide by ${a}. Now the power is alone`],[`x + ${h} = ${n===2?"±":""}${r}`,`Step 3: take the ${rt} root`],[`x = ${n===2?`${r-h} or ${-r-h}`:r-h}`,`Step 4: subtract ${h}`]],type:"order",win:9,q:`Tap the steps in order to get x alone`,ex:`${a}(x + ${h})<sup>${P(n)}</sup> + ${c} = ${d}`,
+  return{walk:[[`${a}(x + ${h})<sup>${n}</sup> + ${c} = ${d}`,"Peel from the outside in"],[`${a}(x + ${h})<sup>${n}</sup> = ${d-c}`,`Step 1: subtract ${c}`],[`(x + ${h})<sup>${n}</sup> = ${r**n}`,`Step 2: divide by ${a}`],[`x + ${h} = ${n===2?"±":""}${r}`,`Step 3: take the ${rt} root`],[`x = ${n===2?`${r-h} or ${-r-h}`:r-h}`,`Step 4: subtract ${h}`]],type:"order",win:9,q:`Tap the steps in order to get x alone`,ex:`${a}(x + ${h})<sup>${P(n)}</sup> + ${c} = ${d}`,
   steps,tiles:shuffle([...steps,decoy]),
   why:`Peel it from the outside in. The last thing done to x gets undone first:<span class="mono">(x + ${h})^${n} = (${d} − ${c}) / ${a} = ${r**n}</span><span class="mono">x + ${h} = ${r}  →  x = ${r-h}</span>${n===2?`Even power, so x + ${h} = −${r} works too: x = ${-r-h}.`:""}`};
 },
@@ -698,91 +716,107 @@ spot(){
 line(){
   const n=pick([2,2,3,3,4,5]),a=n>=4?ri(2,3):ri(2,7),lo=a**n,hi=(a+1)**n,k=ri(lo+1,hi-1),s=Math.max(1,a-ri(0,3));
   const sym=n===2?"√":n===3?"∛":n===4?"∜":"⁵√";
-  return{walk:[[`${k}<sup>1/${R(n)}</sup>`,`Which whole number to the ${n} power is close to ${k}?`],[`${a}<sup>${n}</sup> = ${lo}`,`Too small (or equal), so the root is at least ${a}`],[`${a+1}<sup>${n}</sup> = ${hi}`,`Too big, so the root is less than ${a+1}`],[`${a} &lt; ${rad(n,k)} &lt; ${a+1}`,`About ${(k**(1/n)).toFixed(2)}`]],type:"line",q:`Tap the gap where ${sym}${k} lands`,ex:`${k}<sup>1/${R(n)}</sup>`,segs:[0,1,2,3,4].map(i=>s+i),ans:a,
+  return{walk:[[`${k}<sup>1/${R(n)}</sup>`,`Which ${NTH[n]} powers are near ${k}?`],[`${a}<sup>${n}</sup> = ${lo}`,`${lo} is below ${k}: root is above ${a}`],[`${a+1}<sup>${n}</sup> = ${hi}`,`${hi} is above ${k}: root is below ${a+1}`],[`${a} &lt; ${rad(n,k)} &lt; ${a+1}`,`About ${(k**(1/n)).toFixed(2)}`]],type:"line",q:`Tap the gap where ${sym}${k} lands`,ex:`${k}<sup>1/${R(n)}</sup>`,segs:[0,1,2,3,4].map(i=>s+i),ans:a,
   why:`Check the whole numbers to the ${n===2?"2nd":n===3?"3rd":n+"th"} power:<span class="mono">${a}^${n} = ${lo}   and   ${a+1}^${n} = ${hi}</span>${k} is between them, so the root is between ${a} and ${a+1} (about ${(k**(1/n)).toFixed(2)}).`};
 }
 ,
 rules(){
   const b=pick([2,3,5,6,7,10]),v=ri(1,6);
   if(v===1){const n=pick([2,3,4,5,6]);let p=ri(1,n+1),q=ri(1,n+1);if(p===q)q=p+1;
-    const c=xp(b,p+q,n);
-    return{walk:[[`${xp(b,p,n)} · ${xp(b,q,n)}`,"Same base, multiplying"],[`${b}<sup>${p}/${n} + ${q}/${n}</sup>`,"Add the exponents"],[c,`${p}/${n} + ${q}/${n} = ${p+q}/${n}`]],q:`Simplify ${xp(b,p,n)} · ${xp(b,q,n)}`,ex:`${xp(b,p,n)} · ${xp(b,q,n)}`,c,
-    w:uniq(c,[xp(b,p*q,n*n),xp(b,p+q,2*n),xp(b,Math.abs(p-q),n),xp(b*b,p+q,n),xp(b,p,q*n),xp(b,p+q,n*n)]),
-    why:`Same base, multiplying → ${P("add")} the exponents:<span class="mono">${p}/${n} + ${q}/${n} = ${p+q}/${n}</span>`};}
+    const c=xp(b,p+q,n),U=uniqT(c,[[xp(b,p*q,n*n),`You multiplied the exponents. Same base, multiplying: add them.`],[xp(b,p+q,2*n),`You added the bottoms too. The bottom ${n} stays.`],[xp(b,Math.abs(p-q),n),`You subtracted. Multiplying means add.`],[xp(b*b,p+q,n),`You multiplied the bases. Keep ${b}, add the exponents.`],[xp(b,p,q*n)],[xp(b,p+q,n*n),`You multiplied the bottoms. They match, so keep ${n}.`]]);
+    return{walk:[[`${xp(b,p,n)} · ${xp(b,q,n)}`,`Same base ${b}, multiplying`],[`${b}<sup>${p}/${n} + ${q}/${n}</sup>`,`${P("Add")} the exponents`],[c,`${p}/${n} + ${q}/${n} = ${p+q}/${n}`+(()=>{let A=p+q,B=n,x=A,y=B;while(y){[x,y]=[y,x%y]}A/=x;B/=x;return x>1?(B===1?` = ${A}`:` = ${A}/${B}`):""})()]],q:`Simplify ${xp(b,p,n)} · ${xp(b,q,n)}`,ex:`${xp(b,p,n)} · ${xp(b,q,n)}`,c,
+    w:U.w,trap:U.trap,
+    why:`Same base, multiplying: ${P("add")} the exponents, ${p}/${n} + ${q}/${n} = ${p+q}/${n}.`};}
   if(v===2){const n=pick([2,3,4,5,6]);const whole=Math.random()<.5;const p=whole?n:ri(2,n+3);const q=ri(1,p-1);
     const top=whole?`${b}`:xp(b,p,n),c=xp(b,p-q,n);
-    return{walk:[[`${top} ÷ ${xp(b,q,n)}`,"Same base, dividing"+(whole?`. ${b} is ${b}<sup>${n}/${n}</sup>`:"")],[`${b}<sup>${p}/${n} − ${q}/${n}</sup>`,"Subtract the exponents"],[c,`${p}/${n} − ${q}/${n} = ${p-q}/${n}`]],q:`Simplify ${top} ÷ ${xp(b,q,n)}`,ex:`<span style="display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle"><span>${top}</span><span style="border-top:2px solid currentColor;padding-top:2px">${xp(b,q,n)}</span></span>`,c,
-    w:uniq(c,[xp(b,p+q,n),xp(b,p,q),xp(b,q-p,n),xp(b,p-q,n*n),xp(b,p*q,n*n),xp(b,p-q,2*n)]),
-    why:`Same base, dividing → ${P("subtract")} the exponents.${whole?` ${b} is ${b}<sup>${n}/${n}</sup>.`:""}<span class="mono">${p}/${n} − ${q}/${n} = ${p-q}/${n}</span>`};}
+    const U=uniqT(c,[[xp(b,p+q,n),`You added. Dividing means subtract.`],[xp(b,p,q)],[xp(b,q-p,n),`You subtracted the wrong way round. Top minus bottom.`],[xp(b,p-q,n*n),`You multiplied the bottoms. They match, so keep ${n}.`],[xp(b,p*q,n*n),`You multiplied the exponents. Dividing means subtract.`],[xp(b,p-q,2*n),`The bottom ${n} stays. Only the tops subtract.`]]);
+    return{walk:[...(whole?[[`${b} = ${b}<sup>1</sup> = ${b}<sup>${n}/${n}</sup>`,`A plain number has exponent 1 = ${n}/${n}`]]:[]),[`${whole?`${b}<sup>${n}/${n}</sup>`:top} ÷ ${xp(b,q,n)}`,`Same base ${b}, dividing`],[`${b}<sup>${p}/${n} − ${q}/${n}</sup>`,`${P("Subtract")} the exponents`],[c,`${p}/${n} − ${q}/${n} = ${p-q}/${n}`]],q:`Simplify ${top} ÷ ${xp(b,q,n)}`,ex:`<span style="display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle"><span>${top}</span><span style="border-top:2px solid currentColor;padding-top:2px">${xp(b,q,n)}</span></span>`,c,
+    w:U.w,trap:U.trap,
+    why:`Same base, dividing: ${P("subtract")} the exponents, ${p}/${n} − ${q}/${n} = ${p-q}/${n}.`};}
   if(v===3){const m=ri(2,4),n=pick([2,3,4,5]),c=xp(b,m,n);
-    return{walk:[[`(${b}<sup>${m}</sup>)<sup>1/${n}</sup>`,"A power raised to a power"],[`${b}<sup>${m} × 1/${n}</sup>`,"Multiply the exponents"],[c,`${m} × 1/${n} = ${m}/${n}`]],q:`Simplify (${b}<sup>${m}</sup>)<sup>1/${n}</sup>`,ex:`(${b}<sup>${m}</sup>)<sup>1/${n}</sup>`,c,
-    w:uniq(c,[xp(b,m*n+1,n),xp(b,n,m),xp(b,1,m*n),xp(b,m*n,1),xp(b,m+n,n)]),
-    why:`Power of a power → ${P("multiply")} the exponents:<span class="mono">${m} × 1/${n} = ${m}/${n}</span>`};}
+    const U=uniqT(c,[[xp(b,m*n+1,n),`You added ${m} + 1/${n}. A power of a power: multiply.`],[xp(b,n,m),`You flipped it. The power ${m} goes on top.`],[xp(b,1,m*n)],[xp(b,m*n,1),`You multiplied ${m} × ${n}. Multiply ${m} × 1/${n}.`],[xp(b,m+n,n)]]);
+    return{walk:[[`(${b}<sup>${m}</sup>)<sup>1/${n}</sup>`,"A power raised to a power"],[`${b}<sup>${m} × 1/${n}</sup>`,`${P("Multiply")} the exponents`],[c,`${m} × 1/${n} = ${m}/${n}`]],q:`Simplify (${b}<sup>${m}</sup>)<sup>1/${n}</sup>`,ex:`(${b}<sup>${m}</sup>)<sup>1/${n}</sup>`,c,
+    w:U.w,trap:U.trap,
+    why:`A power of a power: ${P("multiply")} the exponents, ${m} × 1/${n} = ${m}/${n}.`};}
   if(v===4){const n=pick([2,3,4,5]);let m=ri(1,n+1);if(m===n)m=n+1;const pos=xp(b,m,n),c=`1 / ${pos}`;
-    return{walk:[[`${b}<sup>−${m}/${n}</sup>`,"The minus sign is in the exponent"],[`1 / ${pos}`,"A negative exponent flips it under 1"],[`still positive`,"It doesn't make the answer negative"]],q:`Which is the same as ${b}<sup>−${m}/${n}</sup>?`,ex:`${b}<sup>−${m}/${n}</sup>`,c,
-    w:uniq(c,shuffle([`−${pos}`,`−1 / ${pos}`,`1 / ${xp(b,n,m)}`,pos])),
-    why:`A negative exponent means ${R("flip it")} under 1. It does not make the answer negative.<span class="mono">${b}^(−${m}/${n}) = 1 / ${b}^(${m}/${n})</span>`};}
+    const U=uniqT(c,shuffle([[`−${pos}`,`The minus flips it under 1. It doesn't make it negative.`],[`−1 / ${pos}`,`The minus flips it under 1. It doesn't make it negative.`],[`1 / ${xp(b,n,m)}`,`You flipped the fraction in the exponent too. Only flip the number.`],[pos,`You ignored the minus. It flips the number under 1.`]]));
+    return{walk:[[`${b}<sup>−${m}/${n}</sup>`,"The minus sign is in the exponent"],[`1 / ${pos}`,`${R("Flip it")} under 1`],[`1 / ${pos}`,"Still positive: no minus in front"]],q:`Which is the same as ${b}<sup>−${m}/${n}</sup>?`,ex:`${b}<sup>−${m}/${n}</sup>`,c,
+    w:U.w,trap:U.trap,
+    why:`A negative exponent ${R("flips")} it under 1. It doesn't make the answer negative.`};}
   if(v===5){const pr=pick([[6,2],[12,4],[10,5],[15,5],[8,2],[14,7],[20,4]]);const sw=Math.random()<.5;const a=sw?pr[1]:pr[0],d=sw?pr[0]:pr[1];
     const g=gcd(a,d),A=a/g,D=d/g,c=A===1?`${D}`:D===1?`1/${A}`:`${D}/${A}`;
     const fr=(x,y)=>y===1?`${x}`:`${x}/${y}`;
-    return{walk:[[`(${a}³ / ${d}³)<sup>−1/3</sup>`,"Same power on top and bottom"],[`((${a}/${d})³)<sup>−1/3</sup> = (${fr(A,D)})<sup>3</sup> ^ (−1/3)`,`Combine: ${a}/${d} = ${fr(A,D)}`],[`(${fr(A,D)})<sup>−1</sup>`,"Multiply exponents: 3 × (−1/3) = −1"],[c,"A −1 power flips the fraction"]],q:`Simplify (${a}³ / ${d}³)<sup>−1/3</sup>`,ex:`(${a}<sup>3</sup> / ${d}<sup>3</sup>)<sup>−1/3</sup>`,c,
-    w:uniq(c,[fr(A,D),"−"+fr(A,D),fr(D**3,A**3),fr(A**3,D**3)]),
-    why:`Same power on top and bottom, so it's (${a}/${d})³ = (${fr(A,D)})³. Multiply exponents: 3 × (−1/3) = −1, and a −1 power flips the fraction:<span class="mono">(${fr(A,D)})^(−1) = ${c}</span>`};}
+    const U=uniqT(c,[[fr(A,D),`You skipped the flip. A −1 power flips the fraction.`],["−"+fr(A,D),`A negative exponent flips it. It doesn't make it negative.`],[fr(D**3,A**3),`You flipped it and cubed it. 3 × (−1/3) = −1 cancels the 3.`],[fr(A**3,D**3),`You cubed it. 3 × (−1/3) = −1 cancels the 3.`]]);
+    return{walk:[[`(${a}³ / ${d}³)<sup>−1/3</sup>`,"Same power on top and bottom"],[`(${a}/${d})<sup>3</sup> = (${fr(A,D)})<sup>3</sup>`,`Combine: ${a}/${d} = ${fr(A,D)}`],[`(${fr(A,D)})<sup>3 × (−1/3)</sup> = (${fr(A,D)})<sup>−1</sup>`,`${P("Multiply")} exponents: 3 × (−1/3) = −1`],[c,`A −1 power ${R("flips")} the fraction`]],q:`Simplify (${a}³ / ${d}³)<sup>−1/3</sup>`,ex:`(${a}<sup>3</sup> / ${d}<sup>3</sup>)<sup>−1/3</sup>`,c,
+    w:U.w,trap:U.trap,
+    why:`Combine to (${fr(A,D)})³, multiply the exponents to −1, then flip: ${c}.`};}
   const k=pick([2,3,4,5]),c=xp(b,1,k);
-  return{walk:[[`(${b}<sup>1/2</sup> · ${b}<sup>−3/2</sup>)<sup>−1/${k}</sup>`,"Inside the parentheses first"],[`(${b}<sup>−1</sup>)<sup>−1/${k}</sup>`,"Same base, multiplying: 1/2 + (−3/2) = −1"],[c,`Power of a power: −1 × (−1/${k}) = 1/${k}`]],q:`Simplify (${b}<sup>1/2</sup> · ${b}<sup>−3/2</sup>)<sup>−1/${k}</sup>`,ex:`(${b}<sup>1/2</sup> · ${b}<sup>−3/2</sup>)<sup>−1/${k}</sup>`,c,
-  w:uniq(c,[xp(b,-1,k),xp(b,-2,k),xp(b,3,4*k),xp(b,-(k+1),k),xp(b,k+1,k)]),
-  why:`Inside first: same base, multiplying → add: 1/2 + (−3/2) = −1. Then power of a power → multiply:<span class="mono">−1 × (−1/${k}) = 1/${k}</span>`};
+  const U=uniqT(c,[[xp(b,-1,k),`Negative times negative is positive: −1 × (−1/${k}) = 1/${k}.`],[xp(b,-2,k),`Inside, 1/2 + (−3/2) = −1, not −2.`],[xp(b,3,4*k)],[xp(b,-(k+1),k)],[xp(b,k+1,k)]]);
+  return{walk:[[`(${b}<sup>1/2</sup> · ${b}<sup>−3/2</sup>)<sup>−1/${k}</sup>`,"Inside the parentheses first"],[`(${b}<sup>−1</sup>)<sup>−1/${k}</sup>`,`${P("Add")}: 1/2 + (−3/2) = −1`],[c,`${P("Multiply")}: −1 × (−1/${k}) = 1/${k}`]],q:`Simplify (${b}<sup>1/2</sup> · ${b}<sup>−3/2</sup>)<sup>−1/${k}</sup>`,ex:`(${b}<sup>1/2</sup> · ${b}<sup>−3/2</sup>)<sup>−1/${k}</sup>`,c,
+  w:U.w,trap:U.trap,
+  why:`Add inside to get −1, then multiply by −1/${k}: negative times negative is positive.`};
 },
 radmul(){
   if(Math.random()<.25){const c=pick([2,3]),r=ri(2,4),T=c*r**3;let divs=[];for(let d=2;d<T;d++)if(T%d===0&&d<=T/d)divs.push(d);const a=pick(divs),b=T/a,ans=String(r);
     const top=`∛${a} · ∛${b}`,bot=`${sp(6)}√${c} · ${sp(6)}√${c}`;
-    return{walk:[[`(${top}) / (${bot})`,"Simplify the top and bottom separately first"],[`∛${T}`,`Top: same index, so ∛(${a} · ${b}) = ∛${T}`],[`${sp(6)}√${c*c} = ∛${c}`,`Bottom: ${sp(6)}√(${c}·${c}) = ${sp(6)}√${c*c}, and ${c*c} = ${c}², so ${sp(6)}√${c}² = ∛${c}`],[`∛(${T} ÷ ${c}) = ∛${r**3}`,"Now both are cube roots, so divide under one root"],[ans,`∛${r**3} = ${r}`]],
+    const U=uniqT(ans,[[String(r**3),`That's ${r**3}, the number under the root. Take the root too.`],[String(T),`That's ${T}, still under the top root. Take the root.`],[String(r*c)],[String(r**2)],[String(r+c)],[String(c*r*r)]]);
+    return{walk:[[`(${top}) / (${bot})`,"Simplify top and bottom separately"],[`${R("∛")}${T}`,`Top: ∛${a} · ∛${b} = ∛${T}`],[`${sp(6)}√${c*c}`,`Bottom: same index, multiply inside`],[`${sp(6)}√(${c}²) = ∛${c}`,`Both ${R("6")} and the power 2 halve`],[`∛(${T} ÷ ${c}) = ∛${r**3} = ${r}`,`Same index: divide inside`]],
     q:`Simplify (${top}) / (${bot})`,ex:`<span style="display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;font-size:.85em"><span>${top}</span><span style="border-top:2px solid currentColor;padding-top:2px">${bot}</span></span>`,c:ans,
-    w:uniq(ans,[String(r**3),String(r*c),String(r**2),String(T),String(r+c),String(c*r*r)]),
-    why:`Turn ${sp(6)}√${c} · ${sp(6)}√${c} into ${sp(6)}√${c*c} = ∛${c}, so top and bottom are both cube roots. Then ∛${T} ÷ ∛${c} = ∛${r**3} = ${r}.`};}
+    w:U.w,trap:U.trap,
+    why:`Make the bottom a cube root (${sp(6)}√${c*c} = ∛${c}), then divide: ∛${T} ÷ ∛${c} = ${r}.`};}
   const n=pick([2,2,3,4]);
   if(Math.random()<.65){const r=n===2?ri(4,15):n===3?ri(2,6):ri(2,4),T=r**n;
     let divs=[];for(let d=2;d<T;d++)if(T%d===0&&Math.round(d**(1/n))**n!==d)divs.push(d);
     if(!divs.length)for(let d=2;d<T;d++)if(T%d===0)divs.push(d);
     let a=pick(divs),b=T/a;if(a>b)[a,b]=[b,a];const c=String(r);
-    return{walk:[[`${rad(n,a)} · ${rad(n,b)}`,"Same index, so they can combine"],[rad(n,`(${a} · ${b})`),"Multiply under one root"],[rad(n,T),`${a} · ${b} = ${T}`],[c,`${r}<sup>${n}</sup> = ${T}`]],q:`Simplify ${rad(n,a)} · ${rad(n,b)}`,ex:`${rad(n,a)} · ${rad(n,b)}`,c,w:uniq(c,[String(a+b),String(T),String(r*n),String(r**2),String(r+n),String(a*b-r)]),
-    why:`Same index, so multiply them under one root:<span class="mono">${rad(n,a)} · ${rad(n,b)} = ${rad(n,T)} = ${r}</span>This only works when the indexes match.`};}
+    const U=uniqT(c,[[String(a+b),`You added ${a} + ${b}. Multiply under one root.`],[String(T),`That's ${T}, still under the root. Take the root.`],[String(r*n)],[String(r**2)],[String(r+n)],[String(a*b-r)]]);
+    return{walk:[[`${R(rad(n,a))} · ${R(rad(n,b))}`,"Same index, so they combine"],[rad(n,`(${a} · ${b})`),"Multiply under one root"],[rad(n,T),`${a} · ${b} = ${T}`],[c,`${rad(n,T)} = ${r}, since ${r}<sup>${n}</sup> = ${T}`]],q:`Simplify ${rad(n,a)} · ${rad(n,b)}`,ex:`${rad(n,a)} · ${rad(n,b)}`,c,w:U.w,trap:U.trap,
+    why:`Same index, so multiply under one root: ${rad(n,a)} · ${rad(n,b)} = ${rad(n,T)} = ${r}.`};}
   const a=pick([2,3,5]),r=n===2?ri(2,6):n===3?ri(2,4):ri(2,3),b=a*r**n,c=`1/${r}`;
-  return{walk:[[`${rad(n,a)} / ${rad(n,b)}`,"Same index, so they can combine"],[rad(n,`(${a}/${b})`),"Divide under one root"],[rad(n,`(1/${r**n})`),`Reduce the fraction: ${a}/${b} = 1/${r**n}`],[c,`${rad(n,1)} = 1 and ${rad(n,r**n)} = ${r}`]],q:`Simplify ${rad(n,a)} / ${rad(n,b)}`,ex:`${rad(n,a)} / ${rad(n,b)}`,c,w:uniq(c,[`1/${r**n}`,`1/${r*n}`,`1/${b-a}`,`1/${a*r}`,`1/${r+n}`,`1/${b}`,`1/${a+b}`]),
-  why:`Same index, so divide under one root:<span class="mono">${rad(n,a+"/"+b)} = ${rad(n,"(1/"+r**n+")")} = 1/${r}</span>`};
+  const U=uniqT(c,[[`1/${r**n}`,`That's 1/${r**n}, still under the root. Take the root.`],[`1/${r*n}`],[`1/${b-a}`,`You subtracted ${b} − ${a}. Divide under one root.`],[`1/${a*r}`],[`1/${r+n}`],[`1/${b}`],[`1/${a+b}`]]);
+  return{walk:[[`${R(rad(n,a))} / ${R(rad(n,b))}`,"Same index, so they combine"],[rad(n,`(${a}/${b})`),"Divide under one root"],[rad(n,`(1/${r**n})`),`Reduce: ${a}/${b} = 1/${r**n}`],[c,`${rad(n,1)} = 1 and ${rad(n,r**n)} = ${r}`]],q:`Simplify ${rad(n,a)} / ${rad(n,b)}`,ex:`${rad(n,a)} / ${rad(n,b)}`,c,w:U.w,trap:U.trap,
+  why:`Same index, so divide under one root: ${rad(n,a+"/"+b)} = ${rad(n,"(1/"+r**n+")")} = 1/${r}.`};
 },
 simp(){
   const n=pick([2,2,3]),p=n===2?ri(2,7):ri(2,4),s=pick(n===2?[2,3,5,6,7,10,11]:[2,3,4,5,6,7,9]),x=p**n*s,c=`${p}${rad(n,s)}`;
-  const{f,groups,left}=pairParts(x,n),word=n===2?"pair":"group of three",out=groups.length>1?`${groups.join(" and ")} come out: ${groups.join(" · ")} = ${p}`:`${groups[0]} comes out`;
-  return{walk:[[rad(n,x),`Break ${x} into small numbers. No list to remember`],[`${x} = ${f.join(" · ")}`,"Halve it while it's even, then try 3, 5, 7 until nothing's left to split"],[pairHtml(x,n),`Circle every ${word} of matching numbers`],[`${p} outside, ${s} inside`,`${out}. ${left.length?`No partner for ${left.join(" · ")}, so ${s} stays inside`:""}`],[c,"Outside number in front, leftovers under the root"]],
-  q:`Write ${rad(n,x)} in simplest form`,ex:rad(n,x),c,w:uniq(c,[`${s}${rad(n,p)}`,`${p**n}${rad(n,s)}`,`${p}${rad(n,p*s)}`,`${p*s}${rad(n,s)}`,`${p+1}${rad(n,s)}`]),
-  why:`<b>Pair method:</b> break ${x} into small numbers, then every ${word} of matching numbers escapes the ${n===2?"square":"cube"} root as one number. Leftovers stay inside.<span class="mono">${x} = ${pairHtml(x,n)}</span><span class="mono">${rad(n,x)} = ${c}</span>`};
+  const{f,groups,left}=pairParts(x,n),word=n===2?"pair":"group of three";
+  const U=uniqT(c,[[`${s}${rad(n,p)}`,`You swapped them. The number that escapes goes in front.`],[`${p**n}${rad(n,s)}`,`You took out the whole ${word}. It sends out only ONE number, ${p}.`],[`${p}${rad(n,p*s)}`,`The ${p} came out, but you left ${p} in the root too.`],[`${p*s}${rad(n,s)}`],[`${p+1}${rad(n,s)}`]]);
+  return{walk:[[rad(n,x),`Break ${x} into small numbers`],[`${x} = ${f.join(" · ")}`,"Halve while even, then try 3, 5, 7"],[pairHtml(x,n),`Circle each ${word} of matching numbers`],[`${groups.length>1?groups.join(" · ")+" = ":""}${R(p)} outside, ${P(s)} inside`,`Each ${word} sends ONE number out`],[c,"Outside in front, leftovers under the root"]],
+  q:`Write ${rad(n,x)} in simplest form`,ex:rad(n,x),c,w:U.w,trap:U.trap,
+  why:`Every ${word} of matching numbers sends ONE number out. Leftovers stay inside: ${rad(n,x)} = ${c}.`};
 },
 vars(){
   if(Math.random()<.3){const n=pick([2,4]),k=ri(2,3),C=k**n,pr=pick([["k","z"],["m","n"],["x","y"]]),a1=2*ri(1,3),a2=n===4?1:2,v=(L,e)=>e===1?L:`${L}<sup>${e}</sup>`;
     const inside=`${v(pr[0],n*a1)} / ${C}${v(pr[1],n*a2)}`,c=`${v(pr[0],a1)} / ${k}${a2===1?`|${pr[1]}|`:v(pr[1],a2)}`;
-    return{walk:[[rad(n,"("+inside+")"),"Take the root of the top and the bottom separately"],[`top: ${v(pr[0],n*a1)} → ${v(pr[0],a1)}`,`${n*a1} ÷ ${n} = ${a1}. Divide the exponent, don't root it (on a calculator: ${n*a1} ÷ ${n}, not ${n*a1} ^ (1 ÷ ${n}))`],[`bottom: ${rad(n,C)} = ${k},  ${v(pr[1],n*a2)} → ${a2===1?`|${pr[1]}|`:v(pr[1],a2)}`,a2===1?`${n}÷${n} = 1, and an even root of an even power needs | | so it stays positive`:`${n*a2} ÷ ${n} = ${a2}`],[c,"Put it back together"]],
+    const vb=e=>e===1?`|${pr[1]}|`:v(pr[1],e);
+    const U=uniqT(c,[[`${v(pr[0],a1)} / ${C}${vb(a2)}`,`You didn't root the number. ${rad(n,C)} = ${k}.`],[`${v(pr[0],n*a1)} / ${k}${vb(a2)}`,`You left ${pr[0]}'s exponent alone. Divide it by ${n}.`],[`${k}${v(pr[0],a1)} / ${vb(a2)}`],[`${v(pr[0],a1)} / ${k}${vb(n*a2)}`,`You left ${pr[1]}'s exponent alone. Divide it by ${n}.`]]);
+    return{walk:[[rad(n,"("+inside+")"),"Root the top and the bottom separately"],[`${v(pr[0],n*a1)} → ${v(pr[0],a1)}`,`${n*a1} ÷ ${R(n)} = ${a1}: divide the exponent`],[`${rad(n,C)} = ${k}`,"Root the number only"],[`${v(pr[1],n*a2)} → ${a2===1?`|${pr[1]}|`:v(pr[1],a2)}`,a2===1?`Even root: | | keeps it positive`:`${n*a2} ÷ ${R(n)} = ${a2}`],[c,"Put it back together"]],
     q:`Simplify ${rad(n,"("+inside+")")}`,ex:rad(n,"("+inside+")"),c,
-    w:(vb=>uniq(c,[`${v(pr[0],a1)} / ${C}${vb(a2)}`,`${v(pr[0],n*a1)} / ${k}${vb(a2)}`,`${k}${v(pr[0],a1)} / ${vb(a2)}`,`${v(pr[0],a1)} / ${k}${vb(n*a2)}`]))(e=>e===1?`|${pr[1]}|`:v(pr[1],e)),
-    why:`Root of the top and bottom separately. Divide each exponent by ${n}, and ${rad(n,C)} = ${k}.${a2===1?` When an even root leaves an odd power, use | | (like |${pr[1]}|). Check what your teacher wants.`:""}`};}
+    w:U.w,trap:U.trap,
+    why:`Root the top and bottom: divide each exponent by ${n}, and ${rad(n,C)} = ${k}.${a2===1?` Bars keep an odd power positive.`:""}`};}
   const n=pick([2,3,4,5]),pr=pick([["x","y"],["r","t"],["m","n"],["a","b"],["k","z"]]),k=n<=3?ri(2,5):ri(2,3),C=k**n;
   let a1=ri(1,4),a2=ri(1,3);if(n%2===0){a1=2*ri(1,2);a2=2*ri(1,2)}
   const fr=Math.random()<.4,v=(L,e)=>e===1?L:`${L}<sup>${e}</sup>`;
   const mk=(cf,e1,e2)=>fr?`${cf}${v(pr[0],e1)} / ${v(pr[1],e2)}`:`${cf}${v(pr[0],e1)}${v(pr[1],e2)}`;
   const inside=mk(C,n*a1,n*a2),c=mk(k,a1,a2);
-  return{walk:[[rad(n,"("+inside+")"),"Take the root of each piece"],[`${rad(n,C)} = ${k}`,"The number"],[`${pr[0]}: ${n*a1} ÷ ${n} = ${a1},  ${pr[1]}: ${n*a2} ÷ ${n} = ${a2}`,`Divide each exponent by the index ${n}. Only the number gets rooted. On a calculator that's ${n*a1} ÷ ${n}, not ${n*a1} ^ (1 ÷ ${n})`],[c,"Put it back together"]],q:`Simplify ${rad(n,"("+inside+")")}`,ex:rad(n,"("+inside+")"),c,
-  w:uniq(c,[mk(C,a1,a2),mk(k,n*a1,n*a2),mk(k,a1,n*a2),mk(k,n*a1,a2),mk(Math.round(C/n),a1,a2),mk(k,a1+n,a2)]),
-  why:`Take the ${ROOT[n]} root of each piece. Number: ${rad(n,C)} = ${k}. Variables: ${R("divide each exponent by "+n)}:<span class="mono">${n*a1} ÷ ${n} = ${a1},  ${n*a2} ÷ ${n} = ${a2}</span>`};
+  const U=uniqT(c,[[mk(C,a1,a2),`You didn't root the number. ${rad(n,C)} = ${k}.`],[mk(k,n*a1,n*a2),`You left the exponents alone. Divide each by ${n}.`],[mk(k,a1,n*a2),`You left ${pr[1]}'s exponent alone. Divide it by ${n}.`],[mk(k,n*a1,a2),`You left ${pr[0]}'s exponent alone. Divide it by ${n}.`],[mk(Math.round(C/n),a1,a2),`You divided ${C} by ${n}. Take its root: ${rad(n,C)} = ${k}.`],[mk(k,a1+n,a2)]]);
+  return{walk:[[rad(n,"("+inside+")"),"Root each piece separately"],[`${rad(n,C)} = ${k}`,"Root the number only"],[`${v(pr[0],n*a1)} → ${v(pr[0],a1)}`,`${n*a1} ÷ ${R(n)} = ${a1}: divide the exponent`],[`${v(pr[1],n*a2)} → ${v(pr[1],a2)}`,`${n*a2} ÷ ${R(n)} = ${a2}: divide the exponent`],[c,"Put it back together"]],q:`Simplify ${rad(n,"("+inside+")")}`,ex:rad(n,"("+inside+")"),c,
+  w:U.w,trap:U.trap,
+  why:`Root the number (${rad(n,C)} = ${k}), but ${R("divide")} each exponent by ${n}.`};
 },
 like(){
   if(Math.random()<.72){const n=pick([2,3,4,6]),s=pick([2,3,5,7,12,14]),a=ri(2,12),minus=Math.random()<.4;let b=ri(2,12);if(minus&&a===b)b=a>2?a-1:a+1;const res=minus?a-b:a+b,ef=Math.random()<.3;
     const term=(cf,ss=s,nn=n)=>ef?`${co(cf)}(${ss}<sup>1/${nn}</sup>)`:`${co(cf)}${rad(nn,ss)}`,c=res===0?"0":term(res);
-    return{walk:[[`${term(a)} ${minus?"−":"+"} ${term(b)}`,"Same index and same radicand, so these are like terms"],[`(${a} ${minus?"−":"+"} ${b})${ef?`(${s}<sup>1/${n}</sup>)`:rad(n,s)}`,"Combine only the numbers in front"],[c,"The radical stays exactly the same"]],q:`Simplify ${term(a)} ${minus?"−":"+"} ${term(b)}`,ex:`${term(a)} ${minus?"−":"+"} ${term(b)}`,c,
-    w:uniq(c,[term(res,s+s),term(a*b),term(res,s,2*n),term(res,s*s),term(minus?a+b:Math.abs(a-b)||a*b),term(res,s,n+1),term(res,s+1)]),
-    why:`Same index and same radicand, so they're like terms. Combine the numbers in front and ${R("keep the radical the same")}:<span class="mono">${a} ${minus?"−":"+"} ${b} = ${res}</span>Never add the radicands.`};}
+    const radp=ef?`(${s}<sup>1/${n}</sup>)`:rad(n,s),termR=cf=>`${co(cf)}${R(radp)}`;
+    const U=uniqT(c,[[term(res,s+s),`You added the ${s}s under the root. The radicand stays ${s}.`],[term(a*b),`You multiplied ${a} × ${b}. ${minus?"Subtract":"Add"} the numbers in front.`],[term(res,s,2*n)],[term(res,s*s)],[term(minus?a+b:Math.abs(a-b)||a*b),minus?`You added. The sign is −, so subtract.`:a!==b?`You subtracted. The sign is +, so add.`:null],[term(res,s,n+1)],[term(res,s+1)]]);
+    return{walk:[[`${termR(a)} ${minus?"−":"+"} ${termR(b)}`,"Same index, same radicand: like terms"],[`(${a} ${minus?"−":"+"} ${b})${ef?`(${s}<sup>1/${n}</sup>)`:rad(n,s)}`,"Combine only the numbers in front"],[c,"The radical stays exactly the same"]],q:`Simplify ${term(a)} ${minus?"−":"+"} ${term(b)}`,ex:`${term(a)} ${minus?"−":"+"} ${term(b)}`,c,
+    w:U.w,trap:U.trap,
+    why:`Like radicals: ${a} ${minus?"−":"+"} ${b} = ${res}, and ${R("keep the radical the same")}.`};}
   const s=pick([2,3,5,7]),a=ri(2,9),b=ri(2,9),c="Can't be combined: the indexes (2 and 3) are different";
-  return{walk:[[`${a}√${s} + ${b}∛${s}`,"Check the index of each root"],["2 vs 3","A square root and a cube root are different indexes"],["Stays as is","Only like radicals (same index AND radicand) combine"]],words:1,q:`Simplify ${a}√${s} + ${b}∛${s}`,ex:`${a}√${s} + ${b}∛${s}`,c,w:[`${a+b}√${s}: the radicands match, so the numbers in front add`,`${a+b}${rad(5,s)}: the numbers add and the indexes add (2 + 3 = 5)`,`${a+b}∛${s}: the numbers add and the larger index wins`],
-  why:`Like radicals need the ${R("same index")} AND the same radicand. A square root and a cube root aren't like terms, so it stays as is.`};
+  const cw=[`${a+b}√${s}: the radicands match, so the numbers in front add`,`${a+b}${rad(5,s)}: the numbers add and the indexes add (2 + 3 = 5)`,`${a+b}∛${s}: the numbers add and the larger index wins`];
+  return{walk:[[`${a}√${s} + ${b}∛${s}`,"Check the index of each root"],[`${R("2")} vs ${R("3")}`,"A square root and a cube root"],["Stays as is","Different indexes can't combine"]],words:1,q:`Simplify ${a}√${s} + ${b}∛${s}`,ex:`${a}√${s} + ${b}∛${s}`,c,w:cw,
+  trap:{[cw[0]]:`The radicands match, but the indexes (2 and 3) differ.`,[cw[1]]:`Indexes never add. They stay 2 and 3.`,[cw[2]]:`There is no "larger index wins". Different indexes don't combine.`},
+  why:`Like radicals need the ${R("same index")}. A square root and a cube root stay separate.`};
 },
 spot2(){
   const v=ri(1,4),b=pick([2,3,5,7]);
@@ -2356,14 +2390,15 @@ function showWalk(){
   if(p.type==="spot"){steps=p.lines.slice(0,p.bad+1).map((l,i)=>[l,i<p.bad?"✓ This line is fine":"✗ The first mistake happens here"]).concat(p.lines.slice(p.bad+1).map(l=>[`<s>${l}</s>`,"✗ Wrong too, because it builds on the mistake above"])).concat((p.fix||[]).map((l,i,A)=>[l,i===0?"✓ Fixed: what it should be":i===A.length-1?"✓ Correct answer":"✓ Keep going"]));here=p.bad}
   else{steps=p.walk||[];if(p.type==="order"&&pk.pos!=null&&!pk.idk)here=pk.pos+1}
   let head;
-  if(pk.idk)head=`Good call asking. The answer is <b>${p.type==="order"?"the steps shown above":p.type==="line"?`between ${p.ans} and ${p.ans+1}`:p.type==="spot"?"line "+(p.bad+1):p.c}</b>. Here's how to get it:`;
+  if(pk.idk)head=`Good call asking.<span class="wk-ansrow">The answer is <b class="wk-ans">${p.type==="order"?"the steps shown above":p.type==="line"?`between ${p.ans} and ${p.ans+1}`:p.type==="spot"?"line "+(p.bad+1):p.c}</b></span>Here's how to get it:`;
   else if(p.type==="order")head=`You tapped <b>${pk.text}</b> as step ${pk.pos+1}. Step ${pk.pos+1} should be <b>${p.steps[pk.pos]}</b>.`;
   else if(p.type==="spot")head=pk.i>p.bad?`Good eye: line ${pk.i+1} <b>is</b> wrong. But it's only wrong because it uses the mistake from line ${p.bad+1}. The question asks where the mistake <b>first</b> happens, which is line ${p.bad+1}.`
     :`Line ${pk.i+1} is actually fine. The first mistake is in line ${p.bad+1}.`;
   else if(p.type==="line")head=`You picked ${p.segs[pk.i]}–${p.segs[pk.i]+1}. It's between ${p.ans} and ${p.ans+1}.`;
-  else head=`You ${p.typed?"wrote":"picked"} <b>${pk.text}</b>. The answer is <b>${p.c}</b>.`;
+  else{let t="";if(p.trap&&pk.text!=null){t=p.trap[pk.text]||"";if(!t)try{const k=Object.keys(p.trap).find(x=>RRType.plain(x)===RRType.plain(pk.text));if(k)t=p.trap[k]}catch(e){}}
+    head=`You ${p.typed?"wrote":"picked"} <b>${pk.text}</b>.${t?" "+t:""}<span class="wk-ansrow">The answer is <b class="wk-ans">${p.c}</b></span>`}
   st.wkAll=steps;st.wkHere=here;st.wkN=Math.min(1,steps.length);
-  $("why").innerHTML=`<div class="wk-head">${head}</div><div class="l-h" style="margin-top:12px">Step by step</div><div id="wkSteps"></div><div id="wkCtl"></div><div id="wkSum" class="hidden wk-sum">${p.why}</div><div class="mute" style="font-size:13px;margin-top:8px">This type comes back as a rematch in a few questions.</div>`;
+  $("why").innerHTML=`<div class="wk-head">${head}</div><div class="l-h" style="margin-top:12px">Step by step</div><div id="wkSteps"></div><div id="wkCtl"></div><div id="wkSum" class="hidden wk-sum"><b class="wk-sumh">Remember</b>${p.why}</div><div class="mute" style="font-size:13px;margin-top:8px">This type comes back as a rematch in a few questions.</div>`;
   renderWalkSteps();
 }
 function renderWalkSteps(){
