@@ -429,12 +429,12 @@ body.boot #home .hpane.on :is(.tile,.card):nth-child(2){animation-delay:.04s}bod
     <div style="font-size:15px;line-height:1.7;margin-top:10px">
     <div><b>Runs</b>: 3 minutes, racing a grey ghost of your best score</div>
     <div><b>Question styles</b>: multiple choice, tap the steps in order, and tap where a root lands on the number line</div>
-    <div><b>Lightning round</b>: at 1:30 left (after you finish the question you're on), 20 seconds of rapid true/false for +100 each. A wrong answer locks you out for 5 seconds, so don't guess</div>
+    <div><b>Lightning round</b>: at 1:30 left (after you finish the question you're on), 20 seconds of rapid true/false: +100 points and 5 coins each. A wrong answer ends it, but the clock stops: read why, then tap I got it to go back to Rush</div>
     <div><b>Right answer</b>: +100 × combo, +1 second, and up to +75 for speed</div>
     <div><b>Combo</b>: goes up every 3 in a row (max ×5)</div>
     <div><b>Last 10 seconds</b>: double points</div>
     <div><b>Wrong answer</b>: −3 seconds, combo resets, and the clock stops so you can read why</div>
-    <div><b>Coins</b>: every right answer earns coins, with bonuses for mastering a skill and passing a final quiz. Spend them in the <b>🎰 Casino</b> (tap Casino on Home): gamble if you dare, and dress up your profile</div>
+    <div><b>Coins</b>: every right answer earns coins and a wrong answer in Rush costs 5 (lightning, training and the final quiz never take coins), with bonuses for mastering a skill and passing a final quiz. Spend them in the <b>🎰 Casino</b> (tap Casino on Home): gamble if you dare, and dress up your profile</div>
     <div><b>I don't know</b>: tap it (top right of the question) instead of guessing. It counts as a miss (−10 mastery instead of −15), and you go straight to the step-by-step</div>
     <div><b>Rematch</b>: a type you miss comes back a few questions later. Get it right for +150</div>
     <div><b>Mastery</b>: each skill fills to 100. A right answer is +20 (+25 at combo ×3 or higher), a miss is −15. Once a skill hits 100 it stays Mastered and stops showing up in runs. When every skill in a day is mastered, take the <b>final quiz</b> (one question per skill plus harder mixed questions that combine skills, no timer, every answer right to pass) to unlock the next day. Skills you miss on the quiz drop back to 60.</div>
@@ -1288,7 +1288,9 @@ const COIN_RL_UNLOCK=30,COIN_RL_VIEW=20;
 // Casino winnings, the daily bonus and real-life rewards are not boosted, so the casino can't snowball. (Rebirth was removed.)
 const STAGE_BOOST=0.5;
 function coinMult(stage){const m=1+STAGE_BOOST*(stage==null?(econ.stage||0):stage);return Math.round(m*100)/100}
-const COIN_PER_RIGHT=5,COIN_PER_LT=1,COIN_PER_MASTERY=1,COIN_MASTERED=50,COIN_QUIZ_PASS=500,TRAINING_MULT=1.5;
+// Nov 18: a wrong answer in Rush costs COIN_LOSS_WRONG coins (never below 0; not in lightning, training, the quiz, or "I don't know")
+const COIN_LOSS_WRONG=5;
+const COIN_PER_RIGHT=5,COIN_PER_LT=5,COIN_PER_MASTERY=1,COIN_MASTERED=50,COIN_QUIZ_PASS=500,TRAINING_MULT=1.5;
 let econ=LS.get("econ",{coins:0,owned:[],equipped:{},t:0});
 function normEcon(){if(!econ||typeof econ!=="object")econ={};econ.coins=Math.max(0,Math.floor(+econ.coins||0));delete econ.inv;econ.owned=Array.isArray(econ.owned)?econ.owned:[];econ.equipped=econ.equipped&&typeof econ.equipped==="object"?econ.equipped:{};econ.t=+econ.t||0;if(typeof econ.daily!=="string")econ.daily="";if(!econ.rl||typeof econ.rl!=="object")econ.rl={};
   // Coin ledger (Nov 16): coins = base + every device's (earned - spent). Each device only adds to its own counters,
@@ -1340,8 +1342,7 @@ let selDay=LS.get("selDay","5.2");
 function bestOf(d){return (bestBy[d]||{}).best||0}
 function durOf(d){return (bestBy[d]||{}).dur||60}
 let day=LS.get("day",{streak:0,last:null,freezes:0});
-// LT_WRONG_SHOW_MS: a wrong lightning answer shows the right answer this long, then the round ends
-const TOTAL=180,LT_AT=90,LT_WRONG_SHOW_MS=3000;
+const TOTAL=180,LT_AT=90;
 // Review Rush: after a miss, that skill keeps coming back until you get it right this many times in a row
 const FIX_STREAK=2;
 
@@ -2209,6 +2210,8 @@ function addCoins(n){
   n=Math.max(0,n)*coinMult();if(st&&st.training)n*=TRAINING_MULT;n=Math.round(n);
   if(n>0){econ.coins+=n;if(st&&typeof st.coinsRun==="number")st.coinsRun+=n;saveEcon()}
   return n}
+function loseCoins(n){n=Math.min(Math.max(0,Math.round(n)),econ.coins);if(n>0){econ.coins-=n;if(st&&typeof st.coinsRun==="number")st.coinsRun-=n;saveEcon()}return n}
+const coinsRunTxt=n=>(n<0?"−"+(-n):"+"+n)+" 🪙";
 function mkBtn(cls,html,fn){const b=document.createElement("button");b.className=cls;b.innerHTML=html;b.onclick=fn;return b}
 function playPool(){
   const um=a=>a.filter(k=>lvl(k)<3);
@@ -2423,6 +2426,7 @@ function resolve(ok){
     st.time-=3;st.miss[st.cur.key]=(st.miss[st.cur.key]||0)+1;
     if(st.review)st.fix={key:st.cur.key,got:0};else st.queue.push({key:st.cur.key,at:st.qn+ri(2,4)});
     let note="−3s";
+    const lost=(!st.training&&!(st.pk&&st.pk.idk))?loseCoins(COIN_LOSS_WRONG):0;if(lost)note+=` · −${lost} 🪙`;
     st.streak=0;if(mg<0)note+=` · −${-mg} mastery`
     if(revMsg)note+=" · "+revMsg;
     hudCombo();popup(note,"var(--bad)",POP_MISS_MS);beep(140,.28,"square",.08);buzz([60,40,60]);flash("fbad");
@@ -2442,7 +2446,7 @@ function startLightning(){$("idk").classList.add("hidden");
 function ltNext(){
   if(st.mode!=="lt")return;
   const s=pick((st.ltP||ltPool(st.day)).items)();st.lt=s;st.ltLock=false;
-  $("qm").classList.add("hidden");$("tg").textContent="Lightning"+({mastered:" · mastered skills",tricky:" · tricky skills"}[(st.ltP||{}).why]||": true or false")+" · +100 each";$("tg").classList.add("rm");
+  $("qm").classList.add("hidden");$("tg").textContent="Lightning"+({mastered:" · mastered skills",tricky:" · tricky skills"}[(st.ltP||{}).why]||": true or false")+" · +100 and 5 coins each";$("tg").classList.add("rm");
   $("qt").innerHTML=s.s;$("go").classList.add("hidden");$("why").classList.add("hidden");
   const box=$("opts");box.innerHTML="";const row=document.createElement("div");row.className="tf";
   row.appendChild(mkBtn("tfb","True",()=>ltAnswer(true)));row.appendChild(mkBtn("tfb","False",()=>ltAnswer(false)));box.appendChild(row);
@@ -2453,10 +2457,12 @@ function ltAnswer(v){
   bs[st.lt.t?0:1].classList.add("ok");
   if(ok){addCoins(COIN_PER_LT);st.score+=100;st.ltScore+=100;$("sc").textContent=st.score.toLocaleString();beep(900+st.ltScore/5,.06);flash("fok");setTimeout(ltNext,160)}
   else{bs[v?0:1].classList.add("no");beep(160,.15,"square",.07);flash("fbad");buzz(40);
-    // A wrong answer ends the lightning round: show the right answer for a moment, then back to Rush.
-    $("why").innerHTML=`<b>Not quite.</b> ${st.lt.why}`;$("why").classList.remove("hidden");st.ltWrong=true;const tok=st.ltTok=(st.ltTok||0)+1;
-    const go=()=>{if(st.mode==="lt"&&st.ltTok===tok)endLightning()};$("why").appendChild(mkBtn("big","Got it ›",go));
-    setTimeout(go,LT_WRONG_SHOW_MS)}
+    // A wrong answer ends the lightning round. Nothing is timed now (both clocks are stopped):
+    // the explanation stays until you tap "I got it", then you're back in Rush.
+    $("why").innerHTML=`<div class="wk-head">This one is <b>${st.lt.t?"TRUE":"FALSE"}</b>. You said ${v?"true":"false"}.</div><div class="l-h" style="margin-top:10px">Why</div><div class="wk-sum">${st.lt.why}</div><div class="mute" style="font-size:13px;margin:8px 0">Take your time. The clock is stopped.</div>`;
+    $("why").classList.remove("hidden");st.ltWrong=true;const tok=st.ltTok=(st.ltTok||0)+1;
+    const go=()=>{if(st.mode==="lt"&&st.ltTok===tok)endLightning()};$("why").appendChild(mkBtn("big","I got it · back to Rush",go));
+    setTimeout(()=>$("why").scrollIntoView({behavior:"smooth",block:"nearest"}),60)}
 }
 function endLightning(){
   st.mode="main";$("qc").classList.remove("ltcard");$("tg").classList.remove("rm");
@@ -2481,7 +2487,7 @@ function finishQuiz(){
   const missedQ=[...new Set(st.qres.filter(x=>!x[1]).map(x=>x[0]))],missed=[...new Set(missedQ.flatMap(k=>MIX_SK[k]||[k]))];
   if(pass)passed[d]=true;else missed.forEach(k=>{const o=sk[k];if(o){o.xp=Math.min(o.xp,QUIZ_MISS_XP);o.m=false}});
   if(pass)addCoins(COIN_QUIZ_PASS);
-  $("eCoins").textContent=`+${st.coinsRun} 🪙 · total ${econ.coins.toLocaleString()}`;
+  $("eCoins").textContent=`${coinsRunTxt(st.coinsRun)} · total ${econ.coins.toLocaleString()}`;
   updateDay();persist();
   $("eHead").textContent=pass?`Day ${DAYS[d].n} complete!`+(nx?` Day ${DAYS[nx].n} unlocked`:""):"Not quite yet";
   $("eScore").textContent=`${st.right}/${N}`;$("eRank").textContent=pass?"Passed":`Need all ${need} right to pass`;
@@ -2531,7 +2537,7 @@ function finish(){
   $("eScore").textContent=st.score.toLocaleString();$("eRank").textContent=rank(st.score);
   $("eBest").textContent=bestOf(st.day).toLocaleString();
   $("eAcc").textContent=st.total?Math.round(st.right/st.total*100)+"% ("+st.right+"/"+st.total+")":"—";
-  $("eStreak").textContent=st.maxStreak;$("eCoins").innerHTML=`+${st.coinsRun} 🪙`+(dailyGot?` <span style="color:var(--pow)">+ ${dailyGot} daily bonus</span>`:"")+` · total ${econ.coins.toLocaleString()}`;
+  $("eStreak").textContent=st.maxStreak;$("eCoins").innerHTML=coinsRunTxt(st.coinsRun)+(dailyGot?` <span style="color:var(--pow)">+ ${dailyGot} daily bonus</span>`:"")+` · total ${econ.coins.toLocaleString()}`;
   if(dailyGot){popup(`Daily bonus<div style="font-size:18px">+${dailyGot} 🪙 · ${day.streak}-day streak</div>`,"var(--pow)",2200);[660,880,1100].forEach((f,i)=>beep(f,.12,"triangle",.1,i*.1))}
   $("eDay").textContent=day.streak+(day.streak===1?" day":" days")+dm;
   const w=Object.entries(st.miss).sort((a,b)=>b[1]-a[1])[0];
