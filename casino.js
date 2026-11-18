@@ -1252,6 +1252,9 @@
     var tok = {};
     el.__czTok = tok;
     function live() { return el.__czTok === tok; }
+    // live() stays true after you leave the casino (the page is only hidden), so anything that locks the page
+    // (the full-screen floor stops page scrolling) must also check the casino is actually on screen
+    function shown() { return live() && el.getClientRects().length > 0; }
     var reduce = false;
     try { reduce = !!(globalThis.matchMedia && globalThis.matchMedia("(prefers-reduced-motion: reduce)").matches); } catch (e) { /* ignore */ }
     function ms(n) { return reduce ? 0 : n; }
@@ -2103,7 +2106,7 @@
       else if (view === "bar") { stage.innerHTML = barSkel(); barRefresh(); }
       else { stage.innerHTML = hlSkel(); hlRestore(); }
       // While a game is open, the casino floor keeps living behind it, blurred
-      try { document.body.classList.toggle("cz-fs", view === "lobby" && isFull()); } catch (e) { /* ignore */ }
+      try { document.body.classList.toggle("cz-fs", view === "lobby" && isFull() && shown()); } catch (e) { /* ignore */ }
       if (view === "lobby") {
         drawnTall = fullTall() + fullWide(); fitLobby(); lookUpdate();
         // the blurred floor stays behind the lobby until it has finished fading in, so the switch never shows a black frame
@@ -2133,7 +2136,7 @@
       jp += 1 + Math.floor(Math.random() * 37);
       var t = el.querySelector("#czl-jp"); if (t) t.textContent = jp.toLocaleString("en-US");
     }, JACKPOT_TICK_MS);
-    try { globalThis.addEventListener("resize", function () { if (!live() || view !== "lobby") return; if (Math.abs(fullTall() + fullWide() - drawnTall) > 8) render(); else fitLobby(); }); } catch (e) { /* ignore */ }
+    try { globalThis.addEventListener("resize", function () { if (!shown() || view !== "lobby") return; if (Math.abs(fullTall() + fullWide() - drawnTall) > 8) render(); else fitLobby(); }); } catch (e) { /* ignore */ }
     // The zoom runs on the full-screen floor itself when it is showing: a transform on the stage around it
     // would make the fixed floor sit inside the stage for the length of the zoom, then snap back (a visible jump on iPad)
     function zoomEl() { var room = document.body.classList.contains("cz-fs") && stage.querySelector(".cz-room"); return room || stage; }
