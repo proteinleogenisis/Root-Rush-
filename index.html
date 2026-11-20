@@ -2697,19 +2697,32 @@ function renderLearn(){
 }
 let cloud=null,cloudBusy=false,cloudAgain=false,cloudT=null,syncState="local";
 function saveLocal(){LS.set("passed",passed);LS.set("runs",runs);LS.set("bestBy",bestBy);LS.set("day",day);LS.set("skills",sk);LS.set("hist",hist);LS.set("learnedBy",learnedBy)}
-function packSave(){return{v:1,passed,runs,bestBy,day,skills:sk,hist,learnedBy,econ,updated:Date.now()}}
+function packSave(){return{v:1,passed,runs,bestBy,day,skills:sk,hist,learnedBy,econ,prst,updated:Date.now()}}
+// Anti-farm (Nov 20): the mastery bonus (COIN_MASTERED) and the quiz-pass bonus (COIN_QUIZ_PASS) pay once per skill / day, ever.
+// Paid ones are marked in econ.rl ("m:<skill>", "q:<day>"), which syncs and survives resets. Older saves get marked from what they already earned.
+function markPaid(){let ch=0;for(const k in sk)if(sk[k]&&(sk[k].m||(+sk[k].xp||0)>=MX)&&!econ.rl["m:"+k]){econ.rl["m:"+k]=1;ch=1}
+  for(const d in passed)if(passed[d]&&!econ.rl["q:"+d]){econ.rl["q:"+d]=1;ch=1}if(ch)LS.set("econ",econ)}
+// Progress reset (Nov 20, the student asked to restart from lesson 1): a save carries prst, the time of its last reset.
+// A newer reset wipes skills, passed days and lessons (coins, stage, runs, best scores and streak stay); an older save's
+// learning progress is ignored when merging. PRST_ACCT holds the reset time per account (keyed by a hash of the name).
+const PRST_ACCT={"h19avre4":Date.UTC(2026,10,20,18)};
+let prst=+LS.get("prst",0)||0;
+function nameHash(u){let h=5381;for(const ch of String(u||"").toLowerCase())h=((h*33)^ch.charCodeAt(0))>>>0;return"h"+h.toString(36)}
+function wipeProgress(t){markPaid();sk={};passed={};learnedBy={"5.1":[],"5.2":[],"5.3":[],"5.4":[],"5.3v2":[1]};prst=t;LS.set("prst",prst);selDay="5.1";LS.set("selDay",selDay);openSkill=null;saveLocal()}
+function prstCheck(){if(!acct)return;const t=PRST_ACCT[nameHash(acct.user)]||0;if(t>prst)wipeProgress(t)}
 function mergeSave(c){
   if(!c||typeof c!=="object")return;
+  const cp=+c.prst||0;if(cp>prst)wipeProgress(cp);const old=cp<prst;
   runs=Math.max(runs,+c.runs||0);
   for(const d in (c.bestBy||{})){const x=c.bestBy[d];if(x&&(+x.best||0)>bestOf(d))bestBy[d]={best:+x.best,dur:+x.dur||60}}
   if(c.day&&c.day.last){if(!day.last||daysBetween(day.last,c.day.last)>0||(c.day.last===day.last&&(c.day.streak||0)>day.streak))day={streak:c.day.streak||0,last:c.day.last,freezes:c.day.freezes||0}}
-  for(const k in (c.skills||{})){const x=c.skills[k];if(x&&(!sk[k]||(x.t||0)>(sk[k].t||0))){sk[k]={...x};if(Array.isArray(x.rec))sk[k].rec=x.rec.slice(-10)}}
+  if(!old)for(const k in (c.skills||{})){const x=c.skills[k];if(x&&(!sk[k]||(x.t||0)>(sk[k].t||0))){sk[k]={...x};if(Array.isArray(x.rec))sk[k].rec=x.rec.slice(-10)}}
   const key=h=>h.id?String(h.id):h.d+"|"+h.score;const seen=new Set(hist.map(key));
   (c.hist||[]).forEach(h=>{if(h&&!seen.has(key(h))){hist.push({...h});seen.add(key(h))}});
   hist.sort((a,b)=>(a.id||0)-(b.id||0));hist=hist.slice(-30);
-  for(const d in (c.passed||{}))if(c.passed[d])passed[d]=true;
-  learned53v2(c.learnedBy);
-  for(const d in (c.learnedBy||{}))learnedBy[d]=[...new Set([...(learnedBy[d]||[]),...(c.learnedBy[d]||[])])];
+  if(!old)for(const d in (c.passed||{}))if(c.passed[d])passed[d]=true;
+  if(!old)learned53v2(c.learnedBy);
+  if(!old)for(const d in (c.learnedBy||{}))learnedBy[d]=[...new Set([...(learnedBy[d]||[]),...(c.learnedBy[d]||[])])];
   if(c.econ&&typeof c.econ==="object")econMerge(c.econ);
   saveLocal();
 }
@@ -2727,6 +2740,7 @@ function setSync(x){syncState=x;const el=$("sync");if(!el)return;
 // ---- Accounts (username + password) on the Root Rush account server ----
 const ACCT_URL="https://root-rush-accounts.netlify.app/api/account";
 let acct=LS.get("acct",null),acMode="in",acBusy=false;
+markPaid();prstCheck();
 async function acApi(body){const r=await fetch(ACCT_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});let j={};try{j=await r.json()}catch(e){}return{status:r.status,...j}}
 function acAdapter(){return{set:async save=>{const r=await acApi({action:"put",token:acct.token,save});if(r.status===401){acSignedOut();const e=new Error("revoked");e.code="revoked";throw e}if(!r.ok)throw new Error(r.error||"fail")}}}
 // Read the account's save and merge it in before every upload, so one device never overwrites another's progress
@@ -2748,7 +2762,7 @@ async function acSubmit(e){e&&e.preventDefault();if(acBusy)return;
   acBusy=true;$("acGo").disabled=true;$("acErr").textContent="";
   try{const r=await acApi(acMode==="new"?{action:"signup",user,pass,save:packSave()}:{action:"login",user,pass});
     if(!r.ok){$("acErr").textContent=r.error||"Couldn't reach the server. Try again";return}
-    acct={user:r.user,token:r.token};LS.set("acct",acct);$("acPass").value="";
+    acct={user:r.user,token:r.token};LS.set("acct",acct);$("acPass").value="";prstCheck();
     if(acMode==="in"&&r.save)mergeSave(r.save);cloud=acAdapter();await pushCloud();acOpen(false);home();popup(acMode==="new"?"Account made":"Signed in","var(--good)")}
   catch(err){$("acErr").textContent="Couldn't reach the server. Check your internet and try again"}
   finally{acBusy=false;$("acGo").disabled=false}}
@@ -3030,7 +3044,7 @@ function resolve(ok){
     if(mg>0)extra+=`<div style="font-size:15px;color:var(--good)">+${mg} progress · ${mo.xp}/${MX}</div>`;
     if(revMsg)extra+=`<div style="font-size:15px;color:var(--good)">${revMsg}</div>`;
     if(nowSM){extra+=`<div style="font-size:20px;color:var(--good)">${TAGS[mk]} mastered!</div>`;beep(1047,.15,"triangle",.12,.15);beep(1568,.25,"triangle",.12,.3)}
-    const cg=addCoins(COIN_PER_RIGHT+(nowSM?COIN_MASTERED:0));
+    const mPay=nowSM&&!econ.rl["m:"+mk];if(nowSM)econ.rl["m:"+mk]=1;const cg=addCoins(COIN_PER_RIGHT+(mPay?COIN_MASTERED:0));
     extra+=`<div style="font-size:15px;color:var(--hot)">+${cg} 🪙</div>`;
     popup(`+${pts}${extra}`,"var(--hot)");
     beep(Math.min(1200,520+st.streak*45),.1);if(up)beep(1320,.15,"triangle",.12,.08);
@@ -3102,7 +3116,7 @@ function finishQuiz(){
   const d=st.day,N=st.qlist.length,need=Math.ceil(N*QUIZ_PASS_FRAC),pass=st.right>=need,nx=DAY_ORDER[DAY_ORDER.indexOf(d)+1];
   const missedQ=[...new Set(st.qres.filter(x=>!x[1]).map(x=>x[0]))],missed=[...new Set(missedQ.flatMap(k=>MIX_SK[k]||[k]))];
   if(pass)passed[d]=true;else missed.forEach(k=>{const o=sk[k];if(o){o.xp=Math.min(o.xp,QUIZ_MISS_XP);o.m=false}});
-  if(pass)addCoins(COIN_QUIZ_PASS);
+  if(pass&&!econ.rl["q:"+d]){econ.rl["q:"+d]=1;addCoins(COIN_QUIZ_PASS)}
   $("eCoins").textContent=`${coinsRunTxt(st.coinsRun)} · total ${econ.coins.toLocaleString()}`;
   updateDay();persist();
   $("eHead").textContent=pass?`Day ${DAYS[d].n} complete!`+(nx?` Day ${DAYS[nx].n} unlocked`:""):"Not quite yet";
