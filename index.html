@@ -206,6 +206,30 @@ body.fok{background:var(--goodbg)}body.fbad{background:var(--badbg)}
 .rl-svg{display:block;width:100%;height:auto;margin:6px 0;border-radius:12px;overflow:hidden;background:var(--bg)}
 .rl-lab{font:600 11px system-ui,sans-serif;fill:var(--ink)}.rl-lab.big{font-size:13px}
 :root{--rlsky:#dfeefa;--rlsea:#7fb3e0;--rlsand:#c9a66b;--rlgrass:#a9d18e}
+/* Progress page: skill stats (Nov 19). One hue (--root) for every bar, values written in ink beside them */
+.st-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-bottom:14px}
+.st-tile{background:var(--bg);border-radius:12px;padding:8px 6px;text-align:center;min-width:0}
+.st-tile b{display:block;font-size:20px;line-height:1.1}.st-tile span{font-size:11px;color:var(--mute)}
+.st-h{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--mute);margin:12px 0 6px}
+.st-pod{display:grid;grid-template-columns:1fr 1.1fr 1fr;align-items:end;gap:6px;height:178px}
+.st-pc{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0;text-align:center}
+.st-pc .nm{font-size:12px;font-weight:600;line-height:1.2;margin-bottom:4px;overflow-wrap:anywhere}
+.st-pc .pct{font-size:13px;font-weight:800;margin-bottom:4px}
+.st-pc .blk{width:100%;border-radius:10px 10px 4px 4px;background:var(--root);display:flex;align-items:flex-start;justify-content:center;color:#fff;font-weight:800;font-size:22px;padding-top:6px;transform-origin:bottom;animation:stGrow .7s cubic-bezier(.2,.8,.2,1) both}
+.st-pc:nth-child(2) .blk{box-shadow:0 0 0 2px var(--card),0 0 0 4px var(--root)}
+@keyframes stGrow{from{transform:scaleY(0)}}
+.st-row{display:grid;grid-template-columns:minmax(0,1fr) 92px 40px;align-items:center;gap:8px;padding:5px 0;font-size:13px}
+.st-row .bar{height:10px;border-radius:5px;background:var(--line);overflow:hidden}.st-row .bar i{display:block;height:100%;border-radius:5px;background:var(--root);transform-origin:left;animation:stGrowX .6s ease both}
+@keyframes stGrowX{from{transform:scaleX(0)}}
+.st-row .v{text-align:right;font-weight:700}.st-row .sub{font-size:11px;color:var(--mute)}
+.st-row button{font-size:12px;padding:4px 8px;grid-column:1/-1;justify-self:start}
+.st-map{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:6px}
+.st-m{position:relative;height:64px;border-radius:10px;background:var(--bg);overflow:hidden;border:1px solid var(--line);padding:6px;font-size:11px;font-weight:600;line-height:1.2;display:flex;flex-direction:column;justify-content:space-between}
+.st-m i{position:absolute;left:0;right:0;bottom:0;background:color-mix(in srgb,var(--root) 32%,transparent);transform-origin:bottom;animation:stGrow .7s ease both}
+.st-m span,.st-m b{position:relative}.st-m b{font-size:13px}.st-m.full{border-color:var(--root)}
+.st-dl{font-size:12px;color:var(--mute);margin:8px 0 4px}
+.st-empty{font-size:14px;color:var(--mute);padding:6px 0}
+@media (prefers-reduced-motion:reduce){.st-pc .blk,.st-row .bar i,.st-m i{animation:none}}
 /* Real-life scenes (Nov 19): a picture of the real thing on the left, the math updating line by line on the right (rlSide) */
 .rl-side{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:10px;align-items:center;margin:6px 0}
 .rl-side .rl-svg{margin:0}
@@ -453,6 +477,8 @@ body.boot #home .hpane.on :is(.tile,.card):nth-child(2){animation-delay:.04s}bod
   <div class="card skills" id="skills"></div>
   </div>
   <div class="hpane" data-p="more">
+  <div class="sec"><h3>Your skills</h3><span class="mute" id="statSum"></span></div>
+  <div class="card st-card" id="stats"></div>
   <div class="sec"><h3>Recent runs</h3><span class="mute" id="sparkNote"></span></div>
   <div class="card"><div class="spark" id="spark"></div></div>
 
@@ -1654,6 +1680,30 @@ function renderSkills(){
     box.appendChild(row)});
   $("skSum").textContent=`${m} / ${Object.values(LESSONS).flat().length} mastered`;
 }
+// Progress page "Your skills": totals, a podium of the 3 best skills, the 3 that need work, and a mastery map per day.
+// STAT_MIN_TRIES: a skill needs this many answers before it can be ranked best or worst
+const STAT_MIN_TRIES=3;
+function renderStats(){const box=$("stats");if(!box)return;
+  const days=DAY_ORDER.filter(d=>LESSONS[d]&&dayUnlocked(d)),all=days.flatMap(d=>LESSONS[d]);
+  const acc=k=>{const s=sk[k];return s&&s.t?Math.round(100*(s.r||0)/s.t):0};
+  const T=all.reduce((a,k)=>a+((sk[k]&&sk[k].t)||0),0),R=all.reduce((a,k)=>a+((sk[k]&&sk[k].r)||0),0),M=all.filter(k=>xpOf(k)>=MX).length;
+  const ranked=all.filter(k=>sk[k]&&sk[k].t>=STAT_MIN_TRIES).sort((a,b)=>acc(b)-acc(a)||xpOf(b)-xpOf(a)||sk[b].t-sk[a].t);
+  $("statSum").textContent=T?`${M} of ${all.length} mastered`:"";
+  if(!T){box.innerHTML='<div class="st-empty">Play a run and your best skills show up here.</div>';return}
+  const best=ranked.slice(0,3),weak=ranked.slice(3).reverse().filter(k=>acc(k)<90).slice(0,3);
+  let h=`<div class="st-tiles"><div class="st-tile"><b>${T.toLocaleString()}</b><span>answered</span></div><div class="st-tile"><b>${Math.round(100*R/T)}%</b><span>right</span></div><div class="st-tile"><b>${M}/${all.length}</b><span>mastered</span></div><div class="st-tile"><b>${hist.length}</b><span>runs</span></div></div>`;
+  if(best.length){h+=`<div class="st-h">Your best skills</div><div class="st-pod">`;
+    const order=best.length===1?[0]:best.length===2?[1,0]:[1,0,2];
+    // podium blocks: 2nd, 1st, 3rd; height from accuracy so a real gap shows
+    if(best.length<3)h+=best.length===1?'<div></div>':'';
+    order.forEach(i=>{const k=best[i],a=acc(k);h+=`<div class="st-pc"><div class="nm">${TAGS[k]}</div><div class="pct">${a}%</div><div class="blk" style="height:${Math.round(30+a*.85*(i===0?1:i===1?.82:.66))}px">${i+1}</div></div>`});
+    h+=`</div>`}
+  if(weak.length){h+=`<div class="st-h">Needs work</div>`;weak.forEach(k=>{const s=sk[k];h+=`<div class="st-row" data-k="${k}"><span>${TAGS[k]}<div class="sub">${s.r||0} of ${s.t} right · Day ${DAYS[dayOfSkill(k)].n}</div></span><span class="bar"><i style="width:${acc(k)}%"></i></span><span class="v">${acc(k)}%</span></div>`})}
+  if(!ranked.length)h+=`<div class="st-empty">Answer ${STAT_MIN_TRIES} questions in a skill to rank it.</div>`;
+  h+=`<div class="st-h">Mastery map</div>`;
+  days.forEach(d=>{h+=`<div class="st-dl">Day ${DAYS[d].n} · ${d}</div><div class="st-map">`+LESSONS[d].map(k=>{const x=xpOf(k);return`<div class="st-m${x>=MX?" full":""}"><i style="height:${x}%"></i><span>${TAGS[k]}</span><b>${x>=MX?"Mastered":x+" / "+MX}</b></div>`}).join("")+`</div>`});
+  box.innerHTML=h;
+  box.querySelectorAll(".st-row").forEach(r=>{const k=r.dataset.k;if(xpOf(k)<MX)r.appendChild(mkBtn("small","Practice this",()=>start(k)))})}
 function renderSpark(){
   const box=$("spark"),last=hist.slice(-10);box.innerHTML="";
   if(!last.length){box.innerHTML='<div class="spark-empty">Play a run to start your chart</div>';$("sparkNote").textContent="";return}
@@ -1986,7 +2036,7 @@ function home(){
   const dr=dailyReady(),nextStreak=done?day.streak:(day.last&&daysBetween(day.last,dayKey(new Date()))===1?day.streak+1:1);
   $("goalTxt").innerHTML=dr?`Daily bonus: finish a Rush for <b>+${dailyAmount(nextStreak)}</b> coins`+(done?" (streak is safe)":""):`Daily bonus collected. Streak safe today. Tomorrow: +${dailyAmount(day.streak+1)} coins`;
   $("goal").classList.toggle("done",!dr);$("goalBox").textContent=!dr?"✓":"";
-  ensureDue();renderReview();renderSkills();renderSpark();renderRoad();renderReal();setTab(hTab);coinPings();{const ks=LESSONS[selDay],rk=ks.filter(k=>REAL[k]);$("tbReal").textContent=`${rk.filter(k=>lvl(k)===3||dayPassed(selDay)).length}/${rk.length}`;$("tbSk").textContent=`${masteredCount(selDay)}/${ks.length}`}
+  ensureDue();renderReview();renderSkills();renderSpark();renderStats();renderRoad();renderReal();setTab(hTab);coinPings();{const ks=LESSONS[selDay],rk=ks.filter(k=>REAL[k]);$("tbReal").textContent=`${rk.filter(k=>lvl(k)===3||dayPassed(selDay)).length}/${rk.length}`;$("tbSk").textContent=`${masteredCount(selDay)}/${ks.length}`}
   const L=LRN(),ld=LD();
   $("learnTxt").textContent=`${ld.length} of ${L.length} lessons done`;$("learnBar").style.width=(ld.length/L.length*100)+"%";
   tile("learnBtn","book",ld.length<L.length?"Learn":"Review",ld.length===0?`${selDay} · ${L.length} min`:ld.length<L.length?`lesson ${Math.max(0,L.findIndex((_,j)=>!ld.includes(j)))+1}`:`${selDay} lessons`);$("learnBtn").classList.toggle("todo",ld.length<L.length);
