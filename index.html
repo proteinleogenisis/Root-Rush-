@@ -1931,7 +1931,7 @@ shift:{t:"Your money's yearly growth",use:`Banks, investors and sneaker reseller
    g+=`<rect x="34" y="8" width="132" height="20" rx="10" fill="var(--card)" stroke="var(--line)"/><text x="100" y="22" text-anchor="middle" class="rl-lab big">× ${f2(x)} every year</text>`;
    sv.innerHTML=g};
   const out=()=>{const gg=end/1000,x=gg**(1/yrs);
-   S.math([["The rule","h"],"1000(1 + r)<sup>"+yrs+"</sup> = "+end.toLocaleString(),["(1 + r)<sup>"+yrs+"</sup> = "+f2(gg),"on"],[`1 + r = ${yrs===1?"":yrs+"√"}${f2(gg)}`,"on"],[`1 + r ≈ ${f2(x)}`,"on"],[`r ≈ ${f2((x-1)*100)}% a year`,"ans"],["Divide by 1000, undo the power with a root, then subtract 1. The dashed line is your starting $1,000.","n"]])};
+   S.math([["The rule","h"],"1000(1 + r)<sup>"+yrs+"</sup> = "+end.toLocaleString(),["(1 + r)<sup>"+yrs+"</sup> = "+f2(gg),"on"],[`1 + r = ${yrs===1?f2(gg):rad(yrs,f2(gg))}`,"on"],[`1 + r ≈ ${f2(x)}`,"on"],[`r ≈ ${f2((x-1)*100)}% a year`,"ans"],["Divide by 1000, undo the power with a root, then subtract 1. The dashed line is your starting $1,000.","n"]])};
   draw(99);out();rlTry(el);rlSlider(el,"$1,000 grows to",1001,5001,10,1331,v=>{end=v;draw(99);out();return "$"+v.toLocaleString()});rlSlider(el,"Years",1,10,1,3,v=>{yrs=v;draw(99);out();return v+(v>1?" yrs":" yr")});
   return{play(){const tok=rlTok(el);let k=0;draw(0);const go=()=>{if(!rlLive(el,tok))return;draw(++k);if(k<=yrs)setTimeout(go,450)};setTimeout(go,60)}}}},
 order:{t:"How deep the ocean is under a tsunami",use:`Tsunamis travel at v = √(9.8d) meters a second, where d is the ocean depth. Scientists run it backward to read the sea floor.`,
