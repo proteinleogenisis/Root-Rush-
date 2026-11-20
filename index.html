@@ -2783,12 +2783,75 @@ const LEARN53=[
  steps:[[`The student started at (−2, −2)`,"Red dashed is the student's graph"],[`Warm-up: x − 2 = 0  →  x = 2`,"Where should √(x − 2) start?"],[`− 2 outside  →  y = −2`,"Outside works as written"],[`Correct start: (2, −2)`,"Right 2 and down 2"],[`Error: 2 LEFT, not 2 RIGHT`,"Minus inside means right"]],
  chk:{q:`A student graphs f(x) = √(x + 3) + 1 starting at (3, 1). What is the error?`,o:["Shifted 3 right instead of 3 left","Shifted 1 up instead of 1 down","Reflected in the x-axis","Swapped the x- and y-coordinates"],a:0,why:"x + 3 = 0 gives x = −3, so it should start at (−3, 1). The student shifted 3 right instead of 3 left."}}];
 // ---- Day 4 (5.4) lessons: solving radical equations (from the class notes, made simpler) ----
+// ---- Day 4 moving picture: a two-pan balance. The same move happens on both pans, then the beam shows if it still balances. ----
+// frames[i] = [left, right, badge, tilt degrees, tone] after step i (frames[0] = before any step). Text mini-markup: ^(2) = exponent, ~∛~ = root colored.
+const L54_MS=550,L54_TILT=9;let l54run={key:-1,step:-1};
+function l54m(s){let o="",open=0;String(s).split(/(\^\([^)]*\)|~[^~]*~)/).forEach(t=>{if(!t)return;
+  if(t[0]==="^"){o+=`<tspan dy="-6" font-size="10">${t.slice(2,-1)}</tspan><tspan dy="6">`;open++}
+  else if(t[0]==="~")o+=`<tspan fill="var(--root)">${t.slice(1,-1)}</tspan>`;
+  else o+=t});return o+"</tspan>".repeat(open)}
+function l54demo(frames){return el=>{
+  const pr=el.closest(".l-problem");if(pr)pr.after(el);el.id="lAnim";el.className="l3-anim";el.removeAttribute("style");
+  const F=i=>{const f=frames[Math.min(i,frames.length-1)];return{L:f[0],R:f[1],op:f[2]||"",t:f[3]||0,tone:f[4]||"pow"}};
+  const to=F(lStep),anim=lStep>0&&l54run.key===li&&l54run.step===lStep-1&&!matchMedia("(prefers-reduced-motion:reduce)").matches,from=anim?F(lStep-1):to;
+  l54run={key:li,step:lStep};
+  const fs=t=>String(t).replace(/\^\(|\)|~/g,"").length>15?11.5:15,TR=`transition:opacity ${L54_MS}ms,transform ${L54_MS}ms`;
+  const txt=(x,s,cls,on)=>`<text x="${x}" y="111" text-anchor="middle" class="${cls}" font-size="${fs(s)}" font-weight="700" fill="var(--ink)" style="${TR};opacity:${on?1:0};transform:translateY(${on?0:cls==="o"?-8:8}px)">${l54m(s)}</text>`;
+  const col=t=>`var(--${t})`;
+  el.innerHTML=`<svg class="g53" viewBox="0 0 300 145" role="img" aria-label="Balance: ${String(to.L).replace(/[~^()]/g,"")} equals ${String(to.R).replace(/[~^()]/g,"")}" style="font-family:system-ui,sans-serif">
+   <path d="M150 70 L136 136 L164 136 Z" fill="var(--line)"/><rect x="120" y="134" width="60" height="4" rx="2" fill="var(--line)"/>
+   <g id="l54b" style="transform-origin:150px 70px;transform:rotate(${from.t}deg);${TR}">
+    <line x1="80" y1="70" x2="220" y2="70" stroke="var(--mute)" stroke-width="4" stroke-linecap="round"/>
+    <line x1="80" y1="70" x2="80" y2="86" stroke="var(--mute)" stroke-width="2"/><line x1="220" y1="70" x2="220" y2="86" stroke="var(--mute)" stroke-width="2"/>
+    <rect x="20" y="86" width="120" height="36" rx="9" fill="var(--bg)" stroke="var(--line)" stroke-width="1.5"/><rect x="160" y="86" width="120" height="36" rx="9" fill="var(--bg)" stroke="var(--line)" stroke-width="1.5"/>
+    ${txt(80,from.L,"o",true)}${txt(80,to.L,"n",false)}${txt(220,from.R,"o",true)}${txt(220,to.R,"n",false)}</g>
+   <text id="l54ob" x="150" y="30" text-anchor="middle" font-size="14" font-weight="700" fill="${col(from.tone)}" style="transition:opacity ${L54_MS}ms;opacity:${from.op?1:0}">${from.op}</text></svg>`;
+  const go=()=>{const b=el.querySelector("#l54b");if(!b)return;b.style.transform=`rotate(${to.t}deg)`;
+    el.querySelectorAll("text.o").forEach(t=>{t.style.opacity=0;t.style.transform="translateY(-8px)"});el.querySelectorAll("text.n").forEach(t=>{t.style.opacity=1;t.style.transform="translateY(0)"});
+    const ob=el.querySelector("#l54ob");ob.textContent=to.op;ob.setAttribute("fill",col(to.tone));ob.style.opacity=to.op?1:0};
+  if(anim){requestAnimationFrame(()=>requestAnimationFrame(go))}else{
+    el.querySelectorAll("text.o").forEach(t=>{t.style.transition="none";t.style.opacity=0});el.querySelectorAll("text.n").forEach(t=>{t.style.transition="none";t.style.opacity=1;t.style.transform="none"});
+    const b=el.querySelector("#l54b");b.style.transition="none";b.style.transform=`rotate(${to.t}deg)`;const ob=el.querySelector("#l54ob");ob.textContent=to.op;ob.setAttribute("fill",col(to.tone));ob.style.opacity=to.op?1:0}}}
+const L54D=`<div id="lDemo"></div>`;
 const LEARN54=[
-{hw:"5.4 · Solving",t:"Get the root alone, then undo it",rule:`Get the root by itself first. Then undo it with the matching power: ∜ → raise to the 4th.`,
- prob:`2∜(x − 3) = 4`,steps:[[`∜(x − 3) = 2`,"Divide both sides by 2"],[`x − 3 = 2<sup>4</sup> = 16`,"4th root: raise both sides to the 4th"],[`x = 19`,"Add 3"]],
- chk:{q:`Solve ∛(x + 1) = 2`,o:["x = 7","x = 9","x = 5","x = 3"],a:0,why:"Cube both sides: x + 1 = 8, so x = 7."}}];
+{hw:"5.4 · Undo the root",t:"Undo a root with its power",rule:`A root and a power undo each other. √ pairs with squaring, ∛ with cubing, ∜ with the 4th power.`,
+ prob:`∛x = 2${L54D}`,demo:l54demo([["~∛~x","2"],["(~∛~x)^(3)","2^(3)","cube both sides"],["x","2^(3)","the root is gone"],["x","8","2 · 2 · 2",0,"good"]]),
+ steps:[[`(∛x)<sup>3</sup> = 2<sup>3</sup>`,"Cube both sides"],[`x = 2<sup>3</sup>`,"The cube cancels the cube root"],[`x = 8`,"2 · 2 · 2 = 8"]],
+ chk:{q:`Solve ∛(x − 1) = 3`,o:["x = 28","x = 10","x = 8","x = 4"],a:0,why:"Cube both sides: x − 1 = 27, so x = 28."}},
+{hw:"5.4 · Get the root alone",t:"Root alone first",rule:`Get the root by itself before you undo it. Divide or add first, then use the power.`,
+ prob:`2∜(x − 3) = 4${L54D}`,demo:l54demo([["2~∜~(x − 3)","4"],["~∜~(x − 3)","2","÷ 2 both sides"],["(~∜~(x − 3))^(4)","2^(4)","4th power both sides"],["x − 3","16","the root is gone"],["x","19","+ 3 both sides",0,"good"]]),
+ steps:[[`∜(x − 3) = 2`,"Divide both sides by 2"],[`(∜(x − 3))<sup>4</sup> = 2<sup>4</sup>`,"Raise both sides to the 4th"],[`x − 3 = 16`,"2 · 2 · 2 · 2 = 16"],[`x = 19`,"Add 3 to both sides"]],
+ chk:{q:`Solve 3√(x + 1) = 12`,o:["x = 15","x = 143","x = 47","x = 3"],a:0,why:"Divide by 3: √(x + 1) = 4. Square: x + 1 = 16, so x = 15."}},
+{hw:"5.4 · A number outside",t:"Add or subtract first",rule:`A number added outside the root goes first. Move it, then cube.`,
+ prob:`∛(2x − 9) − 1 = 2${L54D}`,demo:l54demo([["~∛~(2x − 9) − 1","2"],["~∛~(2x − 9)","3","+ 1 both sides"],["2x − 9","27","cube both sides"],["2x","36","+ 9 both sides"],["x","18","÷ 2 both sides",0,"good"]]),
+ steps:[[`∛(2x − 9) = 3`,"Add 1 to both sides"],[`2x − 9 = 27`,"Cube both sides: 3 · 3 · 3"],[`2x = 36`,"Add 9 to both sides"],[`x = 18`,"Divide both sides by 2"]],
+ chk:{q:`Solve √(x + 4) − 2 = 3`,o:["x = 21","x = 5","x = 1","x = 29"],a:0,why:"Add 2: √(x + 4) = 5. Square: x + 4 = 25, so x = 21."}},
+{hw:"5.4 · Rational exponents",t:"Flip the fraction",rule:`To undo an exponent like 3/2, raise to the flipped fraction, 2/3. The exponents multiply to 1.`,
+ prob:`(x + 3)<sup>3/2</sup> = 27${L54D}`,demo:l54demo([["(x + 3)^(3/2)","27"],["((x + 3)^(3/2))^(2/3)","27^(2/3)","raise to 2/3, both sides"],["x + 3","9","the exponent is gone"],["x","6","− 3 both sides",0,"good"]]),
+ steps:[[`((x + 3)<sup>3/2</sup>)<sup>2/3</sup> = 27<sup>2/3</sup>`,"Raise both sides to the flipped fraction"],[`x + 3 = 9`,"∛27 = 3, then 3² = 9"],[`x = 6`,"Subtract 3 from both sides"]],
+ chk:{q:`Solve (x − 1)<sup>3/2</sup> = 8`,o:["x = 5","x = 17","x = 4","x = 9"],a:0,why:"Raise to 2/3: x − 1 = 8<sup>2/3</sup> = 4, so x = 5."}},
+{hw:"5.4 · Rational exponents",t:"A number in front",rule:`Same idea. Divide away the number in front first, then flip the fraction.`,
+ prob:`2(x + 3)<sup>3/2</sup> = 54${L54D}`,demo:l54demo([["2(x + 3)^(3/2)","54"],["(x + 3)^(3/2)","27","÷ 2 both sides"],["x + 3","9","raise to 2/3, both sides"],["x","6","− 3 both sides",0,"good"]]),
+ steps:[[`(x + 3)<sup>3/2</sup> = 27`,"Divide both sides by 2"],[`x + 3 = 9`,"Raise to 2/3: ∛27 = 3, 3² = 9"],[`x = 6`,"Subtract 3 from both sides"]],
+ chk:{q:`Solve 3(x + 2)<sup>3/2</sup> = 24`,o:["x = 2","x = 6","x = 62","x = 14"],a:0,why:"Divide by 3: (x + 2)<sup>3/2</sup> = 8. Raise to 2/3: x + 2 = 4, so x = 2."}},
+{hw:"5.4 · One answer or two",t:"Even top: two answers",rule:`If the top of the exponent is even (2, 4, 6), a negative works too, so write ±. If it is odd (3, 5), there is one answer.`,
+ prob:`x<sup>2/3</sup> = 4${L54D}`,demo:l54demo([["x^(2/3)","4"],["(x^(2/3))^(3/2)","± 4^(3/2)","raise to 3/2, add ±"],["x","± 8","√4 = 2, then 2³ = 8"],["8^(2/3)","4","x = 8 works",0,"good"],["(−8)^(2/3)","4","x = −8 works too",0,"good"]]),
+ steps:[[`x = ±4<sup>3/2</sup>`,"Raise to 3/2. Top is even, so ±"],[`x = ±8`,"√4 = 2, then 2³ = 8"],[`8<sup>2/3</sup> = 4`,"∛8 = 2, then 2² = 4"],[`(−8)<sup>2/3</sup> = 4`,"∛(−8) = −2, then (−2)² = 4"]],
+ chk:{q:`Solve x<sup>4/3</sup> = 16`,o:["x = 8 or x = −8","x = 8 only","x = 64 or x = −64","x = 12 or x = −12"],a:0,why:"The top, 4, is even, so ±. Raise to 3/4: x = ±16<sup>3/4</sup> = ±8."}},
+{hw:"5.4 · One answer or two",t:"Two answers in a bigger one",rule:`Number in front first. Then flip the fraction and add ± because the top is even.`,
+ prob:`2(x − 2)<sup>2/3</sup> = 50${L54D}`,demo:l54demo([["2(x − 2)^(2/3)","50"],["(x − 2)^(2/3)","25","÷ 2 both sides"],["x − 2","± 25^(3/2)","raise to 3/2, add ±"],["x − 2","± 125","√25 = 5, then 5³"],["x","127 or −123","+ 2 both sides",0,"good"]]),
+ steps:[[`(x − 2)<sup>2/3</sup> = 25`,"Divide both sides by 2"],[`x − 2 = ±25<sup>3/2</sup>`,"Raise to 3/2, and add ±"],[`x − 2 = ±125`,"√25 = 5, then 5³ = 125"],[`x = 127  or  x = −123`,"Add 2 to both: 2 + 125, 2 − 125"]],
+ chk:{q:`Solve 3(x + 1)<sup>2/3</sup> = 12`,o:["x = 7 or x = −9","x = 7 only","x = 9 or x = −7","x = 7 or x = −7"],a:0,why:"Divide by 3: (x + 1)<sup>2/3</sup> = 4. So x + 1 = ±8: x = 7 or x = −9."}},
+{hw:"5.4 · Extraneous answers",t:"Squaring can make fakes",rule:`When you square both sides, a fake answer can sneak in. Solve it, then check.`,
+ prob:`√(x − 3) + 5 = x${L54D}`,demo:l54demo([["~√~(x − 3) + 5","x"],["~√~(x − 3)","x − 5","− 5 both sides"],["x − 3","(x − 5)^(2)","square both sides"],["x − 3","x^(2) − 10x + 25","expand (x − 5)²"],["x^(2) − 11x + 28","0","move all to one side"],["(x − 7)(x − 4)","0","factor"],["x","7 or 4","each factor can be 0"]]),
+ steps:[[`√(x − 3) = x − 5`,"Subtract 5 from both sides"],[`x − 3 = (x − 5)<sup>2</sup>`,"Square both sides"],[`x − 3 = x<sup>2</sup> − 10x + 25`,"Multiply out (x − 5)(x − 5)"],[`x<sup>2</sup> − 11x + 28 = 0`,"Move everything to one side"],[`(x − 7)(x − 4) = 0`,"Factor"],[`x = 7  or  x = 4`,"Each factor can be zero"]],
+ chk:{q:`What is (x − 1)<sup>2</sup> multiplied out?`,o:["x<sup>2</sup> − 2x + 1","x<sup>2</sup> + 1","x<sup>2</sup> − 1","x<sup>2</sup> − 2x − 1"],a:0,why:"(x − 1)(x − 1) = x<sup>2</sup> − x − x + 1 = x<sup>2</sup> − 2x + 1."}},
+{hw:"5.4 · Extraneous answers",t:"Check every answer",rule:`Put each answer into the ORIGINAL equation. If the sides don't match, it is extraneous: cross it out.`,
+ prob:`√(x − 3) + 5 = x${L54D}`,demo:l54demo([["~√~(x − 3) + 5","x"],["2 + 5","7","try x = 7"],["7","7","balanced: it works",0,"good"],["1 + 5","4","try x = 4"],["6","4","not equal: extraneous",-L54_TILT,"bad"],["x","7","only 7 stays",0,"good"]]),
+ steps:[[`x = 7:  2 + 5 = 7`,"Plug in 7. √4 = 2."],[`7 = 7  works`,"Balanced. Keep 7."],[`x = 4:  1 + 5 = 6`,"Plug in 4. √1 = 1."],[`6 ≠ 4  extraneous`,"Unbalanced. Cross out 4."],[`Answer: x = 7`,"Only checked answers count"]],
+ chk:{q:`Squaring √(x + 2) = x gives x = 2 or x = −1. Which is a real answer?`,o:["x = 2 only","x = −1 only","Both","Neither"],a:0,why:"x = 2: √4 = 2 works. x = −1: √1 = 1, not −1. So −1 is extraneous."}}];
 // Which skill each lesson trains (by lesson position). Every skill has at least one lesson.
-const LESSON_SKILL={"5.1":[["bottom"],["bottom"],["neg"],["bottom"],["entry"],["sols","iso","shift","order"],["line"]],"5.2":[["rules"],["rules"],["rules"],["rules"],["radmul"],["radmul"],["vars"],["vars"],["like"],["simp"]],"5.3":[["gparent"],["gparent"],["gshift"],["gshift","gstretch"],["gstretch"],["gstretch"],["gshift","gstretch"],["gdomain"],["gparent"],["gmatch"],["gerror"]],"5.4":[["riso"],["rsolve"],["rexp"],["rtwo"],["rext"]]};
+const LESSON_SKILL={"5.1":[["bottom"],["bottom"],["neg"],["bottom"],["entry"],["sols","iso","shift","order"],["line"]],"5.2":[["rules"],["rules"],["rules"],["rules"],["radmul"],["radmul"],["vars"],["vars"],["like"],["simp"]],"5.3":[["gparent"],["gparent"],["gshift"],["gshift","gstretch"],["gstretch"],["gstretch"],["gshift","gstretch"],["gdomain"],["gparent"],["gmatch"],["gerror"]],"5.4":[["rsolve"],["riso"],["riso","rsolve"],["rexp"],["rexp","riso"],["rtwo","rexp"],["rtwo","rexp"],["rext","rsolve"],["rext"]]};
 const LEARNS={"5.1":LEARN51,"5.2":LEARN52,"5.3":LEARN53,"5.4":LEARN54};
 let learnedBy=LS.get("learnedBy",null);if(!learnedBy){learnedBy={"5.1":[],"5.2":LS.get("learned52",[])};LS.set("learnedBy",learnedBy)}
 // Nov 18: Day 3 lessons 9 and 10 (positions 8, 9) became new lessons (roots, match the graph) when Day 3 was matched
