@@ -1204,16 +1204,239 @@ function g53domain(v){
   return{...ch,words:1,q:`Find the domain and range of ${hdr}.`,ex:hdr,walk,why}}
 GEN53.gdomain=()=>g53domain();
 Object.assign(GEN,GEN53);
-// ---- Day 4 (5.4) solving radical equations: generators (filled in by g54* below) ----
+// ---- Day 4 (5.4) solving radical equations: generators. Equations are built backwards from the answer, so every number is nice. ----
+// Variants: g54riso(v) first/alone/power/powexp; g54rsolve(v) b/a/ab/neg/p/order; g54rexp(v) shift/full/fullodd/fullev; g54rtwo(v) solve/count/which/rule; g54ext(v) real/solve/is/sq/order/type
 const GEN54={};
-{const st54=(k,q,c,w,why)=>({q,c,w,why,ex:q,walk:[[c,"Answer"]]});
- GEN54.riso=()=>{const a=ri(2,5),b=ri(1,4),r=a*b;return{...st54("riso",`First step for ${a}∛(x − 1) = ${r}?`,`Divide both sides by ${a}`,[`Cube both sides`,`Add 1 to both sides`,`Subtract ${a}`],`Get the root alone first.`),words:1}};
- GEN54.rsolve=()=>{const v=ri(2,4),c=ri(1,9);return st54("rsolve",`Solve ∛(x − ${c}) = ${v}`,`x = ${v**3+c}`,[`x = ${v**3-c}`,`x = ${v*3+c}`,`x = ${v**2+c}`],`Cube both sides.`)};
- GEN54.rexp=()=>{const v=pick([4,9,16]),c=ri(1,6);return st54("rexp",`Solve (x + ${c})<sup>3/2</sup> = ${Math.round(Math.sqrt(v))**3}`,`x = ${v-c}`,[`x = ${v+c}`,`x = ${Math.round(Math.sqrt(v))**3-c}`,`x = ${v*2-c}`],`Raise to 2/3.`)};
- GEN54.rtwo=()=>st54("rtwo",`How many answers does x<sup>2/3</sup> = 4 have?`,`Two: x = ±8`,[`One: x = 8`,`One: x = −8`,`None`],`Even top: ±.`);
- GEN54.rext=()=>st54("rext",`√(x − 3) + 5 = x gives x = 7 or x = 4. Which are real answers?`,`Only x = 7`,[`Only x = 4`,`Both`,`Neither`],`Check each in the original.`);
- for(const k in GEN54){const f=GEN54[k];GEN54[k]=()=>({words:1,...f()})}}
+const g54tf=()=>Math.random()<.5;
+const g54n=n=>n<0?"−"+(-n):String(n);
+const g54s=n=>n<0?`− ${-n}`:`+ ${n}`;
+const g54f=v=>{if(Math.abs(v-Math.round(v))<1e-9)return g54n(Math.round(v));for(let d=2;d<=12;d++){const nu=v*d;if(Math.abs(nu-Math.round(nu))<1e-9){const N=Math.round(nu);return (N<0?"−":"")+Math.abs(N)+"/"+d}}return g54n(Math.round(v*100)/100)};
+const g54pw=(b,e)=>`${b<0?"("+g54n(b)+")":b}${"⁰¹²³⁴⁵⁶⁷⁸⁹"[e]}`;
+const g54lin=(p,q)=>`${p===1?"":p===-1?"−":g54n(p)}x${q?" "+g54s(q):""}`;
+const g54rt=(n,t)=>rad(n,t==="x"?"x":`(${t})`);
+const g54pl=(a1,a0)=>`x²${a1?" "+g54s(a1).replace(/(\d+)$/,m=>(m==="1"?"":m)+"x"):""}${a0?" "+g54s(a0):""}`;
+const g54fac=r=>r===0?"x":`(x ${g54s(-r)})`;
+const g54sp=n=>"⁰¹²³⁴⁵⁶⁷⁸⁹"[n];
+const g54ord=n=>n===2?"2nd":n===3?"3rd":"4th";
+const g54sqName=n=>n===2?"Square":n===3?"Cube":"Raise to the 4th power";
+const g54raise=n=>n===2?"Square both sides to undo √":n===3?"Cube both sides to undo ∛":"Raise both sides to the 4th to undo ∜";
+const g54bs=(sub,n)=>sub?`Subtract ${Math.abs(n)} from both sides`:`Add ${Math.abs(n)} to both sides`;
+const g54try=f=>{for(let i=0;i<80;i++){try{return f()}catch(e){if(!/^g54/.test(e.message))throw e}}throw new Error("g54try: gave up")};
+// wrong choices with a reason each; fractions go last, so the choices look like the answer
+// order questions also carry c/w (the right sequence and three wrong ones) so every Day 4 question has the same fields
+const g54ordCW=steps=>{const j=a=>a.join(" → "),sw=(a,i)=>{const b=a.slice();[b[i],b[i+1]]=[b[i+1],b[i]];return b};return{c:j(steps),w:[j(sw(steps,0)),j(sw(steps,1)),j(sw(steps,2))]}};
+function g54cho(c,cands){const s=shuffle(cands.filter(x=>x&&x[0]&&!/NaN|Infinity|undefined/.test(x[0])));s.sort((a,b)=>/\d\/\d|\.\d/.test(a[0])-/\d\/\d|\.\d/.test(b[0]));
+  const first={};s.forEach(x=>{if(!(x[0] in first))first[x[0]]=x[1]});const U=uniqT(c,s.map(x=>[x[0],first[x[0]]]));if(U.w.length<3)throw new Error("g54cho: not enough wrong choices for "+c);return{c,w:U.w,trap:U.trap}}
+// real roots: odd roots take negatives, even roots don't
+const g54rp=(x,m,n)=>{const r=n%2?Math.sign(x)*Math.pow(Math.abs(x),1/n):x<0?NaN:Math.pow(x,1/n);return Math.pow(r,m)};
+// ---------- radical equations a·ⁿ√(px + q) + b = k ----------
+function g54rsb(o){o=o||{};const n=o.n||pick([2,2,3,3,4]);
+  for(let t=0;t<400;t++){
+    const p=o.p||1,v=n===2?ri(2,8):n===3?(o.neg||(!o.pos&&Math.random()<.22)?-ri(2,5):ri(2,5)):ri(2,3),q=ri(-12,12);
+    if(!q||(v**n-q)%p)continue;const x=(v**n-q)/p;if(x===0||Math.abs(x)>60)continue;
+    const a=o.a!==undefined?o.a:pick([1,2,2,3,4,5]),b=o.b!==undefined?o.b:(g54tf()?1:-1)*ri(1,9);
+    if(a===1&&b===0)continue;if(o.ab&&!(a>1&&b))continue;
+    return{n,p,q,a,b,v,k:a*v+b,x}}
+  throw new Error("g54rsb")}
+const g54req=e=>`${e.a>1?e.a:""}${g54rt(e.n,g54lin(e.p,e.q))}${e.b?" "+g54s(e.b):""} = ${g54n(e.k)}`;
+function g54rslips(e){const{n,p,q,a,b,v,k,x}=e,X=val=>`x = ${g54f(val)}`,fi=I=>(I-q)/p,out=[];
+  const add=(val,r)=>{if(isFinite(val)&&Math.abs(val-x)>1e-9)out.push([X(val),r])};
+  add(fi(k**n),`You raised both sides before the root was alone.`);
+  if(a>1)add(fi((k-b)**n),`You forgot to divide by ${a}.`);
+  if(b)add(fi(((k+b)/a)**n),`Wrong sign: to move ${g54s(b)} you ${b>0?"subtract":"add"}.`);
+  if(a>1&&b)add(fi((k/a-b)**n),`Dividing by ${a} also divides the ${Math.abs(b)}. Move it first.`);
+  add(fi(v*n),`You multiplied by ${n}. Undo ∜-style roots by raising to the ${g54ord(n)} power.`.replace("∜-style roots","the root"));
+  add((v**n+q)/p,`Wrong sign when moving ${q>0?"+":"−"} ${Math.abs(q)} inside.`);
+  add(fi(v**(n===2?3:2)),`Wrong power: a ${ROOT[n]} root is undone by the ${g54ord(n)} power.`);
+  if(p>1)add(v**n-q,`You forgot to divide by ${p} at the end.`);
+  return out}
+function g54rswalk(e){const{n,p,q,a,b,v,k,x}=e,root=g54rt(n,g54lin(p,q)),V=v**n,st=[];
+  if(b)st.push([`${a>1?a:""}${root} = ${g54n(k)} ${b>0?"−":"+"} ${Math.abs(b)} = ${g54n(k-b)}`,a>1?`${b>0?"Subtract":"Add"} ${Math.abs(b)}: the constant goes first`:`${b>0?"Subtract":"Add"} ${Math.abs(b)} to get the root alone`]);
+  if(a>1)st.push([`${root} = ${g54n(k-b)} ÷ ${a} = ${g54n(v)}`,`Divide by ${a}: now the root is alone`]);
+  st.push([`${g54lin(p,q)} = ${g54pw(v,n)} = ${g54n(V)}`,g54raise(n)]);
+  if(p===1)st.push([`x = ${g54n(V)} ${q>0?"−":"+"} ${Math.abs(q)} = ${g54n(x)}`,`${q>0?"Subtract":"Add"} ${Math.abs(q)} to find x`]);
+  else{st.push([`${p}x = ${g54n(V)} ${q>0?"−":"+"} ${Math.abs(q)} = ${g54n(V-q)}`,`${g54bs(q>0,q)}`]);st.push([`x = ${g54n(V-q)} ÷ ${p} = ${g54n(x)}`,`Divide by ${p}`])}
+  return st}
+function g54rsolve(v,nn){
+  v=v||pick(["b","a","ab","ab","neg","p","order"]);
+  return g54try(()=>{
+    const o=v==="b"?{a:1}:v==="a"?{b:0}:v==="ab"?{ab:1}:v==="neg"?{n:3,neg:1}:v==="p"?{p:pick([2,3])}:{p:1,ab:1},e=g54rsb(nn?{...o,n:nn}:o),eq=g54req(e),c=`x = ${g54n(e.x)}`;
+    const xs=e.x<0?`(${g54n(e.x)})`:g54n(e.x),why=`Root alone first, then ${g54sqName(e.n).toLowerCase()}${e.n===4?"":" both sides"}. Check: ${e.p===1?g54n(e.x):e.p+"·"+xs}${e.q?" "+g54s(e.q):""} = ${g54n(e.v**e.n)} = ${g54pw(e.v,e.n)}.`;
+    if(v==="order"){const steps=[`${e.b>0?"Subtract":"Add"} ${Math.abs(e.b)}`,`Divide by ${e.a}`,`${g54sqName(e.n)}${e.n===4?"":" both sides"}`,`${e.q>0?"Subtract":"Add"} ${Math.abs(e.q)}`];
+      if(new Set(steps).size<4)throw new Error("g54 duplicate steps");
+      const decoy=pick([`${e.b>0?"Add":"Subtract"} ${Math.abs(e.b)}`,`Multiply by ${e.a}`,`Divide by ${Math.abs(e.b)}`,`Take the ${ROOT[e.n===2?3:2]} root`].filter(t=>!steps.includes(t)));
+      return{...g54ordCW(steps),walk:g54rswalk(e),type:"order",win:9,q:`Tap the steps in order to get x alone`,ex:eq,steps,tiles:shuffle([...steps,decoy]),why:`Peel from the outside in: the constant, the coefficient, the root, then the number inside.`}}
+    const ch=g54cho(c,g54rslips(e));
+    return{...ch,q:`Solve ${eq}.`,ex:eq,walk:g54rswalk(e),why}})}
+GEN54.rsolve=()=>g54rsolve();
+// ---------- riso: get the root alone ----------
+function g54exb(o){o=o||{};
+  const T=[[2,3,[2,3,4,5]],[2,3,[2,3,4,5]],[4,3,[2,3]],[3,2,[2,3,4,5]],[3,2,[2,3,4,5]],[5,2,[2]],[3,4,[2,3]]].filter(r=>o.even===undefined||(r[0]%2===0)===o.even),[m,n,ws]=pick(T),w=pick(ws),K=w**m,u=w**n,even=m%2===0;
+  const c=o.c0?0:(g54tf()?1:-1)*ri(1,9),a=o.a!==undefined?o.a:1,b=o.b!==undefined?o.b:0,k=a*K+b;
+  return{m,n,w,K,u,even,c,a,b,k,xs:even?[u-c,-u-c]:[u-c]}}
+const g54exeq=e=>`${e.a>1?e.a:""}${e.c?`(x ${g54s(e.c)})`:"x"}<sup>${e.m}/${e.n}</sup>${e.b?" "+g54s(e.b):""} = ${g54n(e.k)}`;
+function g54riso(v){
+  v=v||pick(["first","first","alone","power","powexp"]);
+  return g54try(()=>{
+    if(v==="power"){const n=pick([2,3,4]),lin=g54lin(1,ri(1,9)*(g54tf()?1:-1)),val=n===2?ri(2,9):ri(2,4),eq=`${g54rt(n,lin)} = ${val}`;
+      const nm=t=>t===2?"the 2nd power (square)":t===3?"the 3rd power (cube)":`the ${g54ord(t)} power`,c=nm(n);
+      const ch=g54cho(c,[[nm(n===2?3:2),`That undoes a different root. A ${ROOT[n]} root needs the ${g54ord(n)} power.`],[nm(n===4?3:4),`Not that one: the little number on the root is ${n}.`],[`the 1/${n} power`,`1/${n} is how you WRITE the root. To undo it you need the ${g54ord(n)} power.`],[nm(n===2?4:n===3?2:3),`The index on the root is ${n}, so use the ${g54ord(n)} power.`]]);
+      return{...ch,words:1,q:`${eq}. The root is alone. Which power undoes the root?`,ex:eq,walk:[[eq,"The root is already alone"],[`${rad(n,"")} and the ${g54ord(n)} power undo each other`,"Like ÷ undoes ×"],[`${lin} = ${g54pw(val,n)} = ${val**n}`,`Raise both sides to the ${g54ord(n)} power`]],why:`A ${ROOT[n]} root is undone by the ${g54ord(n)} power. Do it only after the root is alone.`}}
+    if(v==="powexp"){const e=g54exb({a:1,b:0}),eq=g54exeq(e),nm=(a,b)=>`the ${a}/${b} power`,c=nm(e.n,e.m);
+      const ch=g54cho(c,[[nm(e.m,e.n),`That repeats the exponent. Flip it to ${e.n}/${e.m}.`],[`the ${e.n}th power`.replace("2th","2nd").replace("3th","3rd"),`Only the bottom ${e.n}? Use the whole flipped fraction ${e.n}/${e.m}.`],[`the ${e.m}th power`.replace("2th","2nd").replace("3th","3rd"),`Only the top ${e.m}? Use the whole flipped fraction ${e.n}/${e.m}.`],[`the ${e.m}/${e.n+1} power`,`The fraction must be ${e.m}/${e.n} flipped: ${e.n}/${e.m}.`]]);
+      return{...ch,words:1,q:`${eq}. Which power undoes ${e.m}/${e.n}?`,ex:eq,walk:[[`x<sup>${e.m}/${e.n}</sup> · power ${e.n}/${e.m}`,"Multiply the exponents: m/n · n/m = 1"],[`${e.m}/${e.n} × ${e.n}/${e.m} = 1`,"Flip the fraction to undo it"],[`x = K<sup>${e.n}/${e.m}</sup>`,`Raise both sides to ${e.n}/${e.m}`]],why:`The flipped fraction undoes the exponent: ${e.m}/${e.n} × ${e.n}/${e.m} = 1.`}}
+    // first / alone: radical or rational-exponent equation
+    const useExp=g54tf(),shape=pick(["A","B","C","C"]);
+    let e,eq,rt,V,lo;
+    if(useExp){e=g54exb({a:shape==="B"?1:pick([2,3,4]),b:shape==="A"?0:(g54tf()?1:-1)*ri(1,9)});eq=g54exeq(e);rt=`${e.c?`(x ${g54s(e.c)})`:"x"}<sup>${e.m}/${e.n}</sup>`;V=e.K;e.a=shape==="B"?1:e.a;e.k=e.a*e.K+e.b;eq=g54exeq(e)}
+    else{e=g54rsb({a:shape==="B"?1:pick([2,3,4,5]),b:shape==="A"?0:(g54tf()?1:-1)*ri(1,9)});eq=g54req(e);rt=g54rt(e.n,g54lin(e.p,e.q));V=e.v}
+    const a=e.a,b=e.b,k=e.k,aS=a>1?a:"",rise=useExp?`Raise both sides to the ${e.n}/${e.m} power`:g54sqName(e.n)+(e.n===4?"":" both sides"),inside=useExp?(e.c?`${g54bs(e.c>0,e.c)}`:"Take the root of both sides"):`${g54bs(e.q>0,e.q)}`;
+    if(v==="first"){
+      const sub=b?`${b>0?"Subtract":"Add"} ${Math.abs(b)}`:"",div=a>1?`Divide both sides by ${a}`:"";
+      const c=shape==="A"?div:shape==="B"?g54bs(b>0,b):`${sub}, then divide by ${a}`;
+      const wr=[];
+      wr.push([rise,`Not yet. Get ${useExp?"the power":"the root"} alone first, then ${useExp?"raise":"raise both sides"}.`]);
+      if(shape==="A"){wr.push([`Subtract ${a} from both sides`,`${a} is multiplied, so undo it by dividing.`]);wr.push([`Multiply both sides by ${a}`,`× would make it worse. Undo × with ÷.`]);wr.push([inside,`That number is inside. It comes off last, after the ${useExp?"power":"root"}.`])}
+      else if(shape==="B"){wr.push([`${g54bs(b<0,b)}`,`Wrong direction: to undo ${g54s(b)} you ${b>0?"subtract":"add"}.`]);wr.push([`Divide both sides by ${Math.abs(b)}`,`${Math.abs(b)} is added, not multiplied. Undo it with ${b>0?"−":"+"}.`]);wr.push([inside,`That number is inside. It comes off last.`])}
+      else{wr.push([`${sub.replace(/^(Subtract|Add)/,m=>m==="Subtract"?"Add":"Subtract")}, then divide by ${a}`,`Wrong direction: to undo ${g54s(b)} you ${b>0?"subtract":"add"}.`]);wr.push([`Divide by ${a}, then ${sub.toLowerCase()}`,`Dividing by ${a} also divides the ${Math.abs(b)}. The constant goes first.`]);wr.push([`${sub.split(" ")[0]} ${a}, then divide by ${Math.abs(b)}`,`Mixed up the numbers: ${a} multiplies, ${Math.abs(b)} is added.`])}
+      const ch=g54cho(c,wr);
+      const wk=[[eq,`Aim: get ${useExp?"the power":"the root"} alone`]];
+      if(b)wk.push([`${aS}${rt} = ${g54n(k)} ${b>0?"−":"+"} ${Math.abs(b)} = ${g54n(k-b)}`,`${b>0?"Subtract":"Add"} ${Math.abs(b)} first: it is outside`]);
+      if(a>1)wk.push([`${rt} = ${g54n(k-b)} ÷ ${a} = ${g54n(V)}`,`Divide by ${a}: now it is alone`]);
+      wk.push([`${rt} = ${g54n(V)}`,`Only now ${useExp?"raise to the "+e.n+"/"+e.m:"raise both sides"}`]);
+      return{...ch,words:1,q:`What is the first step to solve ${eq}?`,ex:eq,walk:wk,why:`Get ${useExp?"the power":"the root"} alone first: undo the + or − outside, then the ×. Raise to the power last.`}}
+    // alone: which equation shows it alone?
+    if(!(a>1&&b)){shape==="C"||(()=>{throw new Error("g54 shape")})()}
+    const R=(val)=>`${rt} = ${g54f(val)}`,c=R(V);
+    const ch=g54cho(c,[[R(k-b),`You forgot to divide by ${a}.`],[R((k+b)/a),`Wrong sign: to move ${g54s(b)} you ${b>0?"subtract":"add"}.`],[R(k/a-b),`Dividing by ${a} also divides the ${Math.abs(b)}. Move it first.`],[R(k-b+a),"Check the arithmetic: subtract first, then divide."],[R(k+b),`Wrong sign, and you still need to divide by ${a}.`],[R(V*a),`${a} multiplies the ${useExp?"power":"root"}. Undo it by dividing, not multiplying.`]]);
+    return{...ch,words:1,q:`Which equation shows ${useExp?"the power":"the root"} alone? Start from ${eq}`,ex:eq,walk:[[eq,`Start: ${useExp?"the power":"the root"} is not alone`],[`${aS}${rt} = ${g54n(k)} ${b>0?"−":"+"} ${Math.abs(b)} = ${g54n(k-b)}`,`${g54bs(b>0,b)}`],[`${rt} = ${g54n(k-b)} ÷ ${a} = ${g54n(V)}`,`Divide by ${a}`],[c,"Alone: nothing else touches it"]],why:`Undo the + or − first, then the ×. Check: ${a} · ${g54n(V)} ${b>0?"+":"−"} ${Math.abs(b)} = ${g54n(k)}.`}})}
+GEN54.riso=()=>g54riso();
+// ---------- rexp: (x + c)^(m/n) = K ----------
+function g54xset(vs,pm){vs=vs.filter(isFinite);return pm&&vs.length===2&&vs[0]===-vs[1]?`x = ±${g54f(Math.abs(vs[0]))}`:vs.map(x=>`x = ${g54f(x)}`).join(" or ")}
+function g54xslips(e,pm){const{m,n,K,u,even,c,a,b,k,xs}=e,out=[],key=s=>s.slice().sort((p,q)=>p-q).join(),right=key(xs);
+  const S=(vals,r)=>{vals=vals.filter(isFinite);if(!vals.length||key(vals)===right)return;out.push([g54xset(vals,pm),r])};
+  const both=U=>even?[U-c,-U-c]:[U-c];
+  const flip=Math.pow(K,m/n);if(Number.isInteger(Math.round(flip*1e6)/1e6)&&flip<3000)S(both(Math.round(flip)),`You raised to ${m}/${n}. Flip it: use ${n}/${m}.`);
+  if(even)S([u-c],`You forgot the ±. The top number ${m} is even, so there are two answers.`);
+  else S([u-c,-u-c],`Only an EVEN top gives two answers. The top ${m} is odd, so there is one.`);
+  if(c)S(even?[u+c,-u+c]:[u+c],`Wrong sign for the ${Math.abs(c)}: x ${g54s(c)} = ${g54n(u)}, so x = ${g54n(u)} ${c>0?"−":"+"} ${Math.abs(c)}.`);
+  S(both(K),`You skipped the ${n}/${m} power: ${c?"x "+g54s(c):"x"} is not ${K}.`);
+  if(even)S([-u-c],`You lost the positive answer. Both signs count.`);
+  if(a>1||b){const kb=k-b;if(a>1){const u2=Math.pow(kb,n/m);if(Math.abs(u2-Math.round(u2))<1e-6)S(both(Math.round(u2)),`You forgot to divide by ${a} first.`)}
+    const u3=Math.pow(k,n/m);if(Math.abs(u3-Math.round(u3))<1e-6)S(both(Math.round(u3)),`You raised to the power before moving ${g54s(b)} and ÷ ${a}.`)}
+  return out}
+function g54xwalk(e){const{m,n,w,K,u,even,c,a,b,k,xs}=e,st=[],pa=`${c?`(x ${g54s(c)})`:"x"}<sup>${m}/${n}</sup>`,aS=a>1?a:"";
+  if(b)st.push([`${aS}${pa} = ${g54n(k)} ${b>0?"−":"+"} ${Math.abs(b)} = ${g54n(k-b)}`,`${b>0?"Subtract":"Add"} ${Math.abs(b)}: the constant goes first`]);
+  if(a>1)st.push([`${pa} = ${g54n(k-b)} ÷ ${a} = ${K}`,`Divide by ${a}: now the power is alone`]);
+  st.push([`${c?`x ${g54s(c)}`:"x"} = ${even?"±":""}${K}<sup>${n}/${m}</sup>`,`Raise both sides to ${n}/${m}: it undoes ${m}/${n}`]);
+  st.push([`${K}<sup>${n}/${m}</sup> = (${rad(m,K)})${g54sp(n)} = ${g54pw(w,n)} = ${u}`,`Bottom ${m} is the root, top ${n} the power`]);
+  st.push([even?`x = ${u} ${c>0?"−":"+"} ${Math.abs(c)} = ${g54n(u-c)} or x = −${u} ${c>0?"−":"+"} ${Math.abs(c)} = ${g54n(-u-c)}`.replace(/ [−+] 0 =/g," ="):`x = ${u} ${c>0?"−":"+"} ${Math.abs(c)} = ${g54n(u-c)}`,c?(even?"Both signs count: the top is even":"Move the number over"):(even?"Even top: both signs count":"Odd top: one answer")]);
+  return st}
+function g54rexp(v){
+  v=v||pick(["shift","full","full","fullodd","fullev"]);
+  return g54try(()=>{
+    const o=v==="shift"?{a:1,b:0}:v==="fullodd"?{even:false,a:pick([2,3,4]),b:(g54tf()?1:-1)*ri(1,9)}:v==="fullev"?{even:true,a:pick([2,3,4]),b:(g54tf()?1:-1)*ri(1,9)}:{a:pick([1,2,3,4]),b:g54tf()?0:(g54tf()?1:-1)*ri(1,9)};
+    if(v==="full"&&o.a===1&&!o.b)o.b=ri(1,9);
+    const e=g54exb(o),eq=g54exeq(e),ch=g54cho(g54xset(e.xs,false),g54xslips(e,false));
+    return{...ch,q:`Solve ${eq}.`,ex:eq,walk:g54xwalk(e),why:`Power alone first, then raise to ${e.n}/${e.m} (the flip). ${e.even?`The top ${e.m} is even, so use ±.`:`The top ${e.m} is odd, so one answer.`}`}})}
+GEN54.rexp=()=>g54rexp();
+// ---------- rtwo: one answer or two ----------
+function g54rtwo(v){
+  v=v||pick(["solve","solve","count","which","rule"]);
+  return g54try(()=>{
+    const neg=Math.random()<.3,e=g54exb({c0:1});if(neg){e.K=-e.K;e.k=e.K}
+    const{m,n,K,w,u,even:ev}=e,xp=`x<sup>${m}/${n}</sup>`,eq=`${xp} = ${g54n(K)}`,nr="No real solution",T=`(${rad(n,"x")})${g54sp(m)}`,kA=Math.abs(K);
+    const negWalk=[[eq,`Exponent ${m}/${n}: root first, then the power`],[`${T} = ${g54n(K)}`,`${rad(n,"x")} first, then the power ${m}`],[ev?"An even power is never negative":"An even root is never negative, so its power isn't either",`So it can never equal ${g54n(K)}`],[nr,"Nothing works"]];
+    if(v==="solve"){
+      const c=neg?nr:g54xset(e.xs,true);
+      const cands=neg?[[`x = ±${u}`,`The result is never negative, so no x can work.`],[`x = ${u}`,`That would solve ${xp} = ${kA}, not ${g54n(K)}.`],[`x = −${u}`,`The result is never negative, so no x can work.`],[`x = ${g54n(K)}`,`You didn't raise to the ${n}/${m} power.`]]:g54xslips(e,true).concat([[nr,`Real answers exist here.`]]);
+      const ch=g54cho(c,cands);
+      const wk=neg?negWalk:[[eq,`Raise both sides to ${n}/${m}`],[`x = ${ev?"±":""}${K}<sup>${n}/${m}</sup>`,`The flip undoes ${m}/${n}: x is alone`],[`${K}<sup>${n}/${m}</sup> = (${rad(m,K)})${g54sp(n)} = ${g54pw(w,n)} = ${u}`,`Bottom ${m} is the root, top ${n} the power`],
+        ev?[`(−${u})<sup>${m}/${n}</sup> = (${rad(n,"(−"+u+")")})${g54sp(m)} = (−${w})${g54sp(m)} = ${K}`,`Check −${u}: it works, so ± both count`]:[`${rad(n,"(−"+u+")")} is not a real number`,`Check −${u}: an even root can't take a negative`],[c,"Answer"]];
+      return{...ch,q:`Solve ${eq}.`,ex:eq,walk:wk,why:neg?`${ev?"An even power":"An even root"} is never negative, so ${eq} has no real answer.`:`Raise to ${n}/${m}. ${ev?`Top ${m} is even: x = ±${u}.`:`Top ${m} is odd: x = ${u} only.`}`}}
+    if(v==="count"){
+      const c=neg?nr:ev?`Two answers: x = ±${u}`:`One answer: x = ${u}`;
+      const ch=g54cho(c,[[`Two answers: x = ±${u}`,neg?`This kind of power is never negative.`:`Only an EVEN top gives two answers. The top is ${m}.`],[`One answer: x = ${u}`,neg?`This kind of power is never negative.`:`The top ${m} is even, so −${u} works too.`],[`One answer: x = −${u}`,neg?`This kind of power is never negative.`:ev?`If −${u} works, so does ${u}.`:`A negative x isn't real here.`],[nr,`Real answers exist here.`],[`Two answers: x = ±${kA}`,`You didn't raise to the ${n}/${m} power.`]]);
+      return{...ch,words:1,q:`How many real answers does ${eq} have?`,ex:eq,walk:neg?negWalk:[[eq,`Look at the top number: ${m}`],[`${m} is ${ev?"even":"odd"}`,ev?"Even top: both signs work":"Odd top: only the positive works"],[`x = ${ev?"±":""}${K}<sup>${n}/${m}</sup> = ${ev?"±":""}${u}`,`Raise to ${n}/${m}: the flip`],[c,"Answer"]],why:neg?`${eq} is impossible: this kind of power is never negative.`:`Look at the TOP number ${m}. ${ev?"Even: two answers":"Odd: one answer"}.`}}
+    if(v==="rule"){
+      const c=`The top number (${m}): ${ev?"even means two answers":"odd means one answer"}`,bw=n%2?"odd":"even",
+        ch=g54cho(c,[[`The bottom number (${n}): ${bw} means ${n%2?"one":"two"} answers`,`The bottom is the root. The TOP number decides.`],[`The number ${kA} on the right side`,`The right side doesn't change how many answers there are.`],[`The top number (${m}): ${ev?"even means one answer":"odd means two answers"}`,`Backwards: an even top gives TWO answers, an odd top gives one.`]]);
+      return{...ch,words:1,q:`In ${xp} = a number, which number tells you one answer or two?`,ex:`${xp} = ${kA}`,walk:[[xp,"Bottom = root, top = power"],[`top = ${m}`,"The top number is the power"],[ev?"even power: (−3)² = 3²":"odd power: (−3)³ ≠ 3³",ev?"Both signs give the same result":"The sign changes the result"],[c,ev?"So ± works: two answers":"So only one answer"]],why:`The top number is the power. An even power hides the sign, so ± both work.`}}
+    const E=g54exb({c0:1,even:true}),F=g54exb({c0:1,even:false}),F2=g54exb({c0:1,even:false}),N=g54exb({c0:1,even:true}),mk=(z,kk)=>`x<sup>${z.m}/${z.n}</sup> = ${g54n(kk)}`,cA=mk(E,E.K),w1=mk(F,F.K),w2=mk(F2,F2.K),w3=mk(N,-N.K);
+    const ch=g54cho(cA,[[w1,`The top ${F.m} is odd: one answer, not two.`],[w2,`The top ${F2.m} is odd: one answer, not two.`],[w3,`The top ${N.m} is even, but the right side is negative: no real answer.`]]);
+    return{...ch,words:1,q:`Which equation has TWO real answers?`,ex:"x<sup>m/n</sup> = a number",walk:[[cA,`Even top ${E.m}, positive number`],[`x = ±${E.u}`,`(±${E.u})<sup>${E.m}/${E.n}</sup> = ${E.K}`],[w1,`Odd top ${F.m}: one answer`],[w3,"Negative right side: no real answer"]],why:`Two answers need an EVEN top and a positive right side.`}})}
+GEN54.rtwo=()=>g54rtwo();
+// ---------- rext: extraneous solutions ----------
+// form A: √(x + a) + b = x     form B: √(ax + c) = x + d     kind: one / both / neither answer survives the check
+function g54exr(kind){kind=kind||pick(["one","one","one","one","both","none"]);
+  for(let t=0;t<2000;t++){
+    const form=kind==="none"?"B":g54tf()?"A":"B";let r1,r2,a,b,c0,d;
+    if(form==="A"){if(kind==="both"){r2=ri(1,6);r1=r2+1}else{r1=ri(2,13);r2=ri(-4,r1-2)}
+      if(((r1+r2)%2+2)%2!==1)continue;b=(r1+r2-1)/2;a=b*b-r1*r2;if(b===0||Math.abs(a)>18)continue}
+    else{d=ri(-6,6);r1=ri(-9,12);r2=ri(-9,r1-1);a=r1+r2+2*d;c0=d*d-r1*r2;
+      if(kind==="none"?!(a<0&&a>=-8):!(a>=1&&a<=8))continue;if(Math.abs(c0)>30)continue}
+    const e={form,r1,r2,a,b,c0,d};
+    e.L=x=>form==="A"?Math.sqrt(x+a)+b:Math.sqrt(a*x+c0);e.R=x=>form==="A"?x:x+d;
+    const ok=x=>Math.abs(e.L(x)-e.R(x))<1e-9;e.ok1=ok(r1);e.ok2=ok(r2);
+    if(kind==="one"&&e.ok1===e.ok2)continue;if(kind==="both"&&!(e.ok1&&e.ok2))continue;if(kind==="none"&&(e.ok1||e.ok2))continue;
+    if(form==="A"&&kind==="one"&&!(e.ok1&&!e.ok2))continue;
+    e.kind=kind;e.good=[r1,r2].filter(ok);
+    e.eq=form==="A"?`${g54rt(2,a?`x ${g54s(a)}`:"x")} ${b>0?"+":"−"} ${Math.abs(b)} = x`:`${g54rt(2,g54lin(a,c0))} = x${d?" "+g54s(d):""}`;
+    return e}
+  throw new Error("g54exr")}
+const g54rad=(e,x)=>e.form==="A"?e.a+x:e.a*x+e.c0;
+function g54chk(e,x){const rd=g54rad(e,x),s=Math.round(Math.sqrt(rd)),L=e.L(x),R=e.R(x),ok=Math.abs(L-R)<1e-9;
+  return{ok,L:Math.round(L),R,text:`x = ${g54n(x)}: ${e.form==="A"?`√${rd} ${e.b>0?"+":"−"} ${Math.abs(e.b)} = ${g54n(Math.round(L))}`:`√${rd} = ${s}`}, right side ${g54n(R)} ${ok?"✓":"✗"}`}}
+function g54extAns(e){return e.good.length===2?`x = ${g54n(e.r1)} and x = ${g54n(e.r2)}`:e.good.length===1?`x = ${g54n(e.good[0])} only`:"No solution"}
+function g54extWalk(e){const{r1,r2,a,b,c0,d,form}=e,st=[],X=g54n;let A1,A0;
+  if(form==="A"){const rt=g54rt(2,a?`x ${g54s(a)}`:"x");
+    st.push([`${rt} = x ${b>0?"−":"+"} ${Math.abs(b)}`,`${b>0?"Subtract":"Add"} ${Math.abs(b)}: get the root alone first`]);
+    st.push([`${a?`x ${g54s(a)}`:"x"} = (x ${b>0?"−":"+"} ${Math.abs(b)})² = ${g54pl(-2*b,b*b)}`,`Square both sides: the WHOLE right side`]);
+    A1=-(2*b+1);A0=b*b-a}
+  else{st.push([`${g54lin(a,c0)} = (x${d?" "+g54s(d):""})² = ${g54pl(2*d,d*d)}`,`Square both sides (the root is alone)`]);A1=2*d-a;A0=d*d-c0}
+  st.push([`0 = ${g54pl(A1,A0)}`.replace(/^0 = (.*)$/,"$1 = 0"),`Move everything to one side`]);
+  st.push([`${g54fac(r1)}${g54fac(r2)} = 0  →  x = ${X(r1)} or x = ${X(r2)}`,`Factor, then set each part to 0`]);
+  st.push([`${g54chk(e,r1).text}<br>${g54chk(e,r2).text}`,`Check both in the ORIGINAL equation`]);
+  st.push([g54extAns(e),e.good.length===2?"Both work: keep both":e.good.length===1?`x = ${X([r1,r2].find(x=>!e.good.includes(x)))} is extraneous: throw it out`:"Both fail: no solution"]);
+  return st}
+function g54extReason(e,claim){// claim: array of x values the choice says are solutions; why is it wrong?
+  for(const x of claim){const c=g54chk(e,x);if(!c.ok)return `x = ${g54n(x)} fails the check: ${c.text.replace(/^x = [^:]*: /,"").replace(/ ✗$/,"")}.`}
+  for(const x of e.good)if(!claim.includes(x))return `x = ${g54n(x)} really works. Check it in the original.`;
+  return "x"}
+function g54ext(v){
+  v=v||pick(["real","real","solve","is","is","sq","order"]);
+  return g54try(()=>{
+    if(v==="sq"){let e;do{e=g54exr("one")}while(e.form!=="A");const{a,b}=e,inner=a?`x ${g54s(a)}`:"x",RS=`x ${b>0?"−":"+"} ${Math.abs(b)}`,P=(s)=>`${inner} = ${s}`;
+      const c=P(g54pl(-2*b,b*b)),cands=[[P(`x² ${g54s(b*b)}`),`(x ${b>0?"−":"+"} ${Math.abs(b)})² has a middle term. Don't skip it.`],[P(`x² ${g54s(-b*b)}`),`(x − n)² is not x² − n². The middle term is missing.`],[P(g54pl(-b,b*b)),`The middle term is 2 × x × ${Math.abs(b)} = ${2*Math.abs(b)}x, not ${Math.abs(b)}x.`],[P(`${RS.replace("x","x²")}`),`Squaring x − n gives a trinomial, not x² − n.`],[P(g54pl(-2*b,Math.abs(b))),`The last term is ${Math.abs(b)}² = ${b*b}, not ${Math.abs(b)}.`]];
+      const ch=g54cho(c,cands);
+      return{...ch,words:1,q:`${g54rt(2,inner)} = ${RS}. Square both sides. What do you get?`,ex:`${g54rt(2,inner)} = ${RS}`,walk:[[`${g54rt(2,inner)} = ${RS}`,"The root is alone: now square"],[`(${g54rt(2,inner)})² = ${inner}`,"A square undoes the root"],[`(${RS})² = (${RS})(${RS})`,"Write the right side twice"],[`x² ${b>0?"−":"+"} ${2*Math.abs(b)}x + ${b*b}`,`Multiply: first, outer + inner, last`],[c,"Put both sides together"]],why:`Square the WHOLE right side: (${RS})² = x² ${b>0?"−":"+"} ${2*Math.abs(b)}x + ${b*b}. The middle term is the one people forget.`}}
+    const e=g54exr(v==="solve"||v==="real"||v==="is"||v==="order"||v==="type"?(v==="type"?pick(["one","one","one","none","none","both"]):undefined):undefined),{r1,r2}=e;
+    if(v==="order"){const A=e.form==="A",steps=A?[`${e.b>0?"Subtract":"Add"} ${Math.abs(e.b)}`,"Square both sides","Move everything to one side and factor","Check both answers in the original"]:["Square both sides","Move everything to one side","Factor and solve","Check both answers in the original"];
+      const decoy=pick(A?["Square just the root","Cube both sides","Divide both sides by x"]:["Take the root of both sides","Divide both sides by x","Cube both sides"]);
+      return{...g54ordCW(steps),walk:g54extWalk(e),type:"order",win:9,q:`Tap the steps in order to solve`,ex:e.eq,steps,tiles:shuffle([...steps,decoy]),why:`${A?"Root alone first, then square.":"The root is alone, so square."} Squaring can add a fake answer, so you ALWAYS check at the end.`}}
+    if(v==="is"){const x=pick([r1,r2]),c0=g54chk(e,x),ext=!c0.ok;
+      const yes=(l,r)=>`Yes: the left side is ${g54n(l)} but the right side is ${g54n(r)}`,no=l=>`No: both sides equal ${g54n(l)}`,cs=ext?yes(c0.L,c0.R):no(c0.L);
+      const wr=ext?[[no(c0.L),`The left side is ${g54n(c0.L)}, but the right side is ${g54n(c0.R)}. They are not equal.`],[no(c0.R),`The left side is ${g54n(c0.L)}, so they are not both ${g54n(c0.R)}.`],[yes(c0.R,c0.L),"You swapped the sides."],[yes(c0.L,c0.L+2),"Recompute the right side: it is just the check value."]]
+        :[[yes(c0.L+2,c0.L),`The left side really is ${g54n(c0.L)}. The check works.`],[yes(c0.L,c0.L+2),`The right side really is ${g54n(c0.L)}. The check works.`],[no(c0.L+2),`Both sides are ${g54n(c0.L)}, not ${g54n(c0.L+2)}.`],[yes(c0.L-2,c0.L),`The left side really is ${g54n(c0.L)}. The check works.`]];
+      const ch=g54cho(cs,wr);
+      return{...ch,words:1,q:`Is x = ${g54n(x)} extraneous in ${e.eq}?`,ex:e.eq,walk:[[e.eq,`Plug x = ${g54n(x)} into the ORIGINAL`],[c0.text.replace(/^x = [^:]*: /,"").replace(/, right side.*/,""),"Work out the left side"],[`right side = ${g54n(c0.R)}`,"Work out the right side"],[ext?`${g54n(c0.L)} ≠ ${g54n(c0.R)}`:`${g54n(c0.L)} = ${g54n(c0.R)}`,ext?"Not equal: extraneous":"Equal: it works"]],why:ext?`x = ${g54n(x)} fails: ${c0.text.replace(/^x = [^:]*: /,"").replace(/ ✗$/,"")}. Extraneous means it fails the original.`:`x = ${g54n(x)} works: both sides equal ${g54n(c0.L)}. It is a real answer.`}}
+    // real / solve / type
+    const cl=[[r1],[r2],[r1,r2],[]],txt=cl.map(s=>s.length===2?`x = ${g54n(r1)} and x = ${g54n(r2)}`:s.length===1?`x = ${g54n(s[0])} only`:"No solution");
+    if(v==="type"){const c=e.good.length===2?`x = ${g54n(e.good[0])} or x = ${g54n(e.good[1])}`:e.good.length===1?`x = ${g54n(e.good[0])}`:"No real solution",tx=s=>s.length===2?`x = ${g54n(r1)} or x = ${g54n(r2)}`:s.length===1?`x = ${g54n(s[0])}`:"No real solution";
+      const ch=g54cho(c,cl.map(s=>[tx(s),g54extReason(e,s)]));
+      return{...ch,q:`Solve ${e.eq}. Check your answers.`,ex:e.eq,walk:g54extWalk(e),why:`Square, solve, then CHECK both in the original. ${g54extAns(e)==="No solution"?"Both fail.":"Throw out any that fail."}`}}
+    const c=g54extAns(e),ch=g54cho(c,cl.map((s,i)=>[txt[i],g54extReason(e,s)]));
+    return{...ch,words:1,q:v==="real"?`Squaring ${e.eq} gives x = ${g54n(r1)} or x = ${g54n(r2)}. Which really work?`:`Solve ${e.eq}.`,ex:e.eq,walk:g54extWalk(e),why:`Squaring can add a fake answer. Plug each one into the ORIGINAL equation.`}})}
+GEN54.rext=()=>g54ext();
 Object.assign(GEN,GEN54);
+
+
+
+
+
+
+
+
 // Quiz-only types for the 5.3 final quiz: each pins a question style, wording as on the homework (HW 5.3: 1-6 domain/range, 7-12 match, 13-15 describe, 16 error).
 const HW53={
 hw_par_dr:()=>g53parent("dr"),hw_par_expo:()=>g53parent("expo"),
@@ -1278,8 +1501,22 @@ const HW_DAY={
          ["hw_iso","iso"],["hw_iso","iso"],["hw_shift","shift"],["hw_shift","shift"],["hw_order","order"],["hw_order","order"],["line","line"],["line","line"]],
   "5.2":[["rules","rules"],["rules","rules"],["mz_negexp","rules"],["radmul","radmul"],["mz_mulsimp","radmul"],["simp","simp"],["simp","simp"],["vars","vars"],["vars","vars"],["like","like"],["mz_explike","like"]]};
 HW_DAY["5.3"]=[["hw_par_dr","gparent"],["hw_par_expo","gparent"],["hw_dom_12","gdomain"],["hw_dom_4","gdomain"],["hw_dom_3","gdomain"],["hw_dom_56","gdomain"],["hw_match_g","gmatch"],["hw_match_2","gmatch"],["hw_desc_t","gshift"],["hw_pt_t","gshift"],["hw_desc_s","gstretch"],["hw_desc_r","gstretch"],["hw_err_d","gerror"],["hw_err_g","gerror"]];
-const HW54={};
-HW_DAY["5.4"]=[["riso","riso"],["rsolve","rsolve"],["rsolve","rsolve"],["rexp","rexp"],["rtwo","rtwo"],["rext","rext"]];
+// Quiz-only types for the 5.4 final quiz: each pins a question style from the class notes (isolate, solve a radical, rational exponent, one or two answers, extraneous).
+const HW54={
+hw54_iso_first:()=>g54riso("first"),hw54_iso_pow:()=>g54riso(pick(["power","powexp"])),
+hw54_root:()=>g54rsolve("a",4),hw54_cube:()=>g54rsolve("p",3),hw54_neg:()=>g54rsolve("neg"),
+hw54_exp_even:()=>g54rexp("fullev"),hw54_exp_odd:()=>g54rexp("fullodd"),
+hw54_two_solve:()=>g54rtwo("solve"),hw54_two_which:()=>g54rtwo("which"),
+hw54_ext_solve:()=>g54ext("type"),hw54_ext_is:()=>g54ext("is"),hw54_ext_real:()=>g54ext("real")};
+
+
+
+
+
+
+
+
+HW_DAY["5.4"]=[["hw54_iso_first","riso"],["hw54_iso_pow","riso"],["hw54_root","rsolve"],["hw54_cube","rsolve"],["hw54_neg","rsolve"],["hw54_exp_even","rexp"],["hw54_exp_odd","rexp"],["hw54_two_solve","rtwo"],["hw54_two_which","rtwo"],["hw54_ext_solve","rext"],["hw54_ext_is","rext"],["hw54_ext_real","rext"]];
 const MIX_SK={};Object.values(HW_DAY).forEach(L=>L.forEach(([g,k])=>{if(!Object.values(LESSONS).some(Ls=>Ls.includes(g)))MIX_SK[g]=[k]}));
 Object.assign(GEN,HW,HW53,HW54);Object.keys(HW).concat(Object.keys(HW53),Object.keys(HW54)).forEach(g=>{if(!TAGS[g])TAGS[g]=TAGS[MIX_SK[g]&&MIX_SK[g][0]]||g});
 function quizList(d){const L=(HW_DAY[d]||(LESSONS[d]||[]).flatMap(k=>[[k,k],[k,k]])).map(x=>x[0]);shuffle(L);
@@ -1436,9 +1673,64 @@ const LT_53=[
 [["gdomain"],()=>{const k=ri(2,9),t=TF();return{s:`The range of g(x) = 2∛x − ${k} is ${t?"all real numbers":"y ≥ −"+k}`,t,why:"A cube root graph goes up and down forever, so the range is all real numbers."}}],
 ];
 LT_53.forEach(([k,f])=>{LT53.push(f);LT53_SK.push(k)});
-// ---- Day 4 (5.4) lightning items: quick true/false. LT54_SK has the skill of each item, same order. ----
+// ---- Day 4 (5.4) lightning items: quick true/false, about half true. LT54_SK has the skill of each item, same order. ----
 const LT54=[],LT54_SK=[];
-[[["rsolve"],()=>({s:"To undo ∛, cube both sides",t:true,why:"A cube undoes a cube root."})],[["rtwo"],()=>({s:"x<sup>2/3</sup> = 4 has only one answer",t:false,why:"Even top: x = ±8."})],[["rext"],()=>({s:"You should check answers in the original equation",t:true,why:"Squaring can make fake answers."})],[["riso"],()=>({s:"In 2√x + 1 = 7, square both sides first",t:false,why:"Get √x alone first."})],[["rexp"],()=>({s:"To undo a 3/2 power, raise to 2/3",t:true,why:"Flip the fraction."})]].forEach(([k,f])=>{LT54.push(f);LT54_SK.push(k)});
+// numeric items: the answer is decided by plugging x into the equation, never assumed
+const g54ltRs=()=>{const e=g54rsb(),eq=g54req(e),wrong=g54rslips(e).map(s=>(/^x = (−?\d+)$/.exec(s[0])||[])[1]).filter(Boolean).map(s=>+s.replace("−","-")),t0=g54tf()||!wrong.length,N=t0?e.x:pick(wrong),
+  I=e.p*N+e.q,r=e.n%2?Math.sign(I)*Math.pow(Math.abs(I),1/e.n):I<0?NaN:Math.pow(I,1/e.n),L=e.a*r+e.b,t=Math.abs(L-e.k)<1e-9;
+  return{s:`x = ${g54n(N)} solves ${eq}`,t,why:t?`Inside: ${g54n(I)}. The root is ${g54n(Math.round(r))}, so the left side is ${g54n(e.k)}.`:isNaN(L)?`The inside becomes ${g54n(I)}, and an even root of a negative isn't real.`:`The left side comes out ${g54f(L)}, not ${g54n(e.k)}.`}};
+const g54ltEx=()=>{const e=g54exb({a:pick([1,1,2,3]),b:g54tf()?0:(g54tf()?1:-1)*ri(1,9)}),eq=g54exeq(e),pool=[e.u+e.c,e.K-e.c,-e.u-e.c,e.u-e.c,-e.u-e.c].filter((x,i,A)=>A.indexOf(x)===i),N=pick(pool),I=N+e.c,val=e.a*g54rp(I,e.m,e.n)+e.b,t=Math.abs(val-e.k)<1e-6;
+  return{s:`x = ${g54n(N)} solves ${eq}`,t,why:t?`The base is ${g54n(I)}: ${g54n(I)}<sup>${e.m}/${e.n}</sup> = ${g54f(g54rp(I,e.m,e.n))}, so the left side is ${g54n(e.k)}.`:isNaN(val)?`The base is ${g54n(I)}, and ${g54n(I)}<sup>${e.m}/${e.n}</sup> needs a root of a negative: not real.`:`The base is ${g54n(I)}, and the left side comes out ${g54f(val)}, not ${g54n(e.k)}.`}};
+const g54ltCount=()=>{const neg=g54tf(),e=g54exb({c0:1});if(neg)e.K=-e.K;const xp=`x<sup>${e.m}/${e.n}</sup> = ${g54n(e.K)}`,cnt=[e.u,-e.u].filter(x=>Math.abs(g54rp(x,e.m,e.n)-e.K)<1e-6).length,claim=pick([0,1,2]),t=cnt===claim,wd=["no real solution","one real solution","two real solutions"];
+  return{s:`${xp} has ${wd[claim]}`,t,why:cnt===0?`This kind of power is never negative, so ${g54n(e.K)} is impossible.`:cnt===2?`Top ${e.m} is even, so x = ±${e.u}.`:`Top ${e.m} is odd, so only x = ${e.u}.`}};
+const g54ltExt=()=>{const e=g54exr(),x=pick([e.r1,e.r2]),c=g54chk(e,x);return{s:`x = ${g54n(x)} solves ${e.eq}`,t:c.ok,why:c.ok?`It checks out: ${c.text.replace(/^x = [^:]*: /,"").replace(/ ✓$/,"")}.`:`It fails the check: ${c.text.replace(/^x = [^:]*: /,"").replace(/ ✗$/,"")}.`}};
+const LT_54=[
+[["riso"],()=>({s:"You raise both sides to a power before the root is alone",t:false,why:"Get the root alone first, then raise."})],
+[["riso"],()=>({s:"Once the root is alone, you can raise both sides to a power",t:true,why:"Alone first, then raise."})],
+[["riso"],()=>{const a=ri(2,5),c=ri(1,9),t=g54tf();return{s:`In ${a}√(x + ${c}) = ${a*ri(2,6)}, the root is alone after dividing by ${t?a:c}`,t,why:`${a} multiplies the root, so ÷ ${a}. The ${c} is inside the root.`}}],
+[["riso"],()=>{const b=ri(1,9),t=g54tf();return{s:`In √(x − 2) + ${b} = 7, the root is alone after ${t?"subtracting":"adding"} ${b}`,t,why:`+ ${b} is undone by subtracting ${b}.`}}],
+[["riso"],()=>{const n=pick([2,3,4]),t=g54tf(),p=t?n:n===2?3:2;return{s:`To undo ${rad(n,"x")}, raise both sides to the ${g54ord(p)} power`,t,why:`${rad(n,"x")} is undone by the ${g54ord(n)} power.`}}],
+[["riso"],()=>{const m=pick([2,3,4]),n=m===2?3:m===3?2:3,t=g54tf();return{s:`To undo x<sup>${m}/${n}</sup>, raise both sides to the ${t?`${n}/${m}`:`${m}/${n}`} power`,t,why:`Flip the fraction: ${m}/${n} × ${n}/${m} = 1.`}}],
+[["riso"],()=>{const a=ri(2,5);return{s:`${a}√x = ${a*ri(2,5)} has its root alone`,t:false,why:`The ${a} is still in front, so divide by ${a} first.`}}],
+[["riso"],()=>{const t=g54tf();return{s:`(2√x + 1)² = ${t?"4x + 4√x + 1":"4x + 1"}`,t,why:"(A + B)² has a middle term 2AB. Don't skip it."}}],
+[["riso"],()=>{const a=ri(2,5),b=ri(2,9),t=g54tf();return{s:`In ${a}∛x + ${b} = 20, you ${t?"subtract "+b+" before dividing by "+a:"cube both sides first"}`,t,why:"Constant first, then the coefficient, then the power."}}],
+[["rsolve"],()=>({s:"To undo ∛, cube both sides",t:true,why:"A cube undoes a cube root."})],
+[["rsolve"],g54ltRs],[["rsolve"],g54ltRs],[["rsolve"],g54ltRs],
+[["rsolve"],()=>{const r=ri(2,5),t=g54tf();return{s:`∛x = −${r} has ${t?"a solution":"no real solution"}`,t,why:`Cube roots take negatives: x = (−${r})³ = −${r**3}.`}}],
+[["rsolve"],()=>{const r=ri(2,5),t=g54tf();return{s:`√x = −${r} has ${t?"no real solution":"one solution"}`,t,why:"A square root is never negative."}}],
+[["rsolve"],()=>{const n=pick([2,4]),t=g54tf();return{s:`${rad(n,"x")} = −3 has ${t?"no real solution":"a solution"}`,t,why:"An even root is never negative."}}],
+[["rsolve"],()=>{const v=ri(2,4),c=ri(1,9),t=g54tf();return{s:`∛(x + ${c}) = ${v} gives x = ${t?v**3-c:v*3-c}`,t,why:`Cube both sides: x + ${c} = ${v**3}. Multiplying by 3 is the wrong move.`}}],
+[["rsolve"],()=>{const n=pick([2,3,4]),t=g54tf();return{s:`To undo a ${ROOT[n]} root you can ${t?"raise both sides to the "+g54ord(n)+" power":"multiply both sides by "+n}`,t,why:`A ${ROOT[n]} root is undone by the ${g54ord(n)} power, not by × ${n}.`}}],
+[["rexp"],()=>({s:"To undo a 3/2 power, raise to the 2/3 power",t:true,why:"Flip the fraction."})],
+[["rexp"],g54ltEx],[["rexp"],g54ltEx],[["rexp"],g54ltEx],
+[["rexp"],()=>{const t=g54tf();return{s:`In 2(x + 1)<sup>3/2</sup> = 16, you ${t?"divide by 2 before raising to 2/3":"raise to 2/3 before dividing by 2"}`,t,why:"Get the power alone first, then raise to the flip."}}],
+[["rexp"],()=>{const w=ri(2,4),t=g54tf();return{s:`${w**3}<sup>2/3</sup> = ${t?w*w:w**3}`,t,why:`∛${w**3} = ${w}, then ${w}² = ${w*w}.`}}],
+[["rexp"],()=>{const w=ri(2,3),t=g54tf();return{s:`${w**2}<sup>3/2</sup> = ${t?w**3:w**2}`,t,why:`√${w**2} = ${w}, then ${w}³ = ${w**3}.`}}],
+[["rexp"],()=>{const t=g54tf();return{s:`In x<sup>2/3</sup> = 25, raise to the ${t?"3/2":"2/3"} power`,t,why:"Flip 2/3 to 3/2 to undo it."}}],
+[["rtwo"],()=>({s:"x<sup>2/3</sup> = 4 has only one answer",t:false,why:"Even top: x = ±8."})],
+[["rtwo"],()=>({s:"x<sup>4/3</sup> = 16 gives x = ±8",t:true,why:"Top 4 is even, so both signs work: 8 and −8."})],
+[["rtwo"],g54ltCount],[["rtwo"],g54ltCount],[["rtwo"],g54ltCount],
+[["rtwo"],()=>{const t=g54tf();return{s:`An ${t?"even":"odd"} top number in x<sup>m/n</sup> = K gives two answers`,t,why:"An even top hides the sign, so ± both work."}}],
+[["rtwo"],()=>{const t=g54tf();return{s:`The ${t?"top":"bottom"} number of the exponent decides one answer or two`,t,why:"The bottom is the root. The top is the power."}}],
+[["rtwo"],()=>{const w=ri(2,4),t=g54tf();return{s:`x<sup>2/3</sup> = ${w*w} → x = ${t?"±"+w**3:w**3}`,t,why:`Top 2 is even: x = ±${w**3}.`}}],
+[["rtwo"],()=>{const w=ri(2,4),t=g54tf();return{s:`x<sup>3/2</sup> = ${w**3} → x = ${t?w*w:"±"+w*w}`,t,why:`Top 3 is odd, and √ of a negative isn't real: x = ${w*w} only.`}}],
+[["rext"],()=>({s:"You should check answers in the original equation",t:true,why:"Squaring can make fake answers."})],
+[["rext"],g54ltExt],[["rext"],g54ltExt],[["rext"],g54ltExt],
+[["rext"],()=>({s:"An extraneous answer fails when you plug it into the original equation",t:true,why:"That is what extraneous means."})],
+[["rext"],()=>({s:"If you solved the squared equation correctly, you can skip the check",t:false,why:"Squaring can add fake answers. Always check."})],
+[["rext"],()=>{const c=ri(1,9),t=g54tf();return{s:`√(x + ${c}) = −${ri(2,5)} has ${t?"no solution":"a solution"}`,t,why:"A square root is never negative, whatever x is."}}],
+[["rext"],()=>{const t=g54tf();return{s:t?"A fake answer still fits the squared equation, so only the original catches it":"A fake answer fails the squared equation, so you can spot it there",t,why:"The fake answer fits the squared equation. Only the original catches it."}}],
+[["rext"],()=>{const t=g54tf();return{s:`(x − 5)² = ${t?"x² − 10x + 25":"x² + 25"}`,t,why:"(x − 5)(x − 5) has a middle term −10x."}}]
+];
+LT_54.forEach(([k,f])=>{LT54.push(f);LT54_SK.push(k)});
+
+
+
+
+
+
+
+
 
 const LT_STRUGGLE_ACC=0.6,LT_STRUGGLE_MIN=2;
 // Lightning aims at the day's mastered skills; with none mastered, at the ones the student is struggling with.
