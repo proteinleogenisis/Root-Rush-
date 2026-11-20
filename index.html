@@ -1990,56 +1990,138 @@ line:{t:"How far you can see",use:`From h meters up, the horizon is about 3.57�
 rules:{t:"Why elephants eat less than you'd think",use:`Animals need about 70 · M<sup>3/4</sup> calories a day (M = weight in kg). Zoos and vets plan food with this.`,
  ask:{q:`Food needed is about 70 · M<sup>3/4</sup>. An animal <b>16 times heavier</b> needs how many times the food?`,c:"8 times",w:["16 times","12 times"],
   steps:[`(16M)<sup>3/4</sup> = 16<sup>3/4</sup> · M<sup>3/4</sup>   (power of a product)`,`16<sup>3/4</sup> = (16<sup>1/4</sup>)<sup>3</sup> = 2<sup>3</sup>`,`= <b>8 times</b> the food, not 16`]},
- ui(el){const sv=rlSvg(el,"0 0 300 86"),o=rlOut(el,"mono");let k=16;
-  const draw=p=>{const food=k**.75,W=210;sv.innerHTML=`<text x="6" y="26" class="rl-lab">Weight</text><rect x="70" y="14" width="${W*p}" height="16" rx="8" fill="var(--root)"/><text x="${74+W*p}" y="26" class="rl-lab">×${k.toLocaleString()}</text>
-   <text x="6" y="62" class="rl-lab">Food</text><rect x="70" y="50" width="${W*food/k*p}" height="16" rx="8" fill="var(--hot)"/><text x="${74+W*food/k*p}" y="62" class="rl-lab">×${Math.round(food).toLocaleString()}</text>`};
-  const out=()=>{o.innerHTML=`${k.toLocaleString()}<sup>3/4</sup> = (${k.toLocaleString()}<sup>1/4</sup>)<sup>3</sup> = ${Math.round(k**.25)}<sup>3</sup> = <b>${Math.round(k**.75).toLocaleString()}× the food</b>`};
+ ui(el){const S=rlSide(el,"0 0 200 230"),sv=S.sv;let k=16;
+  // HAY_PX: width of the heap of hay an animal would eat if its food grew as fast as its weight (the dashed ghost)
+  const HAY_PX=104,GY1=100,GY2=204,fd=()=>k**.75,K=()=>k.toLocaleString();
+  const heap=(cx,gy,w,fill,ex)=>{const h=w*.55;return `<path d="M${cx-w/2} ${gy} Q${cx-w/2} ${gy-h} ${cx} ${gy-h} Q${cx+w/2} ${gy-h} ${cx+w/2} ${gy} Z" fill="${fill}" ${ex||""}/>`};
+  const draw=p=>{const real=HAY_PX*Math.sqrt(fd()/k)*p,unit=Math.max(1.5,HAY_PX*Math.sqrt(1/k)*p),ghost=HAY_PX*p;
+   let g=`<defs><linearGradient id="elSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--rlsky)"/><stop offset="1" stop-color="var(--bg)"/></linearGradient>
+    <linearGradient id="elHay" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f0cf6a"/><stop offset="1" stop-color="#c8963a"/></linearGradient>
+    <linearGradient id="elSkin" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b6bec7"/><stop offset="1" stop-color="#7b848e"/></linearGradient></defs>
+    <rect width="200" height="230" fill="url(#elSky)"/><rect y="${GY1}" width="200" height="14" fill="var(--rlsand)" opacity=".6"/><rect y="${GY2}" width="200" height="26" fill="var(--rlsand)"/><line x1="10" y1="118" x2="190" y2="118" stroke="var(--line)" stroke-dasharray="3 3"/>`;
+   g+=`<g transform="translate(40 ${GY1})"><path d="M10 -6 q14 -1 20 -11" stroke="#d7a3a3" stroke-width="1.6" fill="none"/><ellipse cx="0" cy="-7" rx="12" ry="7" fill="#b9b2aa"/><circle cx="-11" cy="-8" r="5" fill="#b9b2aa"/><circle cx="-8" cy="-14" r="3.4" fill="#d9a8a8"/><circle cx="-13" cy="-9" r=".9" fill="#222"/><circle cx="-16" cy="-7.5" r="1" fill="#d97a8a"/></g>`;
+   g+=`<g transform="translate(144 ${GY1})"><g fill="#727b85"><rect x="-27" y="-16" width="9" height="16" rx="3"/><rect x="-14" y="-16" width="9" height="16" rx="3"/><rect x="10" y="-16" width="9" height="16" rx="3"/><rect x="22" y="-16" width="9" height="16" rx="3"/></g>
+    <path d="M33 -38 q7 8 3 22" stroke="#727b85" stroke-width="2.4" fill="none" stroke-linecap="round"/><ellipse cx="0" cy="-33" rx="35" ry="21" fill="url(#elSkin)"/>
+    <path d="M-47 -36 q-9 14 -4 33" stroke="#9aa3ad" stroke-width="7" fill="none" stroke-linecap="round"/><circle cx="-37" cy="-40" r="14" fill="#a3abb4"/><ellipse cx="-27" cy="-36" rx="9" ry="13" fill="#8e97a1" stroke="#6c7580"/>
+    <path d="M-45 -31 q-8 3 -10 10" stroke="#f4efe0" stroke-width="2.6" fill="none" stroke-linecap="round"/><circle cx="-41" cy="-44" r="1.7" fill="#222"/></g>`;
+   g+=`<rect x="52" y="8" width="96" height="20" rx="10" fill="var(--card)" stroke="var(--line)"/><text x="100" y="22" text-anchor="middle" class="rl-lab big">Weight ×${Math.round(k*p).toLocaleString()}</text>
+    <text x="40" y="112" text-anchor="middle" class="rl-lab">Small animal</text><text x="144" y="112" text-anchor="middle" class="rl-lab">Big animal</text><text x="100" y="134" text-anchor="middle" class="rl-lab big">Food each day</text>`;
+   g+=heap(40,GY2,unit,"url(#elHay)",`stroke="#8a6420"`)+heap(138,GY2,ghost,"none",`stroke="var(--mute)" stroke-width="1.4" stroke-dasharray="4 3"`)+heap(138,GY2,real,"url(#elHay)",`stroke="#8a6420"`);
+   g+=`<text x="40" y="219" text-anchor="middle" class="rl-lab">×1</text><text x="138" y="219" text-anchor="middle" class="rl-lab">×${Math.round(fd()*p).toLocaleString()} (not ×${Math.round(k*p).toLocaleString()})</text>`;
+   sv.innerHTML=g};
+  const out=()=>{const r=Math.round(k**.25),F=Math.round(fd()).toLocaleString();S.math([["The rule","h"],"F = 70 · M<sup>3/4</sup>",`${K()}× the weight:`,`F = 70 · (${K()}M)<sup>3/4</sup>`,[`= ${K()}<sup>3/4</sup> · 70M<sup>3/4</sup>`,"on"],[`${K()}<sup>3/4</sup> = (${K()}<sup>1/4</sup>)<sup>3</sup>`,"on"],[`= ${r}<sup>3</sup>`,"on"],[`= ${F}× the food`,"ans"],[`${K()}× the weight needs only ${F}× the food. The dashed heap is what you'd expect; the solid one is real.`,"n"]])};
   draw(1);out();rlTry(el,"Try other sizes:");const row=document.createElement("div");row.className="rl-row";el.appendChild(row);
   [16,81,625,10000].forEach(v=>row.appendChild(mkBtn("small"+(v===16?" on":""),"×"+v.toLocaleString()+" heavier",e=>{k=v;row.querySelectorAll("button").forEach(x=>x.classList.remove("on"));e.currentTarget.classList.add("on");out();rlTween(el,1100,t=>draw(rlEase(t)))})));
   return{play(){rlTween(el,1400,t=>draw(rlEase(t)))}}}},
 radmul:{t:"Speed from skid marks",use:`Crash investigators find a car's speed from its skid marks: s = √(30df), where d is the skid length in feet and f is how grippy the road is.`,
  ask:{q:`A car left <b>120 ft</b> of skid marks on a dry road (f = 0.75). Speed s = √30 · √d · √f. How fast was it going?`,c:"30√3 ≈ 52 mph",w:["about 17 mph","2,700 mph"],
   steps:[`√30 · √120 · √0.75: same index, so one root → √(30 · 120 · 0.75)`,`= √2700 = √(900 · 3)`,`= 30√3 ≈ <b>52 mph</b>`]},
- ui(el){const sv=rlSvg(el,"0 0 300 74"),o=rlOut(el,"mono");let d=120,f=.75;
-  const draw=(cx,ml,mph)=>{const road=f===.75?"#3a3a3a":f===.5?"#2c3e52":"#cfe3ee";
-   sv.innerHTML=`<rect x="0" y="16" width="300" height="44" rx="6" fill="${road}"/><line x1="0" y1="38" x2="300" y2="38" stroke="#e8c34a" stroke-dasharray="10 8" stroke-width="2"/>
-   <rect x="22" y="24" width="${ml}" height="4" fill="#111" opacity=".75"/><rect x="22" y="48" width="${ml}" height="4" fill="#111" opacity=".75"/>
-   <g transform="translate(${cx} 0)"><rect x="0" y="20" width="38" height="36" rx="7" fill="var(--hot)"/><rect x="22" y="24" width="10" height="28" rx="3" fill="#cfe8ff" opacity=".8"/></g>
-   <text x="6" y="11" class="rl-lab">skid: ${d} ft</text><text x="294" y="72" text-anchor="end" class="rl-lab big">${Math.round(mph)} mph</text>`};
-  const len=()=>d/300*226,spd=()=>Math.sqrt(30*d*f);
-  const out=()=>{const X=Math.round(30*d*f);o.innerHTML=`√30 · √${d} · √${f} = √${X} = ${rlSimp(X)} ≈ <b>${Math.round(Math.sqrt(X))} mph</b>`};
-  draw(len()+22,len(),0);out();rlTry(el);rlSlider(el,"Skid (ft)",20,300,4,120,v=>{d=v;draw(len()+22,len(),0);out();return v+" ft"});
+ ui(el){const S=rlSide(el,"0 0 200 230"),sv=S.sv;let d=120,f=.75;
+  // SKID_PX_PER_FT: drawn length of 1 ft of skid mark; braking starts at y = BRAKE_Y; gauge tops out at MAX_MPH
+  const SKID_PX_PER_FT=.49,BRAKE_Y=44,CAR_L=34,MAX_MPH=90,RX=26,RW=92,CARX=83;
+  const len=()=>d*SKID_PX_PER_FT,spd=()=>Math.sqrt(30*d*f),surf=()=>f===.75?"Dry":f===.5?"Wet":"Icy";
+  const arc=(cx,cy,r,m)=>{const th=Math.PI*(1-Math.min(m,MAX_MPH)/MAX_MPH);return[cx+r*Math.cos(th),cy-r*Math.sin(th)]};
+  const draw=(carY,ml,mph)=>{const road=f===.75?"#3b3b42":f===.5?"#27364e":"#bcd9e8",gc=160,gy=72,gr=32,[nx,ny]=arc(gc,gy,gr-5,mph),[ex,ey]=arc(gc,gy,gr,mph);
+   let g=`<defs><linearGradient id="skRoad" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${road}"/><stop offset=".5" stop-color="${road}" stop-opacity=".88"/><stop offset="1" stop-color="${road}"/></linearGradient>
+    <linearGradient id="skCar" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#b8321f"/><stop offset=".5" stop-color="#ee5a3c"/><stop offset="1" stop-color="#b8321f"/></linearGradient></defs>
+    <rect x="0" y="0" width="${RX}" height="230" fill="var(--rlgrass)"/><rect x="${RX}" y="0" width="${RW}" height="230" fill="url(#skRoad)"/>
+    <line x1="${RX+3}" y1="0" x2="${RX+3}" y2="230" stroke="#fff" opacity=".8" stroke-width="1.5"/><line x1="${RX+RW-3}" y1="0" x2="${RX+RW-3}" y2="230" stroke="#fff" opacity=".8" stroke-width="1.5"/><line x1="72" y1="0" x2="72" y2="230" stroke="#e8c34a" stroke-width="2" stroke-dasharray="12 10"/>`;
+   if(ml>0)g+=`<rect x="${CARX+3}" y="${BRAKE_Y}" width="3.4" height="${ml}" fill="#0b0b0d" opacity=".85"/><rect x="${CARX+17.6}" y="${BRAKE_Y}" width="3.4" height="${ml}" fill="#0b0b0d" opacity=".85"/>`;
+   g+=`<line x1="${RX+3}" y1="${BRAKE_Y}" x2="${RX+RW-3}" y2="${BRAKE_Y}" stroke="#fff" stroke-dasharray="3 3"/><rect x="${RX+6}" y="${BRAKE_Y-16}" width="46" height="12" rx="6" fill="#111" opacity=".75"/><text x="${RX+29}" y="${BRAKE_Y-7}" text-anchor="middle" font-size="8" font-weight="700" fill="#fff">brakes on</text>`;
+   const cy=carY-CAR_L;
+   g+=`<g transform="translate(${CARX} ${cy})"><rect x="-2.5" y="4" width="4" height="9" rx="1.5" fill="#111"/><rect x="22.5" y="4" width="4" height="9" rx="1.5" fill="#111"/><rect x="-2.5" y="21" width="4" height="9" rx="1.5" fill="#111"/><rect x="22.5" y="21" width="4" height="9" rx="1.5" fill="#111"/>
+    <rect x="0" y="0" width="24" height="${CAR_L}" rx="7" fill="url(#skCar)" stroke="#6e1a10"/><rect x="3" y="6" width="18" height="5" rx="2" fill="#2b3a4a"/><rect x="3" y="19" width="18" height="8" rx="2.5" fill="#cfe8ff" opacity=".9"/><rect x="4" y="12" width="16" height="7" rx="1" fill="#d94a30"/>
+    <circle cx="5" cy="31" r="1.8" fill="#ffe9a0"/><circle cx="19" cy="31" r="1.8" fill="#ffe9a0"/><rect x="2" y="1" width="5" height="2" fill="#ff2a2a"/><rect x="17" y="1" width="5" height="2" fill="#ff2a2a"/></g>`;
+   if(ml>0)g+=`<line x1="17" y1="${BRAKE_Y}" x2="17" y2="${BRAKE_Y+ml}" stroke="var(--ink)" stroke-width="1.5"/><line x1="13" y1="${BRAKE_Y}" x2="21" y2="${BRAKE_Y}" stroke="var(--ink)" stroke-width="1.5"/><line x1="13" y1="${BRAKE_Y+ml}" x2="21" y2="${BRAKE_Y+ml}" stroke="var(--ink)" stroke-width="1.5"/><text transform="rotate(-90 9 ${BRAKE_Y+ml/2})" x="9" y="${BRAKE_Y+ml/2+3}" text-anchor="middle" class="rl-lab">${Math.round(ml/SKID_PX_PER_FT)} ft</text>`;
+   g+=`<path d="M${gc-gr} ${gy} A${gr} ${gr} 0 0 1 ${gc+gr} ${gy}" fill="none" stroke="var(--line)" stroke-width="7" stroke-linecap="round"/>`;
+   if(mph>.5)g+=`<path d="M${gc-gr} ${gy} A${gr} ${gr} 0 0 1 ${ex} ${ey}" fill="none" stroke="var(--hot)" stroke-width="7" stroke-linecap="round"/>`;
+   g+=`<line x1="${gc}" y1="${gy}" x2="${nx}" y2="${ny}" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/><circle cx="${gc}" cy="${gy}" r="3.5" fill="var(--ink)"/><text x="${gc-gr}" y="${gy+11}" text-anchor="middle" class="rl-lab">0</text><text x="${gc+gr}" y="${gy+11}" text-anchor="middle" class="rl-lab">${MAX_MPH}</text>
+    <text x="${gc}" y="106" text-anchor="middle" font-size="20" font-weight="800" fill="var(--ink)">${Math.round(mph)}</text><text x="${gc}" y="118" text-anchor="middle" class="rl-lab">mph</text>
+    <rect x="128" y="132" width="64" height="20" rx="10" fill="${road}" stroke="var(--line)"/><text x="160" y="146" text-anchor="middle" font-size="10" font-weight="800" fill="${f===.15?"#123":"#fff"}">${surf()} road</text><text x="160" y="168" text-anchor="middle" class="rl-lab">grip f = ${f}</text>
+    <rect x="128" y="178" width="64" height="20" rx="10" fill="var(--card)" stroke="var(--line)"/><text x="160" y="192" text-anchor="middle" class="rl-lab big">skid ${d} ft</text>`;
+   sv.innerHTML=g};
+  const out=()=>{const X=Math.round(30*d*f),sm=rlSimp(X),L=[["The rule","h"],"s = √(30 · d · f)",`= √(30 · ${d} · ${f})`,[`= √${X}`,"on"]];if(sm!==`√${X}`)L.push([`= ${sm}`,"on"]);L.push([`≈ ${Math.round(Math.sqrt(X))} mph`,"ans"],[`${surf()} road (f = ${f}): the car was doing this speed when the brakes locked.`,"n"]);S.math(L)};
+  const rest=()=>draw(BRAKE_Y+len(),len(),spd());
+  rest();out();rlTry(el);rlSlider(el,"Skid (ft)",20,300,4,120,v=>{d=v;rest();out();return v+" ft"});
   const row=document.createElement("div");row.className="rl-row";el.appendChild(row);
-  [["Dry",.75],["Wet",.5],["Icy",.15]].forEach(([n,v],i)=>{const b=mkBtn("small"+(i===0?" on":""),n,()=>{f=v;row.querySelectorAll("button").forEach(x=>x.classList.remove("on"));b.classList.add("on");draw(len()+22,len(),0);out()});row.appendChild(b)});
-  return{play(){const L=len(),S=spd();rlTween(el,2600,t=>{if(t<.3)draw(-40+(62)*(t/.3),0,S);else{const u=rlEase((t-.3)/.7);draw(22+L*u,L*u,S*(1-u))}})}}}},
+  [["Dry",.75],["Wet",.5],["Icy",.15]].forEach(([n,v],i)=>{const b=mkBtn("small"+(i===0?" on":""),n,()=>{f=v;row.querySelectorAll("button").forEach(x=>x.classList.remove("on"));b.classList.add("on");rest();out()});row.appendChild(b)});
+  return{play(){const L=len(),Sp=spd();rlTween(el,2600,t=>{if(t<.3)draw(-8+(BRAKE_Y+8)*(t/.3),0,Sp);else{const u=rlEase((t-.3)/.7);draw(BRAKE_Y+L*u,L*u,Sp*(1-u))}},()=>rest())}}}},
 simp:{t:"Checking a room is square",use:`Builders check that a room is square by measuring corner to corner. The diagonal of a square with side s is √(2s<sup>2</sup>).`,
  ask:{q:`A square room is <b>12 ft</b> on each side. If the walls are truly square, what should the tape read corner to corner?`,c:"12√2 ≈ 17 ft",w:["24 ft","144 ft"],
   steps:[`√(12<sup>2</sup> + 12<sup>2</sup>) = √288`,`288 = <span class="grp">(2 · 2)</span> · <span class="grp">(2 · 2)</span> · <span class="grp">(3 · 3)</span> · 2 → 2 · 2 · 3 = 12 comes out, 2 stays`,`= 12√2 ≈ <b>16.97 ft</b>`]},
- ui(el){const sv=rlSvg(el,"0 0 300 130"),o=rlOut(el,"mono");let s=12;
-  const draw=p=>{const x0=95,y0=14,S=104,dg=s*Math.SQRT2;sv.innerHTML=`<rect x="${x0}" y="${y0}" width="${S}" height="${S}" fill="var(--rlsand)" opacity=".5" stroke="var(--ink)" stroke-width="2"/><text x="${x0+S/2}" y="${y0+S+13}" text-anchor="middle" class="rl-lab">${s} ft</text><text x="${x0-6}" y="${y0+S/2}" text-anchor="end" class="rl-lab">${s} ft</text>
-   <line x1="${x0}" y1="${y0+S}" x2="${x0+S*p}" y2="${y0+S-S*p}" stroke="#e8c34a" stroke-width="5" stroke-linecap="round"/><text x="${x0+S*p+6}" y="${y0+S-S*p}" class="rl-lab big">${f2(dg*p)} ft</text>`};
-  const out=()=>{o.innerHTML=`√(${s}<sup>2</sup> + ${s}<sup>2</sup>) = √${2*s*s} = <b>${s}√2</b> ≈ ${f2(s*Math.SQRT2)} ft`};
+ ui(el){const S=rlSide(el,"0 0 200 230"),sv=S.sv;let s=12;
+  // ROOM_PX_PER_FT: drawn size of 1 ft of floor; the room's bottom wall sits at y = FLOOR_Y
+  const ROOM_PX_PER_FT=7.2,FLOOR_Y=176,SQ=Math.SQRT2;
+  const draw=p=>{const sz=ROOM_PX_PER_FT*s,x0=(200-sz)/2+4,y0=FLOOR_Y-sz,dg=s*SQ,ex=x0+sz*p,ey=y0+sz-sz*p,P=ROOM_PX_PER_FT;
+   let g=`<defs><linearGradient id="sqWood" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d6aa72"/><stop offset="1" stop-color="#b58045"/></linearGradient></defs>
+    <rect width="200" height="230" fill="var(--rlsand)" opacity=".3"/>
+    <rect x="${x0}" y="${y0}" width="${sz}" height="${sz}" fill="url(#sqWood)"/>`;
+   for(let i=1;i<s;i++)g+=`<line x1="${x0}" y1="${y0+i*P}" x2="${x0+sz}" y2="${y0+i*P}" stroke="#7d5424" opacity=".35" stroke-width=".6"/>`;
+   g+=`<rect x="${x0}" y="${y0}" width="${sz}" height="${sz}" fill="none" stroke="var(--ink)" stroke-width="4"/><rect x="${x0+sz*.3}" y="${y0-3}" width="${sz*.4}" height="6" fill="#bfe6ff" stroke="var(--ink)"/>
+    <path d="M${x0+sz-8} ${y0+sz-2} v-7 h7" fill="none" stroke="var(--ink)" stroke-width="1.4"/>`;
+   if(p>0){g+=`<line x1="${x0}" y1="${y0+sz}" x2="${ex}" y2="${ey}" stroke="#f2c230" stroke-width="5"/><line x1="${x0}" y1="${y0+sz}" x2="${ex}" y2="${ey}" stroke="#4a3a00" stroke-width="5" stroke-dasharray="1 ${P-1}"/><circle cx="${ex}" cy="${ey}" r="2.6" fill="#222"/>`}
+   g+=`<rect x="${x0-6}" y="${y0+sz-5}" width="13" height="10" rx="2" fill="#2f2f33"/><circle cx="${x0}" cy="${y0+sz}" r="2.6" fill="#f2c230"/>
+    <line x1="${x0}" y1="${FLOOR_Y+8}" x2="${x0+sz}" y2="${FLOOR_Y+8}" stroke="var(--mute)"/><line x1="${x0}" y1="${FLOOR_Y+5}" x2="${x0}" y2="${FLOOR_Y+11}" stroke="var(--mute)"/><line x1="${x0+sz}" y1="${FLOOR_Y+5}" x2="${x0+sz}" y2="${FLOOR_Y+11}" stroke="var(--mute)"/>
+    <text x="${x0+sz/2}" y="${FLOOR_Y+20}" text-anchor="middle" class="rl-lab">${s} ft</text>
+    <line x1="${x0-9}" y1="${y0}" x2="${x0-9}" y2="${y0+sz}" stroke="var(--mute)"/><line x1="${x0-12}" y1="${y0}" x2="${x0-6}" y2="${y0}" stroke="var(--mute)"/><line x1="${x0-12}" y1="${y0+sz}" x2="${x0-6}" y2="${y0+sz}" stroke="var(--mute)"/>
+    <text transform="rotate(-90 ${x0-13} ${y0+sz/2})" x="${x0-13}" y="${y0+sz/2+3}" text-anchor="middle" class="rl-lab">${s} ft</text>
+    <rect x="42" y="6" width="116" height="20" rx="10" fill="var(--card)" stroke="var(--line)"/><text x="100" y="20" text-anchor="middle" class="rl-lab big">A ${s} × ${s} ft room</text>
+    <rect x="34" y="198" width="132" height="24" rx="12" fill="var(--hot)"/><text x="100" y="214" text-anchor="middle" font-size="11" font-weight="800" fill="#fff">Tape reads ${f2(dg*p)} ft</text>`;
+   sv.innerHTML=g};
+  const out=()=>{S.math([["Diagonal of a square","h"],"d = √(s² + s²)",`= √(${s}² + ${s}²)`,[`= √${2*s*s}`,"on"],`= √(${s*s} · 2)`,[`= ${s}√2`,"on"],[`≈ ${f2(s*SQ)} ft`,"ans"],["The tape should read about 1.41 × a side. If it doesn't, the corners aren't square.","n"]])};
   draw(1);out();rlTry(el);rlSlider(el,"Side (ft)",2,20,1,12,v=>{s=v;draw(1);out();return v+" ft"});
   return{play(){rlTween(el,1800,t=>draw(rlEase(t)))}}}},
 vars:{t:"Distance is never negative",use:`Map apps measure distance with √((b − a)<sup>2</sup>). An even root of a square gives an absolute value, so distance is never negative.`,
  ask:{q:`You're at <b>−3</b> on a street and the store is at <b>5</b>. Distance = √((b − a)<sup>2</sup>). How far is it?`,c:"8 blocks",w:["2 blocks","−8 blocks"],
   steps:[`√((5 − (−3))<sup>2</sup>) = √(8<sup>2</sup>)`,`= √64`,`= |8| = <b>8 blocks</b>, and it'd be 8 walking either way`]},
- ui(el){const sv=rlSvg(el,"0 0 300 86"),o=rlOut(el,"mono");let a=-3,b=5;
-  const draw=p=>{const x=v=>20+(v+10)*13,dist=Math.abs(b-a),w=a+(b-a)*p;let h=`<line x1="14" y1="50" x2="286" y2="50" stroke="var(--mute)"/>`;
-   for(let v=-10;v<=10;v++)h+=`<line x1="${x(v)}" y1="46" x2="${x(v)}" y2="54" stroke="var(--mute)"/>${v%5===0?`<text x="${x(v)}" y="68" text-anchor="middle" class="rl-lab">${co(v)}</text>`:""}`;
-   if(dist&&p>0)h+=`<line x1="${x(a)}" y1="30" x2="${x(w)}" y2="30" stroke="var(--good)" stroke-width="3"/><text x="${(x(a)+x(w))/2}" y="22" text-anchor="middle" class="rl-lab big" fill="var(--good)">${Math.round(dist*p)} blocks</text>`;
-   h+=`<circle cx="${x(b)}" cy="50" r="8" fill="var(--root)"/><text x="${x(b)}" y="82" text-anchor="middle" class="rl-lab">Store</text><circle cx="${x(w)}" cy="50" r="8" fill="var(--hot)"/><text x="${x(w)}" y="${Math.abs(w-b)<1.2?72:82}" text-anchor="middle" class="rl-lab">You</text>`;sv.innerHTML=h};
-  const out=()=>{o.innerHTML=`√((${b} − ${a<0?"("+co(a)+")":a})<sup>2</sup>) = √${(b-a)**2} = |${co(b-a)}| = <b>${Math.abs(b-a)} blocks</b>${b<a?" (walking backward, still positive)":""}`};
-  draw(1);out();rlTry(el);rlSlider(el,"You (a)",-10,10,1,-3,v=>{a=v;draw(1);out();return co(v)});rlSlider(el,"Store (b)",-10,10,1,5,v=>{b=v;draw(1);out();return co(v)});
-  return{play(){rlTween(el,Math.max(900,Math.abs(b-a)*260),t=>draw(t))}}}},
+ ui(el){const S=rlSide(el,"0 0 200 220"),sv=S.sv;let a=-3,b=5;
+  // BLOCK_PX: drawn width of one block along the street; block 0 sits at x = 18 + 10 * BLOCK_PX
+  const BLOCK_PX=8.2,X=v=>18+(v+10)*BLOCK_PX,RY=124,RH=36;
+  const draw=(pos,rp)=>{const dist=Math.abs(b-a),w=a+(b-a)*pos,rt=a+(b-a)*rp,dir=b>a?1:-1;
+   let g=`<defs><linearGradient id="vaSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--rlsky)"/><stop offset="1" stop-color="var(--bg)"/></linearGradient>
+    <linearGradient id="vaRoad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#55555e"/><stop offset="1" stop-color="#3a3a42"/></linearGradient>
+    <linearGradient id="vaAwn" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#e5483a"/><stop offset="1" stop-color="#c23428"/></linearGradient></defs>
+    <rect width="200" height="220" fill="url(#vaSky)"/>`;
+   for(let i=0;i<6;i++)g+=`<rect x="${3+i*33}" y="${62+(i%3)*8}" width="28" height="${50-(i%3)*8}" fill="var(--card)" stroke="var(--line)"/><rect x="${8+i*33}" y="${74+(i%3)*8}" width="7" height="8" fill="var(--line)"/><rect x="${19+i*33}" y="${74+(i%3)*8}" width="7" height="8" fill="var(--line)"/>`;
+   g+=`<rect x="0" y="112" width="200" height="12" fill="var(--line)"/><rect x="0" y="${RY}" width="200" height="${RH}" fill="url(#vaRoad)"/><line x1="0" y1="${RY}" x2="200" y2="${RY}" stroke="var(--mute)"/>`;
+   for(let v=-10;v<=10;v++)g+=`<line x1="${X(v)}" y1="${RY+RH-4}" x2="${X(v)}" y2="${RY+RH}" stroke="#fff" opacity=".7"/>${v%5===0?`<text x="${X(v)}" y="${RY+RH-8}" text-anchor="middle" font-size="8" font-weight="700" fill="#ececf2">${co(v)}</text>`:""}`;
+   const sx=X(b);
+   g+=`<rect x="${sx-17}" y="56" width="34" height="56" fill="var(--root)" stroke="var(--ink)"/><rect x="${sx-15}" y="60" width="30" height="11" rx="3" fill="#fff"/><text x="${sx}" y="69" text-anchor="middle" font-size="8" font-weight="800" fill="#123">STORE</text>
+    <rect x="${sx-19}" y="88" width="38" height="9" fill="url(#vaAwn)"/><rect x="${sx-4}" y="98" width="9" height="14" fill="#2a2a30"/><rect x="${sx-14}" y="99" width="8" height="8" fill="#bfe6ff"/><rect x="${sx+7}" y="99" width="8" height="8" fill="#bfe6ff"/>`;
+   if(dist&&rp>0){const ex=X(rt);g+=`<line x1="${X(a)}" y1="138" x2="${ex}" y2="138" stroke="var(--good)" stroke-width="4" stroke-linecap="round"/><path d="M${ex+dir*7} 138 l${-dir*8} -6 v12 z" fill="var(--good)"/>`}
+   const px=X(w);
+   g+=`<g><line x1="${px-2}" y1="104" x2="${px-3}" y2="112" stroke="#2a2a30" stroke-width="3" stroke-linecap="round"/><line x1="${px+2}" y1="104" x2="${px+3}" y2="112" stroke="#2a2a30" stroke-width="3" stroke-linecap="round"/><rect x="${px-5}" y="92" width="10" height="14" rx="3" fill="var(--hot)"/><circle cx="${px}" cy="87" r="5" fill="#f1c9a0"/><rect x="${px-13}" y="71" width="26" height="11" rx="5.5" fill="var(--hot)"/><text x="${px}" y="79.5" text-anchor="middle" font-size="8" font-weight="800" fill="#fff">You</text></g>`;
+   const ya=X(a),yb=X(b);
+   g+=`<line x1="${ya}" y1="${RY+RH}" x2="${ya}" y2="172" stroke="var(--hot)" stroke-dasharray="2 2"/><line x1="${yb}" y1="${RY+RH}" x2="${yb}" y2="172" stroke="var(--root)" stroke-dasharray="2 2"/>`;
+   if(dist&&rp>0)g+=`<line x1="${ya}" y1="172" x2="${X(rt)}" y2="172" stroke="var(--good)" stroke-width="3"/>`;
+   g+=`<circle cx="${ya}" cy="172" r="3.5" fill="var(--hot)"/><circle cx="${yb}" cy="172" r="3.5" fill="var(--root)"/>
+    <rect x="62" y="182" width="76" height="22" rx="11" fill="var(--card)" stroke="var(--good)" stroke-width="1.5"/><text x="100" y="197" text-anchor="middle" class="rl-lab big">${Math.round(dist*rp)} block${Math.round(dist*rp)===1?"":"s"}</text>
+    <text x="100" y="215" text-anchor="middle" class="rl-lab">${dist===0?"already there":b>a?"walking right (+)":"walking left (−)"}</text>`;
+   sv.innerHTML=g};
+  const out=()=>{const t=b-a;S.math([["The rule","h"],"d = √((b − a)²)",`= √((${co(b)} − ${a<0?"("+co(a)+")":co(a)})²)`,[`= √((${co(t)})²)`,"on"],`= √${t*t}`,[`= |${co(t)}|`,"on"],[`= ${Math.abs(t)} blocks`,"ans"],[t<0?"Walking left makes b − a negative, but the even root drops the sign.":t===0?"You're already at the store: distance 0.":"A root of a square can't be negative, so distance never is.","n"]])};
+  draw(0,1);out();rlTry(el);rlSlider(el,"You (a)",-10,10,1,-3,v=>{a=v;draw(0,1);out();return co(v)});rlSlider(el,"Store (b)",-10,10,1,5,v=>{b=v;draw(0,1);out();return co(v)});
+  return{play(){rlTween(el,Math.max(900,Math.abs(b-a)*260),t=>draw(t,t))}}}},
 like:{t:"Buying fence for two gardens",use:`Square gardens often have sides like 5√3 ft. Since those are like radicals, the fence adds up to one simple number.`,
  ask:{q:`Two square gardens have sides <b>5√3 ft</b> and <b>3√3 ft</b>. How much fence goes around both?`,c:"32√3 ≈ 55.4 ft",w:["8√3 ≈ 13.9 ft","32√6 ≈ 78.4 ft"],
   steps:[`Garden 1: 4 sides × 5√3 = 20√3`,`Garden 2: 4 sides × 3√3 = 12√3`,`Like radicals, so add the fronts: 20√3 + 12√3 = <b>32√3 ≈ 55.4 ft</b>`]},
- ui(el){const sv=rlSvg(el,"0 0 300 150"),o=rlOut(el,"mono");let a=5,b=3;
-  const draw=p=>{const k=118/(8*Math.sqrt(3)),s1=a*Math.sqrt(3)*k,s2=b*Math.sqrt(3)*k,y0=138,tot=4*(a+b)*Math.sqrt(3);
-   const bed=(x,s,n,area)=>{const per=4*s;return `<rect x="${x}" y="${y0-s}" width="${s}" height="${s}" fill="var(--rlgrass)" rx="2"/><rect x="${x}" y="${y0-s}" width="${s}" height="${s}" fill="none" stroke="var(--hot)" stroke-width="3" stroke-dasharray="${per}" stroke-dashoffset="${per*(1-p)}" rx="2"/><text x="${x+s/2}" y="${y0-s/2+4}" text-anchor="middle" class="rl-lab">${area} ft²</text><text x="${x+s/2}" y="${y0-s-5}" text-anchor="middle" class="rl-lab">${n}√3</text>`};
-   sv.innerHTML=bed(20,s1,a,3*a*a)+bed(Math.max(40+s1,160),s2,b,3*b*b)+`<text x="294" y="16" text-anchor="end" class="rl-lab big">fence: ${f2(tot*p)} ft</text>`};
-  const out=()=>{o.innerHTML=`${4*a}√3 + ${4*b}√3 = <b>${4*(a+b)}√3</b> ≈ ${f2(4*(a+b)*Math.sqrt(3))} ft of fence`};
+ ui(el){const S=rlSide(el,"0 0 200 230"),sv=S.sv;let a=5,b=3;
+  // GARDEN_MAX_PX_PER_FT: drawn size of 1 ft of garden (shrinks only when both gardens would not fit); gardens sit on y = GROUND_Y
+  const GARDEN_MAX_PX_PER_FT=14,GROUND_Y=150,R3=Math.sqrt(3);
+  const pt=(x,y,s,u)=>{if(u<s)return[x+u,y+s];if(u<2*s)return[x+s,y+s-(u-s)];if(u<3*s)return[x+s-(u-2*s),y];return[x,y+(u-3*s)]};
+  const fence=(x,y,s,n,c1,c2,from,vis)=>{let h="";const L=s/n;for(let i=0;i<4*n&&from+i<vis;i++){const[x1,y1]=pt(x,y,s,i*L),[x2,y2]=pt(x,y,s,i*L+L-.001);h+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${i%2?c2:c1}" stroke-width="4"/><circle cx="${x1}" cy="${y1}" r="2.6" fill="#4d3216"/>`}return h};
+  const draw=p=>{const N=4*(a+b),vis=Math.round(p*N),sc=Math.min(GARDEN_MAX_PX_PER_FT,160/((a+b)*R3),112/(Math.max(a,b)*R3)),s1=a*R3*sc,s2=b*R3*sc,x1=(200-(s1+s2+14))/2,x2=x1+s1+14,y1=GROUND_Y-s1,y2=GROUND_Y-s2,tot=N*R3;
+   let g=`<defs><linearGradient id="lkLawn" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#78c964"/><stop offset="1" stop-color="#4a9a3e"/></linearGradient></defs>
+    <rect width="200" height="230" fill="var(--rlgrass)" opacity=".45"/><rect y="${GROUND_Y}" width="200" height="80" fill="var(--rlsand)" opacity=".35"/>
+    <rect x="${x1}" y="${y1}" width="${s1}" height="${s1}" fill="url(#lkLawn)"/><rect x="${x2}" y="${y2}" width="${s2}" height="${s2}" fill="url(#lkLawn)"/>`;
+   if(s1>28)g+=`<text x="${x1+s1/2}" y="${y1+s1/2+3}" text-anchor="middle" font-size="9" font-weight="700" fill="#14340f">${3*a*a} ft²</text>`;
+   if(s2>28)g+=`<text x="${x2+s2/2}" y="${y2+s2/2+3}" text-anchor="middle" font-size="9" font-weight="700" fill="#14340f">${3*b*b} ft²</text>`;
+   g+=fence(x1,y1,s1,a,"#b97b3d","#d9a35c",0,vis)+fence(x2,y2,s2,b,"#a8692f","#cf9444",4*a,vis);
+   g+=`<text x="${x1+s1/2}" y="${GROUND_Y+17}" text-anchor="middle" class="rl-lab big">${a}√3 ft</text><text x="${x2+s2/2}" y="${GROUND_Y+17}" text-anchor="middle" class="rl-lab big">${b}√3 ft</text>
+    <rect x="34" y="6" width="132" height="22" rx="11" fill="var(--hot)"/><text x="100" y="21" text-anchor="middle" font-size="11" font-weight="800" fill="#fff">Fence: ${f2(vis*R3)} ft</text>
+    <line x1="22" y1="188" x2="38" y2="188" stroke="#b97b3d" stroke-width="4"/><line x1="38" y1="188" x2="54" y2="188" stroke="#d9a35c" stroke-width="4"/><text x="62" y="191" class="rl-lab">1 board = √3 ft ≈ 1.73 ft</text>
+    <text x="22" y="210" class="rl-lab big">${vis} of ${N} boards</text>`;
+   sv.innerHTML=g};
+  const out=()=>{const tot=4*(a+b);S.math([["Fence = perimeter","h"],`P = 4 · ${a}√3 + 4 · ${b}√3`,[`= ${4*a}√3 + ${4*b}√3`,"on"],[`= (${4*a} + ${4*b})√3`,"on"],[`= ${tot}√3 ≈ ${f2(tot*Math.sqrt(3))} ft`,"ans"],["Like radicals: add the numbers in front and keep the √3.","n"]])};
   draw(1);out();rlTry(el);rlSlider(el,"Garden 1 (a)",1,8,1,5,v=>{a=v;draw(1);out();return v+"√3"});rlSlider(el,"Garden 2 (b)",1,8,1,3,v=>{b=v;draw(1);out();return v+"√3"});
   return{play(){rlTween(el,2200,t=>draw(t))}}}}
 };
