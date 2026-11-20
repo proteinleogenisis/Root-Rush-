@@ -663,8 +663,8 @@ const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()
 const sup=(m,n)=>`<sup>${P(m)}/${R(n)}</sup>`;
 
 const ROOT={2:"square",3:"cube",4:"4th",5:"5th"},NTH={2:"2nd",3:"3rd",4:"4th",5:"5th"};
-const TAGS={entry:"Typing it in",bottom:"Bottom = root",neg:"Negative bases",sols:"How many answers",iso:"Isolate first",shift:"Undo in reverse",order:"Order the steps",spot:"Spot the mistake",line:"Estimate the root",rules:"Exponent rules",radmul:"Multiply and divide radicals",simp:"Simplest form",vars:"Roots of variables",like:"Like radicals",spot2:"Spot the mistake (5.2)",gparent:"Parent root graphs",gshift:"Shifts of radical graphs",gstretch:"Stretches and reflections",gmatch:"Match the graph",gdomain:"Domain and range",gerror:"Spot the graphing mistake"};
-const LESSONS={"5.1":["entry","bottom","neg","sols","iso","shift","order","line"],"5.2":["rules","radmul","simp","vars","like"],"5.3":["gparent","gshift","gstretch","gmatch","gdomain","gerror"]};
+const TAGS={entry:"Typing it in",bottom:"Bottom = root",neg:"Negative bases",sols:"How many answers",iso:"Isolate first",shift:"Undo in reverse",order:"Order the steps",spot:"Spot the mistake",line:"Estimate the root",rules:"Exponent rules",radmul:"Multiply and divide radicals",simp:"Simplest form",vars:"Roots of variables",like:"Like radicals",spot2:"Spot the mistake (5.2)",gparent:"Parent root graphs",gshift:"Shifts of radical graphs",gstretch:"Stretches and reflections",gmatch:"Match the graph",gdomain:"Domain and range",gerror:"Spot the graphing mistake",riso:"Get the root alone",rsolve:"Solve radical equations",rexp:"Rational exponent equations",rtwo:"One answer or two",rext:"Extraneous solutions"};
+const LESSONS={"5.1":["entry","bottom","neg","sols","iso","shift","order","line"],"5.2":["rules","radmul","simp","vars","like"],"5.3":["gparent","gshift","gstretch","gmatch","gdomain","gerror"],"5.4":["riso","rsolve","rexp","rtwo","rext"]};
 
 const SUPD={"0":"⁰","1":"¹","2":"²","3":"³","4":"⁴","5":"⁵","6":"⁶","7":"⁷","8":"⁸","9":"⁹","−":"⁻"};
 function sp(n){return String(n).split("").map(c=>SUPD[c]||c).join("")}
@@ -1204,6 +1204,16 @@ function g53domain(v){
   return{...ch,words:1,q:`Find the domain and range of ${hdr}.`,ex:hdr,walk,why}}
 GEN53.gdomain=()=>g53domain();
 Object.assign(GEN,GEN53);
+// ---- Day 4 (5.4) solving radical equations: generators (filled in by g54* below) ----
+const GEN54={};
+{const st54=(k,q,c,w,why)=>({q,c,w,why,ex:q,walk:[[c,"Answer"]]});
+ GEN54.riso=()=>{const a=ri(2,5),b=ri(1,4),r=a*b;return{...st54("riso",`First step for ${a}∛(x − 1) = ${r}?`,`Divide both sides by ${a}`,[`Cube both sides`,`Add 1 to both sides`,`Subtract ${a}`],`Get the root alone first.`),words:1}};
+ GEN54.rsolve=()=>{const v=ri(2,4),c=ri(1,9);return st54("rsolve",`Solve ∛(x − ${c}) = ${v}`,`x = ${v**3+c}`,[`x = ${v**3-c}`,`x = ${v*3+c}`,`x = ${v**2+c}`],`Cube both sides.`)};
+ GEN54.rexp=()=>{const v=pick([4,9,16]),c=ri(1,6);return st54("rexp",`Solve (x + ${c})<sup>3/2</sup> = ${Math.round(Math.sqrt(v))**3}`,`x = ${v-c}`,[`x = ${v+c}`,`x = ${Math.round(Math.sqrt(v))**3-c}`,`x = ${v*2-c}`],`Raise to 2/3.`)};
+ GEN54.rtwo=()=>st54("rtwo",`How many answers does x<sup>2/3</sup> = 4 have?`,`Two: x = ±8`,[`One: x = 8`,`One: x = −8`,`None`],`Even top: ±.`);
+ GEN54.rext=()=>st54("rext",`√(x − 3) + 5 = x gives x = 7 or x = 4. Which are real answers?`,`Only x = 7`,[`Only x = 4`,`Both`,`Neither`],`Check each in the original.`);
+ for(const k in GEN54){const f=GEN54[k];GEN54[k]=()=>({words:1,...f()})}}
+Object.assign(GEN,GEN54);
 // Quiz-only types for the 5.3 final quiz: each pins a question style, wording as on the homework (HW 5.3: 1-6 domain/range, 7-12 match, 13-15 describe, 16 error).
 const HW53={
 hw_par_dr:()=>g53parent("dr"),hw_par_expo:()=>g53parent("expo"),
@@ -1268,8 +1278,10 @@ const HW_DAY={
          ["hw_iso","iso"],["hw_iso","iso"],["hw_shift","shift"],["hw_shift","shift"],["hw_order","order"],["hw_order","order"],["line","line"],["line","line"]],
   "5.2":[["rules","rules"],["rules","rules"],["mz_negexp","rules"],["radmul","radmul"],["mz_mulsimp","radmul"],["simp","simp"],["simp","simp"],["vars","vars"],["vars","vars"],["like","like"],["mz_explike","like"]]};
 HW_DAY["5.3"]=[["hw_par_dr","gparent"],["hw_par_expo","gparent"],["hw_dom_12","gdomain"],["hw_dom_4","gdomain"],["hw_dom_3","gdomain"],["hw_dom_56","gdomain"],["hw_match_g","gmatch"],["hw_match_2","gmatch"],["hw_desc_t","gshift"],["hw_pt_t","gshift"],["hw_desc_s","gstretch"],["hw_desc_r","gstretch"],["hw_err_d","gerror"],["hw_err_g","gerror"]];
+const HW54={};
+HW_DAY["5.4"]=[["riso","riso"],["rsolve","rsolve"],["rsolve","rsolve"],["rexp","rexp"],["rtwo","rtwo"],["rext","rext"]];
 const MIX_SK={};Object.values(HW_DAY).forEach(L=>L.forEach(([g,k])=>{if(!Object.values(LESSONS).some(Ls=>Ls.includes(g)))MIX_SK[g]=[k]}));
-Object.assign(GEN,HW,HW53);Object.keys(HW).concat(Object.keys(HW53)).forEach(g=>{if(!TAGS[g])TAGS[g]=TAGS[MIX_SK[g]&&MIX_SK[g][0]]||g});
+Object.assign(GEN,HW,HW53,HW54);Object.keys(HW).concat(Object.keys(HW53),Object.keys(HW54)).forEach(g=>{if(!TAGS[g])TAGS[g]=TAGS[MIX_SK[g]&&MIX_SK[g][0]]||g});
 function quizList(d){const L=(HW_DAY[d]||(LESSONS[d]||[]).flatMap(k=>[[k,k],[k,k]])).map(x=>x[0]);shuffle(L);
   for(let i=1;i<L.length;i++)if(L[i]===L[i-1]){const j=(i+2)%L.length;[L[i],L[j]]=[L[j],L[i]]}return L}
 
@@ -1424,6 +1436,9 @@ const LT_53=[
 [["gdomain"],()=>{const k=ri(2,9),t=TF();return{s:`The range of g(x) = 2∛x − ${k} is ${t?"all real numbers":"y ≥ −"+k}`,t,why:"A cube root graph goes up and down forever, so the range is all real numbers."}}],
 ];
 LT_53.forEach(([k,f])=>{LT53.push(f);LT53_SK.push(k)});
+// ---- Day 4 (5.4) lightning items: quick true/false. LT54_SK has the skill of each item, same order. ----
+const LT54=[],LT54_SK=[];
+[[["rsolve"],()=>({s:"To undo ∛, cube both sides",t:true,why:"A cube undoes a cube root."})],[["rtwo"],()=>({s:"x<sup>2/3</sup> = 4 has only one answer",t:false,why:"Even top: x = ±8."})],[["rext"],()=>({s:"You should check answers in the original equation",t:true,why:"Squaring can make fake answers."})],[["riso"],()=>({s:"In 2√x + 1 = 7, square both sides first",t:false,why:"Get √x alone first."})],[["rexp"],()=>({s:"To undo a 3/2 power, raise to 2/3",t:true,why:"Flip the fraction."})]].forEach(([k,f])=>{LT54.push(f);LT54_SK.push(k)});
 
 const LT_STRUGGLE_ACC=0.6,LT_STRUGGLE_MIN=2;
 // Lightning aims at the day's mastered skills; with none mastered, at the ones the student is struggling with.
@@ -1432,7 +1447,7 @@ function ltTargets(d){const ks=LESSONS[d]||[];const m=ks.filter(k=>xpOf(k)>=MX);
   let w=ks.filter(k=>(st.miss&&st.miss[k])||acc(k)<=LT_STRUGGLE_ACC);
   if(!w.length)w=ks.slice().sort((a,b)=>xpOf(a)-xpOf(b)).slice(0,LT_STRUGGLE_MIN);
   return{keys:w,why:"tricky"}}
-function ltPool(d){const LP=d==="5.3"?[LT53,LT53_SK]:d==="5.2"?[LT52,LT52_SK]:[LT,LT_SK],L=LP[0],T=LP[1],t=ltTargets(d);
+function ltPool(d){const LP=d==="5.4"?[LT54,LT54_SK]:d==="5.3"?[LT53,LT53_SK]:d==="5.2"?[LT52,LT52_SK]:[LT,LT_SK],L=LP[0],T=LP[1],t=ltTargets(d);
   const p=L.filter((f,i)=>T[i].some(k=>t.keys.includes(k)));return{items:p.length?p:L,why:p.length?t.why:"all",keys:t.keys}}
 let st={done:true},lastKey=null,raf=null,runSeq=0;
 const $=id=>document.getElementById(id);
@@ -1657,15 +1672,20 @@ const SKILLS=[
 {k:"gstretch",L:"5.3",n:"Stretches and reflections",rule:`Outside the root = vertical (a). Inside, with x = horizontal, and backwards (b). A minus outside flips over the x-axis; a minus inside flips over the y-axis. Describe the stretch or flip, then the translation.`,ex:`2√(x − 1): vertical stretch by 2, right 1<br>−∛x − 1: reflection in the x-axis, down 1`},
 {k:"gmatch",L:"5.3",n:"Match the graph",rule:`Find the start point (h, k) on the grid. Inside the root goes x − h (backwards), outside goes + k. Look-alikes: √(x + 3) moves LEFT, √x + 3 moves UP.`,ex:`starts (−3, −3): √(x + 3) − 3<br>starts (3, 0): √(x − 3)  ·  starts (0, 3): √x + 3`},
 {k:"gdomain",L:"5.3",n:"Domain and range",rule:`Inside of a square or 4th root must be ≥ 0, which gives the domain. The range starts at k: up (y ≥ k) if a is positive, down (y ≤ k) if a is negative. Cube roots: all real numbers.`,ex:`√x + 4: Domain x ≥ 0 · Range y ≥ 4<br>(1/5)√(x − 3): x ≥ 3 · y ≥ 0<br>−3(x + 1)<sup>1/3</sup>: all real numbers`},
-{k:"gerror",L:"5.3",n:"Spot the graphing mistake",rule:`Work out where the graph SHOULD start, then compare. A wrong start usually means a shift went the wrong way: inside works backwards (x − 2 is RIGHT 2).`,ex:`f(x) = √(x − 2) − 2 starts at (2, −2)<br>A graph starting at (−2, −2) shifted 2 left instead of 2 right`}];
-const ROAD=[["5.1","nth roots and rational exponents","Day 1"],["5.2","Properties of rational exponents and radicals","Day 2"],["5.3","Graphing radical functions","Day 3"],["5.4","Solving radical equations and inequalities","Next"],["Test","Review and unit test","Later"]];
+{k:"gerror",L:"5.3",n:"Spot the graphing mistake",rule:`Work out where the graph SHOULD start, then compare. A wrong start usually means a shift went the wrong way: inside works backwards (x − 2 is RIGHT 2).`,ex:`f(x) = √(x − 2) − 2 starts at (2, −2)<br>A graph starting at (−2, −2) shifted 2 left instead of 2 right`},
+{k:"riso",L:"5.4",n:"Get the root alone",rule:`Before you undo a root, get it alone on one side. Undo + and − first, then × and ÷. Only then raise both sides to a power.`,ex:`2∜(x − 3) = 4<br>÷ 2: ∜(x − 3) = 2`},
+{k:"rsolve",L:"5.4",n:"Solve radical equations",rule:`Undo a root with the matching power: √ → square, ∛ → cube, ∜ → 4th power. Then solve the simple equation left.`,ex:`∛(2x − 9) = 3<br>cube: 2x − 9 = 27<br>x = 18`},
+{k:"rexp",L:"5.4",n:"Rational exponent equations",rule:`To undo a power like 2/3, raise both sides to the flipped fraction, 3/2. Get the power alone first.`,ex:`(x + 3)<sup>3/2</sup> = 27<br>x + 3 = 27<sup>2/3</sup> = 9<br>x = 6`},
+{k:"rtwo",L:"5.4",n:"One answer or two",rule:`If the TOP of the exponent is even (x<sup>2/3</sup>, x<sup>4/5</sup>), a negative number works too: write ±. Odd top: one answer.`,ex:`x<sup>2/3</sup> = 4 → x = ±8<br>x<sup>3/2</sup> = 8 → x = 4`},
+{k:"rext",L:"5.4",n:"Extraneous solutions",rule:`Squaring both sides can make fake answers. Put every answer back in the ORIGINAL equation. One that doesn't work is extraneous: cross it out.`,ex:`√(x − 3) + 5 = x → x = 7 or 4<br>x = 4: √1 + 5 = 6, not 4. Cross out 4.`}];
+const ROAD=[["5.1","nth roots and rational exponents","Day 1"],["5.2","Properties of rational exponents and radicals","Day 2"],["5.3","Graphing radical functions","Day 3"],["5.4","Solving radical equations","Day 4"],["Test","Review and unit test","Later"]];
 let sk=LS.get("skills",{}),hist=LS.get("hist",[]),openSkill=null;
 function recOf(k){const s=sk[k]||{};return s.rec||[]}
 const MX=100,MX_GAIN=10,MX_LOSS=15,IDK_LOSS=10,MX_GAIN_OLD=20; // IDK_LOSS: mastery lost when you tap "I don't know"
 function xpOf(k){const s=sk[k];if(!s||!s.t)return 0;if(s.m)return MX;if(typeof s.xp==="number")return s.xp;
   const R=s.rec||[],hits=R.length?R.reduce((x,y)=>x+y,0):s.r,miss=(R.length||s.t)-hits;return Math.max(0,Math.min(MX,hits*MX_GAIN_OLD-miss*MX_LOSS))}
 function lvl(k){const s=sk[k];if(!s||!s.t)return 0;const x=xpOf(k);return x>=MX?3:x>=50?2:1}
-const DAY_ORDER=["5.1","5.2","5.3"];
+const DAY_ORDER=["5.1","5.2","5.3","5.4"];
 function masteredCount(d){return LESSONS[d].filter(k=>lvl(k)===3).length}
 function dayMastered(d){return masteredCount(d)===LESSONS[d].length}
 let passed=LS.get("passed",{});
@@ -1731,13 +1751,14 @@ function renderRoad(){$("road").innerHTML=ROAD.map(r=>`<div class="rd ${r[0]===s
   $("road").querySelectorAll(".rd.click").forEach(el=>el.onclick=()=>setDay(el.dataset.d))}
 const DAYS={"5.1":{n:1,t:"5.1 nth roots and rational exponents",mix:"Rush uses only 5.1 questions",rules:`<div class="formula mono">a<sup><span class="pw">m</span>/<span class="rt">n</span></sup> = (<span class="rt">ⁿ√</span>a)<sup class="pw">m</sup></div><div class="legend"><span class="pw">top = power</span><span class="rt">bottom = root</span></div>`},
 "5.2":{n:2,t:"5.2 Properties of rational exponents and radicals",mix:"Rush uses only 5.2 questions",rules:`<div class="rules52 mono"><div>a<sup>m</sup> · a<sup>n</sup> = a<sup>m+n</sup></div><div>a<sup>m</sup> / a<sup>n</sup> = a<sup>m−n</sup></div><div>(a<sup>m</sup>)<sup>n</sup> = a<sup>mn</sup></div><div>ⁿ√a · ⁿ√b = ⁿ√(ab)<div>ⁿ√a · ⁿ√b = ⁿ√(ab)</div></div>`},
-"5.3":{n:3,t:"5.3 Graphing radical functions",mix:"Rush uses only 5.3 questions",rules:`<div class="rules52 mono"><div>g(x) = <span class="ca">a</span>√(x − <span class="ch">h</span>) + <span class="ck">k</span></div><div><span class="ch">h</span>: x − 3 moves RIGHT 3</div><div><span class="ck">k</span>: + 2 moves UP 2</div><div><span class="ca">a</span> outside: vertical · −: flips</div></div>`}};
-const LATEST="5.3";
+"5.3":{n:3,t:"5.3 Graphing radical functions",mix:"Rush uses only 5.3 questions",rules:`<div class="rules52 mono"><div>g(x) = <span class="ca">a</span>√(x − <span class="ch">h</span>) + <span class="ck">k</span></div><div><span class="ch">h</span>: x − 3 moves RIGHT 3</div><div><span class="ck">k</span>: + 2 moves UP 2</div><div><span class="ca">a</span> outside: vertical · −: flips</div></div>`},
+"5.4":{n:4,t:"5.4 Solving radical equations",mix:"Rush uses only 5.4 questions",rules:`<div class="rules52 mono"><div>1. Get the root alone</div><div>2. ∛ → cube both sides, ∜ → 4th power</div><div>x<sup>2/3</sup>: raise to 3/2 (even top → ±)</div><div>3. Check every answer</div></div>`}};
+const LATEST="5.4";
 function setDay(d){if(!DAYS[d])return;if(!dayUnlocked(d)){const pv=DAY_ORDER[DAY_ORDER.indexOf(d)-1];$("dnote").textContent=`Day ${DAYS[d].n} unlocks after you pass the Day ${DAYS[pv].n} final quiz. First master all ${LESSONS[pv].length} Day ${DAYS[pv].n} skills (${masteredCount(pv)} of ${LESSONS[pv].length} so far).`;beep(200,.12,"square",.05);return}selDay=d;LS.set("selDay",d);openSkill=null;beep(700,.05);home()}
 // The quick-review card was removed at the student's request (Nov 16); spaced review data is kept but no longer offered.
 function renderReview(){const box=$("revCard");box.innerHTML="";box.className=""}
 // ---- Real life: one practical use per skill. A card unlocks when its skill is mastered. ----
-const RL_TEASER={"5.1":"Pianos, cameras, tsunamis and savings accounts all run on today's roots.","5.2":"Crash investigators, carpenters and biologists use today's rules.","5.3":"Lifeguards, gardeners, clockmakers and tunnel builders all read radical graphs."};
+const RL_TEASER={"5.1":"Pianos, cameras, tsunamis and savings accounts all run on today's roots.","5.2":"Crash investigators, carpenters and biologists use today's rules.","5.3":"Lifeguards, gardeners, clockmakers and tunnel builders all read radical graphs.","5.4":"Engineers, police and game designers work backwards from a root to find the number they need."};
 const RL_ANIM_MS=650; // unlock animation length
 const f2=x=>(+(+x).toFixed(2)).toLocaleString();
 function rlTone(f,d=.6){try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();ac.resume();const t=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();o.type="triangle";o.frequency.value=f;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.2,t+.02);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g).connect(ac.destination);o.start(t);o.stop(t+d)}catch(e){}}
@@ -2351,6 +2372,8 @@ gerror:{t:"The blueprint with a flipped shift",use:`A builder draws a curved wal
   draw(0);out();rlTry(el);rlSlider(el,"Fix the drawing",0,6,1,0,v=>{k=v;draw(v/6);out();return v===6?"fixed":v+" of 6"});
   return{play(){rlTween(el,1800,t=>draw(rlEase(t)),()=>draw(k/6))}}}}};
 Object.assign(REAL,REAL53);
+const REAL54={};
+Object.assign(REAL,REAL54);
 const rlOpen=new Set();
 function renderReal(){const box=$("real");if(!box)return;const d=selDay,ks=LESSONS[d].filter(k=>REAL[k]);box.innerHTML="";
   const seen=LS.get("rlSeen",[]),open=k=>lvl(k)===3||dayPassed(d),n=ks.filter(open).length;
@@ -2625,9 +2648,14 @@ const LEARN53=[
    l3dot(-2,-2,"w","(−2, −2)",{dx:-6,dy:14,an:"end"}),{t:"d",x:2,y:-2,op:S=>S.sd,col:"var(--ink)",lab:"(2, −2)",dx:6,dy:14}]},
  steps:[[`The student started at (−2, −2)`,"Red dashed is the student's graph"],[`Warm-up: x − 2 = 0  →  x = 2`,"Where should √(x − 2) start?"],[`− 2 outside  →  y = −2`,"Outside works as written"],[`Correct start: (2, −2)`,"Right 2 and down 2"],[`Error: 2 LEFT, not 2 RIGHT`,"Minus inside means right"]],
  chk:{q:`A student graphs f(x) = √(x + 3) + 1 starting at (3, 1). What is the error?`,o:["Shifted 3 right instead of 3 left","Shifted 1 up instead of 1 down","Reflected in the x-axis","Swapped the x- and y-coordinates"],a:0,why:"x + 3 = 0 gives x = −3, so it should start at (−3, 1). The student shifted 3 right instead of 3 left."}}];
+// ---- Day 4 (5.4) lessons: solving radical equations (from the class notes, made simpler) ----
+const LEARN54=[
+{hw:"5.4 · Solving",t:"Get the root alone, then undo it",rule:`Get the root by itself first. Then undo it with the matching power: ∜ → raise to the 4th.`,
+ prob:`2∜(x − 3) = 4`,steps:[[`∜(x − 3) = 2`,"Divide both sides by 2"],[`x − 3 = 2<sup>4</sup> = 16`,"4th root: raise both sides to the 4th"],[`x = 19`,"Add 3"]],
+ chk:{q:`Solve ∛(x + 1) = 2`,o:["x = 7","x = 9","x = 5","x = 3"],a:0,why:"Cube both sides: x + 1 = 8, so x = 7."}}];
 // Which skill each lesson trains (by lesson position). Every skill has at least one lesson.
-const LESSON_SKILL={"5.1":[["bottom"],["bottom"],["neg"],["bottom"],["entry"],["sols","iso","shift","order"],["line"]],"5.2":[["rules"],["rules"],["rules"],["rules"],["radmul"],["radmul"],["vars"],["vars"],["like"],["simp"]],"5.3":[["gparent"],["gparent"],["gshift"],["gshift","gstretch"],["gstretch"],["gstretch"],["gshift","gstretch"],["gdomain"],["gparent"],["gmatch"],["gerror"]]};
-const LEARNS={"5.1":LEARN51,"5.2":LEARN52,"5.3":LEARN53};
+const LESSON_SKILL={"5.1":[["bottom"],["bottom"],["neg"],["bottom"],["entry"],["sols","iso","shift","order"],["line"]],"5.2":[["rules"],["rules"],["rules"],["rules"],["radmul"],["radmul"],["vars"],["vars"],["like"],["simp"]],"5.3":[["gparent"],["gparent"],["gshift"],["gshift","gstretch"],["gstretch"],["gstretch"],["gshift","gstretch"],["gdomain"],["gparent"],["gmatch"],["gerror"]],"5.4":[["riso"],["rsolve"],["rexp"],["rtwo"],["rext"]]};
+const LEARNS={"5.1":LEARN51,"5.2":LEARN52,"5.3":LEARN53,"5.4":LEARN54};
 let learnedBy=LS.get("learnedBy",null);if(!learnedBy){learnedBy={"5.1":[],"5.2":LS.get("learned52",[])};LS.set("learnedBy",learnedBy)}
 // Nov 18: Day 3 lessons 9 and 10 (positions 8, 9) became new lessons (roots, match the graph) when Day 3 was matched
 // to the real homework. Old saves (local or from the cloud) without the "5.3v2" marker get those two un-marked once.
