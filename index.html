@@ -903,6 +903,18 @@ spot2(){
 // Answers that are plain math (c and w) use only typeable characters (digits, x, y, √ ∛ ^ ± − / ( ) ≥ ≤), no HTML tags,
 // so the typing keypad can take them. Wording answers (translate 3 right...) stay multiple choice.
 const g53n=n=>n<0?"−"+(-n):String(n);
+// Two-points walkthroughs (Nov 19, the student found "(0, 0) and (1, 1)" confusing): say WHERE the parent points come from,
+// what each number in g does to a point, and show the arithmetic for each point.
+const wkPar=(n,p1,p2)=>`${rad(n,g53n(p1[0]))} = ${g53n(p1[1])}  →  ${gp(p1[0],p1[1])}<br>${rad(n,g53n(p2[0]))} = ${g53n(p2[1])}  →  ${gp(p2[0],p2[1])}`;
+const wkParWhy=n=>`Easy points on plain ${n===2?"√x":"∛x"}: the root comes out whole`;
+const wkSgn=v=>v<0?` − ${-v}`:` + ${v}`;
+function wkMove(p,h,a,k){const x=p[0]+h,y=a*p[1]+k;return`${gp(p[0],p[1])}  →  (${g53n(p[0])}${wkSgn(h)}, ${a===1?g53n(p[1]):g53n(a)+" · "+g53n(p[1])}${k?wkSgn(k):""})<br>= ${gp(x,y)}`}
+// one step per number in g, each caption 10 words or fewer
+function wkRuleSteps(h,a,k){const L=[[cH(`x ${h>0?"−":"+"} ${Math.abs(h)}  →  x ${h>0?"+":"−"} ${Math.abs(h)}`),h>0?`Inside: minus is RIGHT ${h}, add ${h} to x`:`Inside: plus is LEFT ${-h}, take ${-h} from x`]];
+  const kw=k>0?`add ${k}`:`take ${-k}`;
+  if(a!==1&&k)L.push([cA(`y × ${g53n(a)}`)+"  "+cK(`${k>0?"+":"−"} ${Math.abs(k)}`),`Multiply y by ${g53n(a)}, then ${kw}`]);
+  else if(a!==1)L.push([cA(`y × ${g53n(a)}`),`${g53n(a)} in front ${a<0?"flips"+(a!==-1?" and stretches":""):"stretches"}: multiply every y`]);
+  else if(k)L.push([cK(`y ${k>0?"+":"−"} ${Math.abs(k)}`),`Outside: ${k>0?"+":"−"} ${Math.abs(k)} is ${k>0?"UP":"DOWN"} ${Math.abs(k)}, ${kw} ${k>0?"to":"from"} y`]);return L}
 const rtN=(n,x)=>n===3?Math.cbrt(x):n===4?(x<0?NaN:Math.pow(x,.25)):Math.sqrt(x);
 const gAr=a=>a===1?"":a===-1?"−":a===.5?"½":a===-.5?"−½":a===1/3?"⅓":a===.25?"¼":g53n(a);
 const hx=h=>h===0?"x":h>0?`x − ${h}`:`x + ${-h}`;
@@ -946,7 +958,10 @@ const cH=t=>`<span class="ch">${t}</span>`,cK=t=>`<span class="ck">${t}</span>`,
 // Small graph for a walkthrough step: gray dashed parent, purple answer, start point labeled. st = [x, y] of the start/center.
 function wkG(n,f,d,st,extra){
   const lb=st?[{x:st[0],y:st[1],lab:gp(st[0],st[1]),dx:st[0]>3?-6:6,dy:st[1]<-3?-8:14,an:st[0]>3?"end":"start"}]:[];
-  return gGraph({x:[-8,10],y:[-7,7],curves:[{f:x=>rtN(n,x),d:n===3?[-12,12]:[0,12],col:"var(--mute)",dash:1,w:2},{f,d}],pts:lb.concat(extra||[])})}
+  // the window grows to fit every labeled point (a stretched point like (13, 9) used to fall off the graph)
+  const P=lb.concat(extra||[]),xs=P.map(p=>p.x),ys=P.map(p=>p.y),ev=v=>Math.ceil(v/2)*2;
+  const X=[-ev(Math.max(8,-Math.min(0,...xs)+2)),ev(Math.max(10,...xs.map(x=>x+2)))],Y=[-ev(Math.max(7,-Math.min(0,...ys)+2)),ev(Math.max(7,...ys.map(y=>y+2)))];
+  return gGraph({x:X,y:Y,curves:[{f:x=>rtN(n,x),d:n===3?[X[0]-4,X[1]+4]:[0,X[1]+2],col:"var(--mute)",dash:1,w:2},{f,d:[d[0],Math.max(d[1],X[1]+2)]}],pts:P})}
 const wkD=(n,h)=>n===3?[h-12,h+12]:[h,h+14];
 // Which two points are on g? good = two points that really are on g; slips = classic wrong points, each checked numerically against f
 function g53twoPts(f,good,slips,q,ex,walk,why){
@@ -1021,7 +1036,7 @@ function g53shift(v){
     const par=n2===2?[[0,0],[1,1],[4,2],[9,3]]:[[-8,-2],[-1,-1],[0,0],[1,1],[8,2]],ps=shuffle(par.slice()),[p1,p2]=ps,mv=p=>[p[0]+h,p[1]+k];
     const slips=[];[p1,p2].forEach(p=>{slips.push([p[0]-h,p[1]+k],[p[0]+h,p[1]-k],[p[0]-h,p[1]-k],[p[0],p[1]],[p[1]+h,p[0]+k])});
     return g53twoPts(f,[mv(p1),mv(p2)],slips,`Which two points are both on the graph of g(x) = ${gx}?`,`g(x) = ${gx}`,
-      [[`${gp(p1[0],p1[1])}  and  ${gp(p2[0],p2[1])}`,`Easy points on f(x) = ${F2}`],[`${cH(hDir(h))}, ${cK(kDir(k))}`,"Move each point the same way"],[`${gp(p1[0],p1[1])} → ${gp(...mv(p1))}`,`${g53n(h)} to x, ${g53n(k)} to y`],[`${gp(p2[0],p2[1])} → ${gp(...mv(p2))}`,"Same move"],[wkG(n2,f,wkD(n2,h),null,[{x:mv(p1)[0],y:mv(p1)[1],lab:gp(...mv(p1)),dx:6,dy:14},{x:mv(p2)[0],y:mv(p2)[1],lab:gp(...mv(p2)),dx:6,dy:-8}]),"Both dots are on purple"]],
+      [[wkPar(n2,p1,p2),wkParWhy(n2)],...wkRuleSteps(h,1,k),[wkMove(p1,h,1,k),"Move the first point"],[wkMove(p2,h,1,k),"Same move for the second point"],[wkG(n2,f,wkD(n2,h),null,[{x:mv(p1)[0],y:mv(p1)[1],lab:gp(...mv(p1)),dx:6,dy:14},{x:mv(p2)[0],y:mv(p2)[1],lab:gp(...mv(p2)),dx:6,dy:-8}]),"Both dots are on purple"]],
       `Add h to every x and k to every y. Subtracting h by mistake gives a point that is not on g.`)}
   // graph: which equation
   let h=sg()*ri(1,4),k=sg()*ri(1,3);while(Math.abs(h)===Math.abs(k))k=sg()*ri(1,3);const gx=fstr(n,1,hx(h),k),f=fnF(n,1,h,k);
@@ -1087,7 +1102,7 @@ function g53stretch(v){
   if(v==="pt2"){const sg=()=>TF()?1:-1,a=pick([2,3,4,-1,-2,-3]),h=sg()*ri(1,5),k=TF()?0:sg()*ri(1,5),gx=fstr(2,a,hx(h),k),f=fnF(2,a,h,k),[p1,p2]=shuffle([[0,0],[1,1],[4,2],[9,3]]).slice(0,2),mv=p=>[p[0]+h,a*p[1]+k];
     const slips=[];[p1,p2].forEach(p=>{slips.push([p[0]-h,a*p[1]+k],[p[0]+h,p[1]+k],[a*p[0]+h,p[1]+k],[p[0]+h,a*p[1]-k],[p[0]+h,p[1]*a*a+k])});
     return g53twoPts(f,[mv(p1),mv(p2)],slips,`Which two points are both on the graph of g(x) = ${gx}?`,`g(x) = ${gx}`,
-      [[`${gp(p1[0],p1[1])}  and  ${gp(p2[0],p2[1])}`,"Easy points on f(x) = √x"],[`${cH("x "+(h>0?"+ ":"− ")+Math.abs(h))},  ${cA("y × "+g53n(a))}${k?`,  ${cK((k>0?"+ ":"− ")+Math.abs(k))}`:""}`,"The rule for moving each point"],[`${gp(p1[0],p1[1])} → ${gp(...mv(p1))}`,"Apply the rule"],[`${gp(p2[0],p2[1])} → ${gp(...mv(p2))}`,"Same rule"],[wkG(2,f,[h,h+14],null,[{x:mv(p1)[0],y:mv(p1)[1],lab:gp(...mv(p1)),dx:6,dy:14},{x:mv(p2)[0],y:mv(p2)[1],lab:gp(...mv(p2)),dx:6,dy:-8}]),"Both dots are on purple"]],
+      [[wkPar(2,p1,p2),wkParWhy(2)],...wkRuleSteps(h,a,k),[wkMove(p1,h,a,k),"Do it to the first point"],[wkMove(p2,h,a,k),"Same rule for the second point"],[wkG(2,f,[h,h+14],null,[{x:mv(p1)[0],y:mv(p1)[1],lab:gp(...mv(p1)),dx:6,dy:14},{x:mv(p2)[0],y:mv(p2)[1],lab:gp(...mv(p2)),dx:6,dy:-8}]),"Both dots are on purple"]],
       `The ${g53n(a)} multiplies each y, and the shift moves x by ${g53n(h)}. Forgetting the ${g53n(a)} gives a point that is not on g.`)}
   // pt: which point is on the graph
   if(TF()){const a=pick([3,4,5]),c=gp(4,2*a),gx=`${a}√x`;
