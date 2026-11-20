@@ -1750,41 +1750,108 @@ sols:{t:"How long a fall takes",use:`A dropped object falls 16t<sup>2</sup> feet
 iso:{t:"How big a ball is",use:`A ball's volume is V = (4/3)πr<sup>3</sup>. Ball makers work backward from the air inside to the size.`,
  ask:{q:`A basketball holds about <b>434 in³</b> of air. V = (4/3)πr<sup>3</sup>. What's its radius?`,c:"about 4.7 in",w:["about 103.6 in","about 7.6 in"],
   steps:[`434 = (4/3)πr<sup>3</sup>`,`Isolate r<sup>3</sup> first: r<sup>3</sup> = 434 × 3 ÷ (4π) ≈ 103.6`,`Then take the cube root: r = ∛103.6 ≈ <b>4.7 in</b>`]},
- ui(el){const sv=rlSvg(el,"0 0 300 140"),o=rlOut(el,"mono");let V=434;
-  const draw=k=>{const r=Math.cbrt(3*V/(4*Math.PI)),px=r*10*k;
-   sv.innerHTML=`<circle cx="150" cy="70" r="${px}" fill="url(#rlBall)"/><defs><radialGradient id="rlBall" cx=".35" cy=".35"><stop offset="0" stop-color="#f7a35c"/><stop offset="1" stop-color="#c75b1e"/></radialGradient></defs>
-   ${k>.98?`<line x1="150" y1="70" x2="${150+px}" y2="70" stroke="#fff" stroke-width="2"/><text x="${150+px/2}" y="64" text-anchor="middle" class="rl-lab" fill="#fff">r = ${f2(r)} in</text>`:""}`};
-  const out=()=>{const r3=3*V/(4*Math.PI);o.innerHTML=`${V} = (4/3)πr<sup>3</sup> → r<sup>3</sup> = ${f2(r3)} → r = ∛${f2(r3)} = <b>${f2(Math.cbrt(r3))} in</b>`};
+ ui(el){const S=rlSide(el,"0 0 200 230"),sv=S.sv;let V=434;
+  // BALL_PX_PER_IN: how many drawn pixels one inch of radius takes; ground line at y 192
+  const BALL_PX_PER_IN=11,GY=192,CX=108,rOf=v=>Math.cbrt(3*v/(4*Math.PI));
+  const draw=k=>{const r=rOf(V),px=Math.max(1,r*BALL_PX_PER_IN*k),cy=GY-px,tp=1.3*BALL_PX_PER_IN;
+   let g=`<defs><linearGradient id="isoSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--rlsky)"/><stop offset="1" stop-color="var(--bg)"/></linearGradient>
+    <radialGradient id="isoBall" cx=".35" cy=".32" r=".8"><stop offset="0" stop-color="#ffb877"/><stop offset=".55" stop-color="#e0742c"/><stop offset="1" stop-color="#a04412"/></radialGradient>
+    <radialGradient id="isoTen" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#eaf56a"/><stop offset="1" stop-color="#9bb81f"/></radialGradient>
+    <linearGradient id="isoFloor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c9a36b"/><stop offset="1" stop-color="#9a7743"/></linearGradient>
+    <clipPath id="isoClip"><circle cx="${CX}" cy="${cy}" r="${px}"/></clipPath></defs>
+    <rect width="200" height="230" fill="url(#isoSky)"/><rect y="${GY}" width="200" height="38" fill="url(#isoFloor)"/><rect y="${GY}" width="200" height="3" fill="#e1c08a"/>
+    <ellipse cx="${CX+px*.12}" cy="${GY+3}" rx="${px*.85}" ry="${Math.max(2,px*.1)}" fill="#000" opacity=".25"/>
+    <circle cx="${CX}" cy="${cy}" r="${px}" fill="url(#isoBall)"/>
+    <g clip-path="url(#isoClip)" fill="none" stroke="#4a1f08" stroke-width="1.5" opacity=".85"><path d="M${CX-px} ${cy}H${CX+px}"/><path d="M${CX} ${cy-px}V${cy+px}"/>
+     <path d="M${CX-px*.62} ${cy-px*.8}Q${CX-px*.2} ${cy} ${CX-px*.62} ${cy+px*.8}"/><path d="M${CX+px*.62} ${cy-px*.8}Q${CX+px*.2} ${cy} ${CX+px*.62} ${cy+px*.8}"/></g>
+    <circle cx="${CX-px*.35}" cy="${cy-px*.4}" r="${px*.16}" fill="#fff" opacity=".25"/>
+    <circle cx="24" cy="${GY-tp}" r="${tp}" fill="url(#isoTen)"/><path d="M${24-tp*.7} ${GY-tp-tp*.6}Q${24} ${GY-tp} ${24-tp*.7} ${GY-tp+tp*.6}" fill="none" stroke="#fff" stroke-width="1.2"/>
+    <text x="24" y="${GY+13}" text-anchor="middle" class="rl-lab">tennis</text><text x="24" y="${GY+23}" text-anchor="middle" class="rl-lab">ball</text>`;
+   if(k>.15)g+=`<line x1="${CX}" y1="${cy}" x2="${CX+px}" y2="${cy}" stroke="#fff" stroke-width="2.2"/><circle cx="${CX}" cy="${cy}" r="2.6" fill="#fff"/><circle cx="${CX+px}" cy="${cy}" r="2.6" fill="#fff"/>`;
+   g+=`<text x="${CX}" y="${GY+16}" text-anchor="middle" class="rl-lab big">radius ${f2(r*k)} in</text>`;
+   g+=`<rect x="44" y="8" width="112" height="20" rx="10" fill="var(--card)" stroke="var(--line)"/><text x="100" y="22" text-anchor="middle" class="rl-lab big">${Math.round(V*k*k*k)} in³ of air</text>`;
+   sv.innerHTML=g};
+  const out=()=>{const r3=3*V/(4*Math.PI),r=Math.cbrt(r3);
+   S.math([["The rule","h"],"V = (4/3)πr<sup>3</sup>",`${V} = (4/3)πr<sup>3</sup>`,["r<sup>3</sup> = "+V+" × 3 ÷ 4π","on"],[`r<sup>3</sup> ≈ ${f2(r3)}`,"on"],[`r = ∛${f2(r3)}`,"on"],[`r ≈ ${f2(r)} in`,"ans"],["Undo the (4/3)π first, then the cube root. More air makes the ball bigger, but slowly.","n"]])};
   draw(1);out();rlTry(el);rlSlider(el,"Air (in³)",50,1000,2,434,v=>{V=v;draw(1);out();return v+" in³"});
   return{play(){rlTween(el,1500,t=>draw(rlEase(t)))}}}},
 shift:{t:"Your money's yearly growth",use:`Banks, investors and sneaker resellers turn "it grew this much in a few years" into a yearly rate.`,
  ask:{q:`Your $1,000 sneaker collection is worth <b>$1,331</b> after <b>3 years</b>. What yearly growth rate is that?`,c:"10% a year",w:["11% a year","33.1% a year"],
   steps:[`1000(1 + r)<sup>3</sup> = 1331`,`Divide by 1000: (1 + r)<sup>3</sup> = 1.331`,`Cube root: 1 + r = 1.1`,`Subtract 1 last: r = 0.1 = <b>10% a year</b>`]},
- ui(el){const ch=document.createElement("div");ch.className="rl-bars";el.appendChild(ch);const o=rlOut(el,"mono");let end=1331,yrs=3;
-  const draw=shown=>{const x=(end/1000)**(1/yrs);ch.innerHTML=[...Array(yrs+1)].map((_,t)=>{const v=1000*x**t;return `<div class="rl-bar"><span style="opacity:${t<shown?1:0}">$${Math.round(v).toLocaleString()}</span><i style="height:${t<shown?Math.max(4,v/5000*100):0}%"></i><small>${t===0?"now":"yr "+t}</small></div>`}).join("")};
-  const out=()=>{const g=end/1000,x=g**(1/yrs);o.innerHTML=`(1 + r)<sup>${yrs}</sup> = ${f2(g)} → 1 + r = ${f2(x)} → r = <b>${f2((x-1)*100)}% a year</b>`};
+ ui(el){const S=rlSide(el,"0 0 200 230"),sv=S.sv;let end=1331,yrs=3;
+  // CASH_PX_PER_250: height of one $250 layer of bills (shrinks so the tallest pile fits, max 14); shelf at y 190
+  const GY=190;
+  const draw=shown=>{const CASH_PX_PER_250=Math.min(14,128/(end/250)),x=(end/1000)**(1/yrs),n=yrs+1,cw=Math.min(24,Math.floor(172/n)-3),tot=n*(cw+3)-3,x0=100-tot/2;
+   let g=`<defs><linearGradient id="shSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--rlsky)"/><stop offset="1" stop-color="var(--bg)"/></linearGradient>
+    <linearGradient id="shBill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fd18a"/><stop offset="1" stop-color="#4c9c52"/></linearGradient>
+    <linearGradient id="shShelf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b98450"/><stop offset="1" stop-color="#85582f"/></linearGradient></defs>
+    <rect width="200" height="230" fill="url(#shSky)"/><rect x="6" y="${GY}" width="188" height="8" rx="2" fill="url(#shShelf)"/>`;
+   for(let t=0;t<n;t++){const v=1000*x**t,cx=x0+t*(cw+3);if(t>=shown)continue;const L=v/250,full=Math.floor(L),fr=L-full;
+    for(let i=0;i<full;i++){const y=GY-(i+1)*CASH_PX_PER_250;g+=`<rect x="${cx}" y="${y}" width="${cw}" height="${CASH_PX_PER_250-1}" rx="1.5" fill="url(#shBill)" stroke="#2f6e35" stroke-width=".6"/><rect x="${cx+cw*.3}" y="${y+1.6}" width="${cw*.4}" height="${CASH_PX_PER_250-4.2}" rx="1" fill="none" stroke="#2f6e35" stroke-width=".5" opacity=".7"/>`}
+    if(fr>.04){const hh=Math.max(1,fr*CASH_PX_PER_250-1),y=GY-full*CASH_PX_PER_250-hh-1;g+=`<rect x="${cx}" y="${y}" width="${cw}" height="${hh}" rx="1.5" fill="url(#shBill)" stroke="#2f6e35" stroke-width=".6"/>`}
+    const top=GY-L*CASH_PX_PER_250-4;
+    if(t===0||t===yrs)g+=`<text x="${cx+cw/2}" y="${top}" text-anchor="middle" class="rl-lab big">$${Math.round(v).toLocaleString()}</text>`}
+   g+=`<line x1="${x0-4}" y1="${GY-4*CASH_PX_PER_250}" x2="${x0+tot+4}" y2="${GY-4*CASH_PX_PER_250}" stroke="var(--hot)" stroke-dasharray="3 3" stroke-width="1.2"/>`;
+   for(let t=0;t<n;t++)g+=`<text x="${x0+t*(cw+3)+cw/2}" y="${GY+19}" text-anchor="middle" class="rl-lab">${t===0&&cw>=20?"now":t}</text>`;
+   g+=`<text x="100" y="${GY+31}" text-anchor="middle" class="rl-lab">years from now</text>`;
+   g+=`<rect x="34" y="8" width="132" height="20" rx="10" fill="var(--card)" stroke="var(--line)"/><text x="100" y="22" text-anchor="middle" class="rl-lab big">× ${f2(x)} every year</text>`;
+   sv.innerHTML=g};
+  const out=()=>{const gg=end/1000,x=gg**(1/yrs);
+   S.math([["The rule","h"],"1000(1 + r)<sup>"+yrs+"</sup> = "+end.toLocaleString(),["(1 + r)<sup>"+yrs+"</sup> = "+f2(gg),"on"],[`1 + r = ${yrs===1?"":yrs+"√"}${f2(gg)}`,"on"],[`1 + r ≈ ${f2(x)}`,"on"],[`r ≈ ${f2((x-1)*100)}% a year`,"ans"],["Divide by 1000, undo the power with a root, then subtract 1. The dashed line is your starting $1,000.","n"]])};
   draw(99);out();rlTry(el);rlSlider(el,"$1,000 grows to",1001,5001,10,1331,v=>{end=v;draw(99);out();return "$"+v.toLocaleString()});rlSlider(el,"Years",1,10,1,3,v=>{yrs=v;draw(99);out();return v+(v>1?" yrs":" yr")});
   return{play(){const tok=rlTok(el);let k=0;draw(0);const go=()=>{if(!rlLive(el,tok))return;draw(++k);if(k<=yrs)setTimeout(go,450)};setTimeout(go,60)}}}},
 order:{t:"How deep the ocean is under a tsunami",use:`Tsunamis travel at v = √(9.8d) meters a second, where d is the ocean depth. Scientists run it backward to read the sea floor.`,
  ask:{q:`A tsunami is clocked at <b>200 m/s</b>. Speed is v = √(9.8d). How deep is the ocean there?`,c:"about 4,082 m",w:["about 416 m","about 20 m"],
   steps:[`200 = √(9.8d)`,`Undo the outside first (the root): square both sides → 40,000 = 9.8d`,`Then undo the × 9.8: d = 40,000 ÷ 9.8 ≈ <b>4,082 m</b>`]},
- ui(el){const sv=rlSvg(el,"0 0 300 120"),o=rlOut(el,"mono");let d=4082;
-  const draw=(wx,gp)=>{const v=Math.sqrt(9.8*d),floor=26+d/6000*86,g=26+(floor-28)*gp;
-   sv.innerHTML=`<rect width="300" height="120" fill="var(--rlsky)"/><rect y="26" width="300" height="${floor-26}" fill="var(--rlsea)"/><path d="M0 ${floor} Q75 ${floor-6} 150 ${floor} T300 ${floor} V120 H0Z" fill="var(--rlsand)"/>
-   <path d="M${wx-40} 26 Q${wx-20} 4 ${wx} 26Z" fill="var(--root)"/><line x1="286" y1="28" x2="286" y2="${g}" stroke="var(--ink)" stroke-width="2"/>
-   <text x="280" y="${Math.max(44,(26+g)/2+4)}" text-anchor="end" class="rl-lab">${Math.round(d*gp).toLocaleString()} m deep</text><text x="6" y="16" class="rl-lab">wave: ${Math.round(v)} m/s ≈ ${Math.round(v*3.6)} km/h</text>`};
-  const out=()=>{const v=Math.sqrt(9.8*d);o.innerHTML=`v = √(9.8 · ${d.toLocaleString()}) ≈ ${f2(v)} m/s ≈ <b>${Math.round(v*3.6)} km/h</b>`};
-  draw(150,1);out();rlTry(el);rlSlider(el,"Ocean depth (m)",10,6000,1,4082,v=>{d=v;draw(150,1);out();return v.toLocaleString()+" m"});
-  return{play(){const v=Math.sqrt(9.8*d);rlTween(el,Math.min(8000,1200+240000/v),t=>draw(-20+t*360,Math.min(1,t*1.6)))}}}},
+ ui(el){const S=rlSide(el,"0 0 200 230"),sv=S.sv;let d=4082;
+  // SEA_PX_PER_M: how many drawn pixels one meter of depth takes; sea surface at y 70
+  const SURF=70,SEA_PX_PER_M=125/6000,WAVE_H=15,v=()=>Math.sqrt(9.8*d);
+  const draw=(wx,gp)=>{const fl=SURF+d*gp*SEA_PX_PER_M,sp=Math.round(v()*3.6);
+   const yAt=x=>SURF-WAVE_H*Math.exp(-(((x-wx)/20)**2));let pts="";for(let x=0;x<=200;x+=4)pts+=`${x},${yAt(x).toFixed(1)} `;
+   let g=`<defs><linearGradient id="orSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--rlsky)"/><stop offset="1" stop-color="var(--bg)"/></linearGradient>
+    <linearGradient id="orDeep" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".4"/></linearGradient>
+    <linearGradient id="orSand" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--rlsand)"/><stop offset="1" stop-color="#8a6a3a"/></linearGradient></defs>
+    <rect width="200" height="${SURF}" fill="url(#orSky)"/>
+    <polygon points="${pts}200,${fl} 0,${fl}" fill="var(--rlsea)"/><polygon points="${pts}200,${fl} 0,${fl}" fill="url(#orDeep)"/>
+    <polyline points="${pts}" fill="none" stroke="#fff" stroke-width="2" opacity=".85"/>
+    <path d="M0 ${fl} Q50 ${fl-5} 100 ${fl} T200 ${fl} V230 H0Z" fill="url(#orSand)"/>
+    <path d="M150 ${fl+1} Q172 ${SURF-14} 192 ${SURF-14} Q200 ${SURF-14} 200 ${SURF-6} V${fl+1}Z" fill="var(--rlsand)" stroke="#8a6a3a" stroke-width=".8"/>
+    <path d="M186 ${SURF-14} q-1 -14 1 -24" stroke="#7a5230" stroke-width="2" fill="none"/><path d="M187 ${SURF-38} q-8 -5 -14 2 M187 ${SURF-38} q8 -6 13 1 M187 ${SURF-38} q-3 -9 -9 -9 M187 ${SURF-38} q4 -9 10 -8" stroke="#3f8f3a" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+    <line x1="22" y1="${SURF}" x2="22" y2="${fl}" stroke="var(--ink)" stroke-width="2"/><line x1="16" y1="${SURF}" x2="28" y2="${SURF}" stroke="var(--ink)" stroke-width="2"/><line x1="16" y1="${fl}" x2="28" y2="${fl}" stroke="var(--ink)" stroke-width="2"/>
+    <rect x="30" y="${(SURF+fl)/2-9}" width="84" height="18" rx="9" fill="var(--card)" stroke="var(--line)"/><text x="72" y="${(SURF+fl)/2+4}" text-anchor="middle" class="rl-lab big">${Math.round(d*gp).toLocaleString()} m deep</text>
+    <text x="100" y="${Math.min(224,fl+20)}" text-anchor="middle" class="rl-lab">sea floor</text>`;
+   if(wx>14&&wx<186)g+=`<path d="M${wx-14} ${SURF-30}H${wx+12}M${wx+6} ${SURF-35}L${wx+13} ${SURF-30}L${wx+6} ${SURF-25}" stroke="var(--hot)" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
+   g+=`<rect x="8" y="8" width="150" height="22" rx="11" fill="var(--card)" stroke="var(--line)"/><text x="83" y="23" text-anchor="middle" class="rl-lab big">wave: ${Math.round(v())} m/s = ${sp} km/h</text>`;
+   sv.innerHTML=g};
+  const out=()=>{const s=v(),i=9.8*d;
+   S.math([["The rule","h"],"v = √(9.8d)",`= √(9.8 × ${d.toLocaleString()})`,[`= √${f2(i)}`,"on"],[`≈ ${f2(s)} m/s`,"on"],[`≈ ${Math.round(s*3.6)} km/h`,"ans"],["Deeper water, faster wave. Over deep ocean a tsunami moves like a jet plane.","n"]])};
+  draw(100,1);out();rlTry(el);rlSlider(el,"Ocean depth (m)",10,6000,1,4082,x=>{d=x;draw(100,1);out();return x.toLocaleString()+" m"});
+  return{play(){const s=v();rlTween(el,Math.min(8000,1200+240000/s),t=>draw(-20+t*240,Math.min(1,t*1.6)))}}}},
 line:{t:"How far you can see",use:`From h meters up, the horizon is about 3.57√h kilometers away. Pilots, sailors and lifeguards use this.`,
  ask:{q:`You're on the roof of a <b>50 m</b> building. The horizon is 3.57√h km away. About how far can you see?`,c:"between 25 and 29 km",w:["between 7 and 8 km","about 178 km"],
   steps:[`Estimate √50: 7<sup>2</sup> = 49 and 8<sup>2</sup> = 64, so √50 is between 7 and 8`,`3.57 × 7 ≈ 25 and 3.57 × 8 ≈ 29`,`You can see <b>25 to 29 km</b> (exactly about 25.2)`]},
- ui(el){const sv=rlSvg(el,"0 0 300 130"),o=rlOut(el,"mono");let h=50;
-  const draw=(pt,pl)=>{const d=3.57*Math.sqrt(h),R=700,cx=40,cy=118+R,tx=62,th=(12+Math.sqrt(h/500)*80)*pt,ty=118-th,ang=Math.min(.36,d/80*.36),hx=cx+R*Math.sin(ang),hy=cy-R*Math.cos(ang),ex=tx+(hx-tx)*pl,ey=ty-5+(hy-ty+5)*pl;
-   sv.innerHTML=`<rect width="300" height="130" fill="var(--rlsky)"/><circle cx="${cx}" cy="${cy}" r="${R}" fill="var(--rlgrass)"/><rect x="${tx-6}" y="${ty}" width="12" height="${th}" fill="var(--ink)" opacity=".85" rx="2"/><circle cx="${tx}" cy="${ty-5}" r="5" fill="var(--hot)"/>
-   ${pl>0?`<line x1="${tx}" y1="${ty-5}" x2="${ex}" y2="${ey}" stroke="var(--hot)" stroke-width="2" stroke-dasharray="5 4"/>`:""}${pl>=1?`<circle cx="${hx}" cy="${hy}" r="4" fill="var(--hot)"/><text x="${Math.min(260,(tx+hx)/2+14)}" y="${(ty+hy)/2-10}" class="rl-lab big">${f2(d)} km</text>`:""}<text x="${tx-10}" y="${ty+th/2+4}" text-anchor="end" class="rl-lab">${Math.round(h*pt)} m</text>`};
-  const out=()=>{const a=Math.floor(Math.sqrt(h));o.innerHTML=`${a}<sup>2</sup> = ${a*a} ≤ ${h} &lt; ${(a+1)**2} = ${a+1}<sup>2</sup> → √${h} is between ${a} and ${a+1}<br>3.57√${h} ≈ <b>${f2(3.57*Math.sqrt(h))} km</b>`};
-  draw(1,1);out();rlTry(el);rlSlider(el,"Height (m)",2,500,1,50,v=>{h=v;draw(1,1);out();return v+" m"});
+ ui(el){const S=rlSide(el,"0 0 200 230"),sv=S.sv;let h=50;
+  // Earth is drawn with R = 420 px, far smaller than real, so the curve is visible (the picture is not to scale)
+  const R=420,GY=170,TX=42,CY=GY+R,MAX_ANG=.33;
+  const draw=(pt,pl)=>{const dk=3.57*Math.sqrt(h),th=(14+Math.sqrt(h/500)*90)*pt,ty=GY-th,ang=Math.min(MAX_ANG,dk/80*MAX_ANG),hx=TX+R*Math.sin(ang),hy=CY-R*Math.cos(ang),ex=TX+(hx-TX)*pl,ey=ty-9+(hy-ty+9)*pl,a2=(ang+.035)*180/Math.PI;
+   let g=`<defs><linearGradient id="lnSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--rlsky)"/><stop offset="1" stop-color="var(--bg)"/></linearGradient>
+    <linearGradient id="lnTow" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#b3bbc4"/><stop offset=".5" stop-color="#8f99a4"/><stop offset="1" stop-color="#6b7580"/></linearGradient>
+    <radialGradient id="lnSea" cx=".1" cy="0" r="1.1"><stop offset="0" stop-color="var(--rlsea)"/><stop offset="1" stop-color="#1c4d7a"/></radialGradient></defs>
+    <rect width="200" height="230" fill="url(#lnSky)"/><circle cx="170" cy="46" r="13" fill="#ffd45a"/>
+    <g transform="translate(${TX} ${CY}) rotate(${a2.toFixed(2)})"><path d="M-9 ${-R+4}Q0 ${-R+8} 9 ${-R+4}L7 ${-R+9}H-7Z" fill="#7a4a28"/><rect x="-.8" y="${-R-17}" width="1.6" height="22" fill="#4a3320"/><path d="M1.6 ${-R-16}L10 ${-R-2}H1.6Z" fill="#f4f0e6" stroke="#9aa" stroke-width=".4"/></g>
+    <circle cx="${TX}" cy="${CY}" r="${R}" fill="url(#lnSea)"/><circle cx="${TX}" cy="${CY}" r="${R}" fill="none" stroke="#fff" stroke-width="1.2" opacity=".6"/>
+    <path d="M${TX-22} ${GY+3}Q${TX} ${GY-6} ${TX+22} ${GY+3}Z" fill="var(--rlsand)"/>
+    <rect x="${TX-6}" y="${ty}" width="12" height="${th}" fill="url(#lnTow)" stroke="#59626c" stroke-width=".6"/>`;
+   for(let y=ty+6;y<GY-5;y+=9)g+=`<rect x="${TX-3}" y="${y}" width="2.6" height="3.4" fill="#fff4b0" opacity=".85"/><rect x="${TX+.6}" y="${y}" width="2.6" height="3.4" fill="#fff4b0" opacity=".85"/>`;
+   g+=`<circle cx="${TX}" cy="${ty-8}" r="3.4" fill="#f1c9a0" stroke="#8a6a4a" stroke-width=".5"/><rect x="${TX-3}" y="${ty-5}" width="6" height="5" rx="1.5" fill="var(--hot)"/>`;
+   if(pl>0)g+=`<line x1="${TX}" y1="${ty-8}" x2="${ex}" y2="${ey}" stroke="var(--hot)" stroke-width="2" stroke-dasharray="5 4"/>`;
+   if(pl>=1)g+=`<circle cx="${hx}" cy="${hy}" r="4" fill="var(--hot)"/><rect x="${Math.min(144,(TX+hx)/2+8)}" y="${(ty+hy)/2-30}" width="52" height="18" rx="9" fill="var(--card)" stroke="var(--line)"/><text x="${Math.min(144,(TX+hx)/2+8)+26}" y="${(ty+hy)/2-17}" text-anchor="middle" class="rl-lab big">${f2(dk)} km</text>`;
+   g+=`<text x="${TX-9}" y="${ty+th/2+3}" text-anchor="end" class="rl-lab">${Math.round(h*pt)} m</text>`;
+   g+=`<rect x="8" y="8" width="84" height="20" rx="10" fill="var(--card)" stroke="var(--line)"/><text x="50" y="22" text-anchor="middle" class="rl-lab big">Eyes at ${Math.round(h*pt)} m</text><text x="100" y="222" text-anchor="middle" class="rl-lab">not to scale</text>`;
+   sv.innerHTML=g};
+  const out=()=>{const a=Math.floor(Math.sqrt(h)),sq=Math.sqrt(h);
+   S.math([["The rule","h"],"d = 3.57√h",`= 3.57√${h}`,[`${a}<sup>2</sup> = ${a*a} ≤ ${h}`,"on"],[`${h} &lt; ${(a+1)**2} = ${a+1}<sup>2</sup>`,"on"],[`√${h} ≈ ${f2(sq)}`,"on"],[`d ≈ ${f2(3.57*sq)} km`,"ans"],["The dashed line is your line of sight. A ship just past the horizon shows only its mast.","n"]])};
+  draw(1,1);out();rlTry(el);rlSlider(el,"Height (m)",2,500,1,50,x=>{h=x;draw(1,1);out();return x+" m"});
   return{play(){rlTween(el,2600,t=>t<.45?draw(rlEase(t/.45),0):draw(1,rlEase((t-.45)/.55)))}}}},
 rules:{t:"Why elephants eat less than you'd think",use:`Animals need about 70 · M<sup>3/4</sup> calories a day (M = weight in kg). Zoos and vets plan food with this.`,
  ask:{q:`Food needed is about 70 · M<sup>3/4</sup>. An animal <b>16 times heavier</b> needs how many times the food?`,c:"8 times",w:["16 times","12 times"],
