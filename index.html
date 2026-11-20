@@ -1758,7 +1758,7 @@ function setDay(d){if(!DAYS[d])return;if(!dayUnlocked(d)){const pv=DAY_ORDER[DAY
 // The quick-review card was removed at the student's request (Nov 16); spaced review data is kept but no longer offered.
 function renderReview(){const box=$("revCard");box.innerHTML="";box.className=""}
 // ---- Real life: one practical use per skill. A card unlocks when its skill is mastered. ----
-const RL_TEASER={"5.1":"Pianos, cameras, tsunamis and savings accounts all run on today's roots.","5.2":"Crash investigators, carpenters and biologists use today's rules.","5.3":"Lifeguards, gardeners, clockmakers and tunnel builders all read radical graphs.","5.4":"Engineers, police and game designers work backwards from a root to find the number they need."};
+const RL_TEASER={"5.1":"Pianos, cameras, tsunamis and savings accounts all run on today's roots.","5.2":"Crash investigators, carpenters and biologists use today's rules.","5.3":"Lifeguards, gardeners, clockmakers and tunnel builders all read radical graphs.","5.4":"Cliff divers, clockmakers, astronomers, tower crews and zip-line builders all work backwards out of a root."};
 const RL_ANIM_MS=650; // unlock animation length
 const f2=x=>(+(+x).toFixed(2)).toLocaleString();
 function rlTone(f,d=.6){try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();ac.resume();const t=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();o.type="triangle";o.frequency.value=f;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.2,t+.02);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g).connect(ac.destination);o.start(t);o.stop(t+d)}catch(e){}}
@@ -2372,7 +2372,141 @@ gerror:{t:"The blueprint with a flipped shift",use:`A builder draws a curved wal
   draw(0);out();rlTry(el);rlSlider(el,"Fix the drawing",0,6,1,0,v=>{k=v;draw(v/6);out();return v===6?"fixed":v+" of 6"});
   return{play(){rlTween(el,1800,t=>draw(rlEase(t)),()=>draw(k/6))}}}}};
 Object.assign(REAL,REAL53);
-const REAL54={};
+const REAL54={
+riso:{t:"How far did the stone fall?",use:`Drop a stone off a cliff and time it: the fall time in seconds is t = ¼√h, where h is the height in feet. You know the time and want the height, so first get the root alone (undo the ¼), then square.`,
+ ask:{q:`You drop a stone off a cliff and hear the splash <b>3 seconds</b> later. The fall time is <b>t = ¼·√h</b> (h in feet). How tall is the cliff?`,c:"144 feet",w:["36 feet","12 feet"],
+  steps:[`3 = ¼ · √h`,`Get the root alone: multiply both sides by 4, so √h = 12`,`Square both sides: h = 12² = <b>144 feet</b>`]},
+ ui(el){const S=rlSide(el,"0 0 200 230"),sv=S.sv;let t=3;
+  const SC=0.6,SEA=196,H=v=>16*v*v;
+  const draw=(fr,tt)=>{const h=H(t),top=SEA-h*SC,sx=138;
+   let g=`<defs><linearGradient id="r4aSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--rlsky)"/><stop offset="1" stop-color="var(--bg)"/></linearGradient>
+    <linearGradient id="r4aRock" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8a8378"/><stop offset=".6" stop-color="#b3ab9d"/><stop offset="1" stop-color="#7b746a"/></linearGradient>
+    <linearGradient id="r4aSea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--rlsea)"/><stop offset="1" stop-color="#0a3d6b"/></linearGradient>
+    <radialGradient id="r4aSt" cx=".35" cy=".3"><stop offset="0" stop-color="#d8d3c8"/><stop offset="1" stop-color="#6d675c"/></radialGradient></defs>
+    <rect width="200" height="230" fill="url(#r4aSky)"/><circle cx="170" cy="46" r="9" fill="#ffd45a"/>
+    <path d="M0 ${SEA} L0 ${top+6} Q20 ${top-2} 50 ${top} L72 ${top} L66 ${SEA} Z" fill="url(#r4aRock)"/>
+    <path d="M0 ${top+6} Q20 ${top-2} 50 ${top} L72 ${top} L72 ${top+5} Q40 ${top+8} 0 ${top+12}Z" fill="var(--rlgrass)"/>`;
+   for(let i=1;i<5;i++)g+=`<path d="M${4+i*3} ${top+14+i*(SEA-top)/6} l${14+i*2} 3" stroke="#6b645a" stroke-width="1" opacity=".5" fill="none"/>`;
+   g+=`<rect x="0" y="${SEA}" width="200" height="34" fill="url(#r4aSea)"/>`;
+   for(let i=0;i<5;i++)g+=`<path d="M${10+i*42} ${SEA+8+(i%2)*9} q6 -4 12 0 t12 0" stroke="#fff" stroke-opacity=".5" fill="none"/>`;
+   g+=`<line x1="84" y1="${top}" x2="84" y2="${SEA}" stroke="var(--hot)" stroke-width="1.4"/><line x1="79" y1="${top}" x2="89" y2="${top}" stroke="var(--hot)" stroke-width="1.4"/><line x1="79" y1="${SEA}" x2="89" y2="${SEA}" stroke="var(--hot)" stroke-width="1.4"/>
+    <rect x="94" y="${(top+SEA)/2-9}" width="40" height="18" rx="9" fill="var(--hot)"/><text x="114" y="${(top+SEA)/2+3.5}" text-anchor="middle" font-size="10" font-weight="800" fill="#fff">${f2(h)} ft</text>`;
+   const y=top+(SEA-top)*fr;
+   if(fr<1){g+=`<circle cx="${sx}" cy="${y-5}" r="5" fill="url(#r4aSt)" stroke="#4b463e"/>`}
+   else{g+=`<ellipse cx="${sx}" cy="${SEA}" rx="14" ry="4" fill="none" stroke="#fff" stroke-width="1.5"/><path d="M${sx-8} ${SEA} q2 -14 4 0 M${sx} ${SEA} q2 -20 4 0 M${sx+8} ${SEA} q2 -12 4 0" stroke="#fff" stroke-width="2" fill="none"/>`}
+   g+=`<rect x="66" y="8" width="68" height="20" rx="10" fill="var(--card)" stroke="var(--line)"/><text x="100" y="22" text-anchor="middle" class="rl-lab big">t = ${f2(tt)} s</text>`;
+   sv.innerHTML=g};
+  const out=()=>{const r=4*t,h=H(t);
+   S.math([["Solve for the height","h"],`t = ¼√h`,`${t} = ¼√h`,[`√h = 4 · ${t} = ${f2(r)}`,"on"],[`h = ${f2(r)}²`,"on"],[`h = ${f2(h)} ft`,"ans"],[`Check: ¼√${f2(h)} = ¼ · ${f2(r)} = ${f2(t)} s`,"n"]])};
+  draw(0,t);out();rlTry(el);rlSlider(el,"Fall time",1,4,.5,3,v=>{t=v;draw(0,t);out();return v+" s"});
+  return{play(){rlTween(el,2400,u=>{const k=rlEase(u);draw(k*k,t*k)},()=>draw(1,t))}}}},
+
+rsolve:{t:"Building a clock pendulum",use:`A pendulum swings once in T ≈ 1.11√L seconds, where L is its length in feet. A clockmaker knows the swing time she wants and has to find the rod length: divide out the 1.11, then square.`,
+ ask:{q:`A clockmaker wants a pendulum that swings once every <b>2 seconds</b>. Its swing time is <b>T ≈ 1.11·√L</b> (L in feet). How long must the rod be?`,c:"about 3.2 feet",w:["about 1.8 feet","about 2.2 feet"],
+  steps:[`2 = 1.11 · √L`,`Divide by 1.11: √L ≈ 1.8`,`Square both sides: L ≈ 1.8² = <b>3.2 feet</b> (about 39 inches)`]},
+ ui(el){const S=rlSide(el,"0 0 200 230"),sv=S.sv;let T=2;
+  const PX=20,PY=66,L=v=>(v/1.11)**2;
+  const draw=th=>{const l=L(T),len=l*PX,bx=100+len*Math.sin(th),by=PY+len*Math.cos(th);
+   let g=`<defs><linearGradient id="r4bWood" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#6b3d1e"/><stop offset=".5" stop-color="#a0642f"/><stop offset="1" stop-color="#5e3418"/></linearGradient>
+    <linearGradient id="r4bBob" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe08a"/><stop offset="1" stop-color="#b8841a"/></linearGradient>
+    <radialGradient id="r4bFace" cx=".4" cy=".35"><stop offset="0" stop-color="#fffaf0"/><stop offset="1" stop-color="#e3d6b6"/></radialGradient></defs>
+    <rect width="200" height="230" fill="var(--bg)"/>
+    <rect x="50" y="6" width="100" height="220" rx="6" fill="url(#r4bWood)" stroke="#3b200e" stroke-width="1.5"/><rect x="50" y="222" width="100" height="6" fill="#3b200e"/>
+    <circle cx="100" cy="34" r="23" fill="url(#r4bFace)" stroke="#3b200e" stroke-width="2"/>`;
+   for(let i=0;i<12;i++){const a=i*Math.PI/6;g+=`<line x1="${100+Math.sin(a)*18}" y1="${34-Math.cos(a)*18}" x2="${100+Math.sin(a)*21}" y2="${34-Math.cos(a)*21}" stroke="#3b200e" stroke-width="${i%3?1:1.8}"/>`}
+   g+=`<line x1="100" y1="34" x2="100" y2="19" stroke="#2a1608" stroke-width="2" stroke-linecap="round"/><line x1="100" y1="34" x2="109" y2="38" stroke="#2a1608" stroke-width="2" stroke-linecap="round"/><circle cx="100" cy="34" r="2" fill="#2a1608"/>
+    <rect x="62" y="62" width="76" height="154" rx="3" fill="#1b130c"/>
+    <line x1="100" y1="${PY}" x2="${bx}" y2="${by}" stroke="#d9d4c4" stroke-width="2.2"/><circle cx="100" cy="${PY}" r="3" fill="#b8841a"/>
+    <circle cx="${bx}" cy="${by+5}" r="9" fill="url(#r4bBob)" stroke="#7a5510"/>
+    <line x1="158" y1="${PY}" x2="158" y2="${PY+len}" stroke="var(--hot)" stroke-width="1.4"/><line x1="154" y1="${PY}" x2="162" y2="${PY}" stroke="var(--hot)" stroke-width="1.4"/><line x1="154" y1="${PY+len}" x2="162" y2="${PY+len}" stroke="var(--hot)" stroke-width="1.4"/>
+    <rect x="164" y="${PY+len/2-9}" width="34" height="18" rx="9" fill="var(--hot)"/><text x="181" y="${PY+len/2+3.5}" text-anchor="middle" font-size="9.5" font-weight="800" fill="#fff">${f2(l)} ft</text>
+    <rect x="2" y="8" width="44" height="20" rx="10" fill="var(--card)" stroke="var(--line)"/><text x="24" y="22" text-anchor="middle" class="rl-lab">T = ${f2(T)} s</text>`;
+   sv.innerHTML=g};
+  const out=()=>{const r=T/1.11,l=L(T);
+   S.math([["Solve for the length","h"],`T ≈ 1.11√L`,`${f2(T)} = 1.11√L`,[`√L = ${f2(T)} ÷ 1.11 ≈ ${f2(r)}`,"on"],[`L ≈ ${f2(r)}²`,"on"],[`L ≈ ${f2(l)} ft`,"ans"],[`About ${f2(l*12)} inches of rod.`,"n"]])};
+  draw(0);out();rlTry(el);rlSlider(el,"Swing time",.5,3,.1,2,v=>{T=v;draw(0);out();return f2(v)+" s"});
+  return{play(){rlTween(el,3000,u=>draw(.2*Math.cos(2*Math.PI*u*3/T)*(1-u*.2)),()=>draw(0))}}}},
+
+rexp:{t:"How far is that planet?",use:`A planet's year T (in Earth years) and its distance a from the sun (in AU, where 1 AU is Earth's distance) follow Kepler's law T = a<sup>3/2</sup>. Astronomers know the year length and need the distance, so they raise both sides to the reciprocal power, 2/3.`,
+ ask:{q:`A planet takes <b>8 Earth years</b> to circle its sun. Kepler's law is <b>T = a<sup>3/2</sup></b>, with a in AU. How far from the sun is it?`,c:"4 AU",w:["12 AU","22.6 AU"],
+  steps:[`8 = a<sup>3/2</sup>`,`Raise both sides to the 2/3 power: a = 8<sup>2/3</sup>`,`8<sup>2/3</sup> = (∛8)² = 2² = <b>4 AU</b>`]},
+ ui(el){const S=rlSide(el,"0 0 200 230"),sv=S.sv;let T=11.86;
+  const CX=100,CY=112,PXAU=9,A=v=>Math.pow(v,2/3);
+  const REF=[["Earth",1,"#4aa3ff",-.6],["Mars",1.88,"#e0643a",.9],["Jupiter",11.86,"#e0b070",2.4]];
+  const draw=(ang,sc)=>{const a=A(T)*sc;
+   let g=`<defs><radialGradient id="r4cBg" cx=".5" cy=".5" r=".8"><stop offset="0" stop-color="#16204a"/><stop offset="1" stop-color="#05081a"/></radialGradient>
+    <radialGradient id="r4cSun"><stop offset="0" stop-color="#fff3b0"/><stop offset=".45" stop-color="#ffc83a"/><stop offset="1" stop-color="#ff9a1a" stop-opacity="0"/></radialGradient></defs>
+    <rect width="200" height="230" fill="url(#r4cBg)"/>`;
+   for(let i=0;i<30;i++)g+=`<circle cx="${(i*67)%200}" cy="${(i*41)%230}" r="${i%4?.5:.9}" fill="#fff" opacity=".6"/>`;
+   REF.forEach(([n,ty,col,an])=>{const r=A(ty)*PXAU,x=CX+r*Math.cos(an),y=CY+r*Math.sin(an),left=Math.cos(an)<0;
+    g+=`<circle cx="${CX}" cy="${CY}" r="${r}" fill="none" stroke="#9fb4ff" stroke-opacity=".35" stroke-dasharray="2 3"/><circle cx="${x}" cy="${y}" r="${n==="Jupiter"?4.5:3}" fill="${col}"/>${n==="Jupiter"?`<text x="${x-7}" y="${y+3}" text-anchor="end" font-size="8" font-weight="700" fill="#cfd8ff">Jupiter</text>`:""}`});
+   g+=`<circle cx="${CX}" cy="${CY}" r="14" fill="url(#r4cSun)"/><circle cx="${CX}" cy="${CY}" r="5" fill="#ffe27a"/>
+    <circle cx="${CX}" cy="${CY}" r="${a*PXAU}" fill="none" stroke="var(--hot)" stroke-width="2"/>
+    <line x1="${CX}" y1="${CY}" x2="${CX+a*PXAU*Math.cos(ang)}" y2="${CY+a*PXAU*Math.sin(ang)}" stroke="var(--hot)" stroke-dasharray="3 2"/>
+    <circle cx="${CX+a*PXAU*Math.cos(ang)}" cy="${CY+a*PXAU*Math.sin(ang)}" r="5" fill="#8ee08a" stroke="#fff" stroke-width="1.2"/>
+    <rect x="25" y="200" width="150" height="24" rx="12" fill="#0b1230" stroke="#6f84d8"/><text x="100" y="216" text-anchor="middle" font-size="10.5" font-weight="800" fill="#fff">${f2(T)}-year year: ${f2(A(T)*sc)} AU</text>
+    <text x="100" y="14" text-anchor="middle" font-size="8" font-weight="700" fill="#cfd8ff">Earth 1 AU · Mars ${f2(A(1.88))} AU · Jupiter ${f2(A(11.86))} AU</text>`;
+   sv.innerHTML=g};
+  const out=()=>{const a=A(T);
+   S.math([["Solve for the distance","h"],`T = a<sup>3/2</sup>`,`${f2(T)} = a<sup>3/2</sup>`,[`a = ${f2(T)}<sup>2/3</sup>`,"on"],[`a ≈ ${f2(a)} AU`,"ans"],[`Check: ${f2(a)}<sup>3/2</sup> ≈ ${f2(Math.pow(a,1.5))} yr`,"n"]])};
+  draw(-1.2,1);out();rlTry(el);rlSlider(el,"Length of its year",.5,30,.01,11.86,v=>{T=v;draw(-1.2,1);out();return f2(v)+" yr"});
+  return{play(){rlTween(el,2600,u=>draw(-1.2+u*5,rlEase(u)),()=>draw(-1.2,1))}}}},
+
+rtwo:{t:"Where does the signal reach?",use:`A cell tower stands 40 m tall beside a straight road. A spot x meters down the road is √(x² + 40²) meters from the antenna. Solving for x ends in ±: here both answers are real, one on each side of the tower.`,
+ ask:{q:`A 40 m tower beside a straight road has an antenna that reaches <b>50 m</b>. A spot x meters from the tower's base is <b>√(x² + 40²)</b> from the antenna. Where on the road is it exactly 50 m away?`,c:"30 m left and 30 m right of the base",w:["30 m right only","10 m from the base"],
+  steps:[`50 = √(x² + 1600)`,`Square both sides: 2500 = x² + 1600, so x² = 900`,`x = ±30. Both check (√2500 = 50), and the road runs both ways, so <b>30 m left and 30 m right</b>`]},
+ ui(el){const S=rlSide(el,"0 0 200 230"),sv=S.sv;let d=50;
+  const H=40,PX=.95,RY=186,TX=100,X=v=>Math.sqrt(Math.max(0,v*v-H*H));
+  const draw=dd=>{const top=RY-H*PX,hit=dd>=H,x=X(dd);
+   let g=`<defs><linearGradient id="r4dSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--rlsky)"/><stop offset="1" stop-color="var(--bg)"/></linearGradient>
+    <linearGradient id="r4dTw" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8b9099"/><stop offset=".5" stop-color="#d4d8de"/><stop offset="1" stop-color="#7d828b"/></linearGradient>
+    <clipPath id="r4dClip"><rect x="0" y="0" width="200" height="${RY-2}"/></clipPath></defs>
+    <rect width="200" height="230" fill="url(#r4dSky)"/><rect y="${RY+14}" width="200" height="30" fill="var(--rlgrass)"/>
+    <rect y="${RY-2}" width="200" height="16" fill="#4a4d54"/><line x1="0" y1="${RY+6}" x2="200" y2="${RY+6}" stroke="#f2d04a" stroke-dasharray="8 6" stroke-width="1.5"/>
+    <circle cx="${TX}" cy="${top}" r="${dd*PX}" fill="#ffd45a" fill-opacity=".14" stroke="#e0a010" stroke-dasharray="4 3" clip-path="url(#r4dClip)"/>
+    <path d="M${TX-5} ${RY-2} L${TX-3} ${top+6} L${TX+3} ${top+6} L${TX+5} ${RY-2}Z" fill="url(#r4dTw)" stroke="#5d626b"/><circle cx="${TX}" cy="${top}" r="4" fill="var(--hot)"/>
+    <path d="M${TX-8} ${top-4} q-5 4 0 8 M${TX+8} ${top-4} q5 4 0 8" stroke="var(--hot)" fill="none" stroke-width="1.6"/>
+    <line x1="${TX+14}" y1="${top}" x2="${TX+14}" y2="${RY-2}" stroke="var(--ink)" stroke-width="1"/><text x="${TX+17}" y="${(top+RY)/2+3}" class="rl-lab">40 m</text>`;
+   if(hit){[-1,1].forEach(s=>{const px=TX+s*x*PX;
+    g+=`<line x1="${TX}" y1="${top}" x2="${px}" y2="${RY+3}" stroke="var(--hot)" stroke-width="1.6"/>
+     <rect x="${px-9}" y="${RY-1}" width="18" height="9" rx="3" fill="#2f9e5a" stroke="#1d6b3c"/><circle cx="${px-5}" cy="${RY+9}" r="2" fill="#222"/><circle cx="${px+5}" cy="${RY+9}" r="2" fill="#222"/>
+     <text x="${px}" y="${RY+30}" text-anchor="middle" font-size="9.5" font-weight="800" fill="var(--ink)">${s<0?"−":"+"}${f2(x)} m</text>`});
+    g+=`<text x="${TX}" y="${RY+42}" text-anchor="middle" class="rl-lab">both spots are real</text>`}
+   else g+=`<text x="${TX}" y="${RY+30}" text-anchor="middle" class="rl-lab">signal not at the road yet</text>`;
+   g+=`<rect x="56" y="8" width="88" height="20" rx="10" fill="var(--card)" stroke="var(--line)"/><text x="100" y="22" text-anchor="middle" class="rl-lab big">reach ${f2(dd)} m</text>`;
+   sv.innerHTML=g};
+  const out=()=>{const x=X(d);
+   S.math([["Solve for the spot","h"],`d = √(x² + 1600)`,`${d} = √(x² + 1600)`,[`${f2(d*d)} = x² + 1600`,"on"],[`x² = ${f2(d*d-1600)}`,"on"],[x===0?"x = 0":`x = ±${f2(x)} m`,"ans"],[x===0?"At exactly 40 m the signal just touches the base: one spot.":"x is a place on a two-way road, so the − (left side) is real too. If x were a length, the − would be thrown out.","n"]])};
+  draw(d);out();rlTry(el);rlSlider(el,"Antenna reach",40,100,1,50,v=>{d=v;draw(d);out();return v+" m"});
+  return{play(){rlTween(el,2400,t=>draw(d*rlEase(t)),()=>draw(d))}}}},
+
+rext:{t:"Where the cable meets the hill",use:`A zip line runs along y = x and a hillside has the profile y = √(a·x + 3). Squaring both sides to find where they meet gives two candidates, but squaring can invent answers, so each one must be checked in the original equation.`,
+ ask:{q:`A cable runs along <b>y = x</b> and a hillside is <b>y = √(2x + 3)</b>. Setting them equal, <b>√(2x + 3) = x</b>. Where do they meet?`,c:"x = 3 only (x = −1 fails the check)",w:["x = 3 and x = −1","x = −1 only"],
+  steps:[`Square both sides: 2x + 3 = x²`,`x² − 2x − 3 = 0, so (x − 3)(x + 1) = 0, giving x = 3 or x = −1`,`Check x = 3: √9 = 3 ✓. Check x = −1: √1 = 1, not −1 ✗. <b>Only x = 3</b>; the −1 is extraneous`]},
+ ui(el){const S=rlSide(el,"0 0 200 230"),sv=S.sv;let a=2;
+  const OX=40,GY=160,U=20,X=x=>OX+U*x,Y=y=>GY-U*y;
+  const roots=aa=>{const s=Math.sqrt(aa*aa+12);return[(aa+s)/2,(aa-s)/2]};
+  const draw=p=>{const [x1,x2]=roots(a),xe=Math.min(-1.5+p*8.7,7.2);
+   let g=`<defs><linearGradient id="r4eSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--rlsky)"/><stop offset="1" stop-color="var(--bg)"/></linearGradient></defs>
+    <rect width="200" height="230" fill="url(#r4eSky)"/><rect y="${GY}" width="200" height="${230-GY}" fill="var(--rlsand)"/>`;
+   let pts="";for(let i=0;i<=40;i++){const x=-3/a+(7.4+3/a)*i/40;pts+=` L${X(x)} ${Y(Math.sqrt(a*x+3))}`}
+   g+=`<path d="M${X(-3/a)} ${GY}${pts} L${X(7.4)} ${GY}Z" fill="var(--rlgrass)" stroke="#3f7a35" stroke-width="2"/>
+    <text x="${X(7.4)-4}" y="${Y(Math.sqrt(a*7.4+3))+14}" text-anchor="end" class="rl-lab">hill</text>
+    <line x1="${X(-1.2)}" y1="${Y(-1.2)}" x2="${X(xe)}" y2="${Y(xe)}" stroke="var(--root)" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="0" y1="${GY}" x2="200" y2="${GY}" stroke="var(--ink)" stroke-width="1"/><text x="196" y="${GY+11}" text-anchor="end" class="rl-lab">ground</text>`;
+   if(p>.55){
+    g+=`<circle cx="${X(x1)}" cy="${Y(x1)}" r="6" fill="var(--good)" stroke="#fff" stroke-width="1.5"/><text x="${X(x1)-9}" y="${Y(x1)-6}" text-anchor="end" font-size="9.5" font-weight="800" fill="var(--good)">x = ${f2(x1)} ✓</text>
+     <line x1="${X(x2)}" y1="${Y(x2)}" x2="${X(x2)}" y2="${Y(Math.sqrt(a*x2+3))}" stroke="var(--hot)" stroke-width="1.6" stroke-dasharray="3 2"/>
+     <circle cx="${X(x2)}" cy="${Y(Math.sqrt(a*x2+3))}" r="4" fill="none" stroke="var(--hot)" stroke-width="2"/>
+     <path d="M${X(x2)-5} ${Y(x2)-5} l10 10 m0 -10 l-10 10" stroke="var(--hot)" stroke-width="2.2"/>
+     <rect x="14" y="192" width="172" height="34" rx="8" fill="var(--card)" stroke="var(--hot)"/><text x="100" y="206" text-anchor="middle" font-size="9.5" font-weight="800" fill="var(--hot)">x = ${f2(x2)} is extraneous</text><text x="100" y="219" text-anchor="middle" class="rl-lab">cable at ${f2(x2)}, hill at ${f2(Math.sqrt(a*x2+3))}: no match</text>`}
+   g+=`<text x="${X(5.4)-6}" y="${Y(5.4)+2}" text-anchor="end" font-size="8.5" font-weight="700" fill="var(--root)">cable y = x</text>`;
+   sv.innerHTML=g};
+  const out=()=>{const [x1,x2]=roots(a),b=Math.sqrt(a*x2+3),c=Math.sqrt(a*x1+3);
+   S.math([["Where they meet","h"],`√(${a}x + 3) = x`,[`${a}x + 3 = x²`,"on"],[`x² − ${a}x − 3 = 0`,"on"],`x = ${f2(x1)} or ${f2(x2)}`,["Check each in the original","h"],[`x = ${f2(x1)}: √ = ${f2(c)} ✓`,"ans"],`<s>x = ${f2(x2)}</s>: √ = ${f2(b)} ≠ ${f2(x2)} ✗`,["Only the first is a real spot on the hill.","n"]])};
+  draw(1);out();rlTry(el);rlSlider(el,"Hill steepness a",1,6,1,2,v=>{a=v;draw(1);out();return "a = "+v});
+  return{play(){rlTween(el,2400,t=>draw(rlEase(t)),()=>draw(1))}}}}
+};
 Object.assign(REAL,REAL54);
 const rlOpen=new Set();
 function renderReal(){const box=$("real");if(!box)return;const d=selDay,ks=LESSONS[d].filter(k=>REAL[k]);box.innerHTML="";
