@@ -206,6 +206,15 @@ body.fok{background:var(--goodbg)}body.fbad{background:var(--badbg)}
 .rl-svg{display:block;width:100%;height:auto;margin:6px 0;border-radius:12px;overflow:hidden;background:var(--bg)}
 .rl-lab{font:600 11px system-ui,sans-serif;fill:var(--ink)}.rl-lab.big{font-size:13px}
 :root{--rlsky:#dfeefa;--rlsea:#7fb3e0;--rlsand:#c9a66b;--rlgrass:#a9d18e}
+/* Real-life scenes (Nov 19): a picture of the real thing on the left, the math updating line by line on the right (rlSide) */
+.rl-side{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:10px;align-items:center;margin:6px 0}
+.rl-side .rl-svg{margin:0}
+.rl-mth{font:600 14px/1.35 ui-monospace,Menlo,Consolas,monospace;display:flex;flex-direction:column;gap:5px;min-width:0;overflow-wrap:anywhere}
+.rl-mth .rl-ml{padding:4px 7px;border-radius:8px;background:var(--bg);border-left:3px solid var(--line);transition:background .25s,border-color .25s}
+.rl-mth .rl-ml.on{border-left-color:var(--root)}.rl-mth .rl-ml.ans{border-left-color:var(--hot);background:color-mix(in srgb,var(--hot) 14%,var(--bg))}
+.rl-mth .rl-mh{font:700 10px system-ui,sans-serif;letter-spacing:.6px;text-transform:uppercase;color:var(--mute)}
+.rl-mth .rl-mn{font:500 12px/1.35 system-ui,sans-serif;color:var(--mute)}
+@media (max-width:340px){.rl-side{grid-template-columns:1fr}}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--rlsky:#1c2733;--rlsea:#24547e;--rlsand:#7a6440;--rlgrass:#3f6b35}}
 .rl-move{transition:transform .45s cubic-bezier(.2,.8,.2,1)}.rl-tr{transition:all .35s ease}
 .rl-ants{animation:rlAnts 1s linear infinite}@keyframes rlAnts{to{stroke-dashoffset:-22}}
@@ -461,10 +470,10 @@ body.boot #home .hpane.on :is(.tile,.card):nth-child(2){animation-delay:.04s}bod
     <div><b>Combo</b>: goes up every 3 in a row (max ×5)</div>
     <div><b>Last 10 seconds</b>: double points</div>
     <div><b>Wrong answer</b>: −3 seconds, combo resets, and the clock stops so you can read why</div>
-    <div><b>Coins</b>: every right answer earns coins and a wrong answer in Rush costs 5 (lightning, training and the final quiz never take coins), with bonuses for mastering a skill and passing a final quiz. Spend them in the <b>🎰 Casino</b> (tap Casino on Home): gamble if you dare, and dress up your profile</div>
+    <div><b>Coins</b>: every right answer earns coins and a wrong answer in Rush costs the same number of coins a right one pays you (lightning, training and the final quiz never take coins), with bonuses for mastering a skill and passing a final quiz. Spend them in the <b>🎰 Casino</b> (tap Casino on Home): gamble if you dare, and dress up your profile</div>
     <div><b>I don't know</b>: tap it (top right of the question) instead of guessing. It counts as a miss (−10 mastery instead of −15), and you go straight to the step-by-step</div>
     <div><b>Rematch</b>: a type you miss comes back a few questions later. Get it right for +150</div>
-    <div><b>Mastery</b>: each skill fills to 100. A right answer is +20 (+25 at combo ×3 or higher), a miss is −15. Once a skill hits 100 it stays Mastered and stops showing up in runs. When every skill in a day is mastered, take the <b>final quiz</b> (one question per skill plus harder mixed questions that combine skills, no timer, every answer right to pass) to unlock the next day. Skills you miss on the quiz drop back to 60.</div>
+    <div><b>Mastery</b>: each skill fills to 100. A right answer is +10, a miss is −15, and I don't know is −10. Once a skill hits 100 it stays Mastered and stops showing up in runs. When every skill in a day is mastered, take the <b>final quiz</b> (one question per skill plus harder mixed questions that combine skills, no timer, every answer right to pass) to unlock the next day. Skills you miss on the quiz drop back to 60.</div>
     <div><b>Quick review</b>: after you pass a day, its skills come back every so often (2 days, then 4, 8, 16…). A right answer pushes the next review further out. A miss brings it back tomorrow</div>
     <div><b>Practice this</b>: a run with only one skill. It counts for skills and your streak, not your best score</div>
     <div><b>Day streak</b>: play once a day. Every 7 days earns a freeze that covers a missed day</div>
@@ -1401,7 +1410,7 @@ const COIN_RL_UNLOCK=30,COIN_RL_VIEW=20;
 // Casino winnings, the daily bonus and real-life rewards are not boosted, so the casino can't snowball. (Rebirth was removed.)
 const STAGE_BOOST=0.5;
 function coinMult(stage){const m=1+STAGE_BOOST*(stage==null?(econ.stage||0):stage);return Math.round(m*100)/100}
-// Nov 18: a wrong answer in Rush costs COIN_LOSS_WRONG coins (never below 0; not in lightning, training, the quiz, or "I don't know")
+// Nov 19: a wrong answer in Rush costs what a right one pays at your casino stage: COIN_LOSS_WRONG x coinMult() (never below 0; not in lightning, training, the quiz, or "I don't know")
 const COIN_LOSS_WRONG=5;
 const COIN_PER_RIGHT=5,COIN_PER_LT=5,COIN_PER_MASTERY=1,COIN_MASTERED=50,COIN_QUIZ_PASS=500,TRAINING_MULT=1.5;
 let econ=LS.get("econ",{coins:0,owned:[],equipped:{},t:0});
@@ -1611,9 +1620,9 @@ const SKILLS=[
 const ROAD=[["5.1","nth roots and rational exponents","Day 1"],["5.2","Properties of rational exponents and radicals","Day 2"],["5.3","Graphing radical functions","Day 3"],["5.4","Solving radical equations and inequalities","Next"],["Test","Review and unit test","Later"]];
 let sk=LS.get("skills",{}),hist=LS.get("hist",[]),openSkill=null;
 function recOf(k){const s=sk[k]||{};return s.rec||[]}
-const MX=100,MX_GAIN=20,MX_LOSS=15,IDK_LOSS=10; // IDK_LOSS: mastery lost when you tap "I don't know"
+const MX=100,MX_GAIN=10,MX_LOSS=15,IDK_LOSS=10,MX_GAIN_OLD=20; // IDK_LOSS: mastery lost when you tap "I don't know"
 function xpOf(k){const s=sk[k];if(!s||!s.t)return 0;if(s.m)return MX;if(typeof s.xp==="number")return s.xp;
-  const R=s.rec||[],hits=R.length?R.reduce((x,y)=>x+y,0):s.r,miss=(R.length||s.t)-hits;return Math.max(0,Math.min(MX,hits*MX_GAIN-miss*MX_LOSS))}
+  const R=s.rec||[],hits=R.length?R.reduce((x,y)=>x+y,0):s.r,miss=(R.length||s.t)-hits;return Math.max(0,Math.min(MX,hits*MX_GAIN_OLD-miss*MX_LOSS))}
 function lvl(k){const s=sk[k];if(!s||!s.t)return 0;const x=xpOf(k);return x>=MX?3:x>=50?2:1}
 const DAY_ORDER=["5.1","5.2","5.3"];
 function masteredCount(d){return LESSONS[d].filter(k=>lvl(k)===3).length}
@@ -1689,6 +1698,10 @@ function rlAsk(R0,key,inner){const A=R0.ask,box=document.createElement("div");bo
   ch.appendChild(mkBtn("big rl-show",econ.rl["v:"+key]?"Show me the answer":`Show me the answer · +${COIN_RL_VIEW} 🪙`,()=>{done[key]=1;LS.set("rlDone",done);const n=rlPay(key,"v");if(n){popup(`+${n} 🪙`,"var(--hot)");beep(1320,.12,"triangle",.1)}reveal(true)}));
   if(done[key])reveal(false)}
 function rlSvg(el,vb){const v=document.createElementNS("http://www.w3.org/2000/svg","svg");v.setAttribute("viewBox",vb);v.setAttribute("class","rl-svg");el.appendChild(v);return v}
+// rlSide(el, viewBox): the picture (svg, left) and the math column (right). math(lines) redraws the column:
+// each line is a string, or [text, "on"|"ans"|"h"|"n"] (h = small heading, n = plain note)
+function rlSide(el,vb){const w=document.createElement("div");w.className="rl-side";el.appendChild(w);const sv=rlSvg(w,vb),m=document.createElement("div");m.className="rl-mth";w.appendChild(m);
+  return{sv,box:m,math(L){m.innerHTML=L.map(x=>{const [t,c]=Array.isArray(x)?x:[x,""];return c==="h"?`<div class="rl-mh">${t}</div>`:c==="n"?`<div class="rl-mn">${t}</div>`:`<div class="rl-ml ${c}">${t}</div>`}).join("")}}}
 function rlOut(el,cls){const d=document.createElement("div");d.className="rl-out"+(cls?" "+cls:"");el.appendChild(d);return d}
 function rlSimp(X){let k=1;for(let a=2;a*a<=X;a++)if(X%(a*a)===0)k=a;const r=X/(k*k);return k===1?`√${X}`:r===1?`${k}`:`${k}√${r}`}
 const REAL={
@@ -1847,17 +1860,42 @@ gparent:{t:"How far can you see?",use:`Lifeguards, sailors and pilots all use th
 gshift:{t:"A bean sprout's growth",use:`A sprout doesn't grow until it breaks the soil. Its height in cm after d days can be H = √(d − 3) + 4: the graph of √x moved right 3 (day 3 is the start) and up 4 (it starts 4 cm tall).`,
  ask:{q:`A sprout's height in cm after d days is <b>H = √(d − 3) + 4</b>, starting on day 3. How tall is it on <b>day 7</b>?`,c:"6 cm",w:["7.2 cm","8 cm"],
   steps:[`H = √(7 − 3) + 4`,`= √4 + 4 = 2 + 4`,`= <b>6 cm</b>. The − 3 inside moved the start to day 3, and the + 4 outside lifted it to 4 cm`]},
- ui(el){const sv=rlSvg(el,"0 0 300 150"),o=rlOut(el,"mono");let d=7;
-  const X=v=>30+v/16*258,Y=v=>132-v/10*116,H=v=>Math.sqrt(v-3)+4;
-  const draw=dd=>{let p="";for(let v=3;v<=16;v+=.25)p+=(v>3?"L":"M")+X(v)+" "+Y(H(v))+" ";
-   let g=`<line x1="30" y1="132" x2="290" y2="132" stroke="var(--mute)"/><line x1="30" y1="12" x2="30" y2="132" stroke="var(--mute)"/>`;
-   [0,5,10].forEach(v=>g+=`<text x="26" y="${Y(v)+4}" text-anchor="end" class="rl-lab">${v}</text>`);[0,4,8,12,16].forEach(v=>g+=`<text x="${X(v)}" y="146" text-anchor="middle" class="rl-lab">${v}</text>`);
-   g+=`<path d="${p}" fill="none" stroke="var(--root)" stroke-width="3"/><circle cx="${X(3)}" cy="${Y(4)}" r="4" fill="var(--pow)"/><text x="${X(3)+6}" y="${Y(4)+14}" class="rl-lab">starts (3, 4)</text>`;
-   if(dd>=3){g+=`<line x1="${X(dd)}" y1="132" x2="${X(dd)}" y2="${Y(H(dd))}" stroke="var(--hot)" stroke-width="5" stroke-linecap="round"/><circle cx="${X(dd)}" cy="${Y(H(dd))}" r="5" fill="var(--hot)"/><text x="288" y="24" text-anchor="end" class="rl-lab big">${f2(H(dd))} cm on day ${Math.round(dd)}</text>`}
-   else g+=`<text x="288" y="24" text-anchor="end" class="rl-lab big">day ${Math.round(dd)}: not started</text>`;sv.innerHTML=g};
-  const out=()=>{o.innerHTML=d<3?`√(${d} − 3) = √(${d-3}) is not a real number, so the formula only starts at day 3`:`√(${d} − 3) + 4 = √${d-3} + 4 = <b>${f2(H(d))} cm</b>`};
+ ui(el){const S=rlSide(el,"0 0 200 230"),sv=S.sv;let d=7;
+  // SPROUT_PX_PER_CM: how tall 1 cm of plant is drawn; soil line at y 168, pot below it
+  const SPROUT_PX_PER_CM=17,GY=168,CX=112,H=v=>Math.sqrt(v-3)+4;
+  const draw=dd=>{const grown=dd>=3,h=grown?H(dd):0,top=GY-h*SPROUT_PX_PER_CM,t=grown?Math.min(1,(dd-3)/13):0;
+   let g=`<defs><linearGradient id="spSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--rlsky)"/><stop offset="1" stop-color="var(--bg)"/></linearGradient>
+    <linearGradient id="spPot" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#a24f2c"/><stop offset=".45" stop-color="#d27a4a"/><stop offset="1" stop-color="#8a3f22"/></linearGradient>
+    <radialGradient id="spSun"><stop offset="0" stop-color="#ffd45a"/><stop offset="1" stop-color="#ffb02e" stop-opacity="0"/></radialGradient></defs>
+    <rect width="200" height="230" fill="url(#spSky)"/><circle cx="172" cy="26" r="24" fill="url(#spSun)"/><circle cx="172" cy="26" r="9" fill="#ffd45a"/>`;
+   // ruler, 0 to 8 cm, zero at the soil line
+   g+=`<rect x="14" y="${GY-8*SPROUT_PX_PER_CM-6}" width="22" height="${8*SPROUT_PX_PER_CM+12}" rx="3" fill="#e9cf8e" stroke="#b8975a"/>`;
+   for(let c=0;c<=8;c++){const y=GY-c*SPROUT_PX_PER_CM;g+=`<line x1="14" y1="${y}" x2="${c%2?22:26}" y2="${y}" stroke="#6b5326" stroke-width="1.2"/><text x="33" y="${y+3}" text-anchor="end" font-size="8" font-weight="700" fill="#6b5326">${c}</text>`;
+    if(c<8)g+=`<line x1="14" y1="${y-SPROUT_PX_PER_CM/2}" x2="19" y2="${y-SPROUT_PX_PER_CM/2}" stroke="#6b5326" stroke-width=".8"/>`}
+   // pot and soil
+   g+=`<path d="M58 ${GY-4} L166 ${GY-4} L155 226 L69 226 Z" fill="url(#spPot)"/><path d="M63 ${GY-1} L161 ${GY-1} L152 221 L72 221 Z" fill="#5a3a24"/><path d="M63 ${GY-1} L161 ${GY-1} L160 ${GY+5} L64 ${GY+5}Z" fill="#6e4a31"/>
+    <rect x="54" y="${GY-9}" width="116" height="9" rx="3" fill="#c2643a"/><rect x="54" y="${GY-9}" width="116" height="3" rx="1.5" fill="#e08a58" opacity=".7"/>`;
+   for(let i=0;i<26;i++)g+=`<circle cx="${70+(i*37)%84}" cy="${GY+8+(i*23)%46}" r="${1+(i%3)*.5}" fill="#7a5238" opacity=".8"/>`;
+   // seed under the soil and its roots (roots grow longer each day)
+   const rl=grown?8+t*30:Math.max(0,dd-1)*3;
+   g+=`<g fill="none" stroke="#e8dcc0" stroke-width="1.4" stroke-linecap="round">`;
+   if(rl>0)[[-1,1],[0,1.25],[1,.9]].forEach(([s,k])=>{g+=`<path d="M${CX} ${GY+18} q${s*8} ${rl*k*.5} ${s*14} ${rl*k}"/>`});
+   g+=`</g><ellipse cx="${CX}" cy="${GY+17}" rx="9" ry="6" fill="#c9a26a" stroke="#8c6b3c"/>`+(grown||dd>=2?`<path d="M${CX-6} ${GY+15} q6 4 12 0" stroke="#8c6b3c" fill="none"/>`:"");
+   if(grown){// stem with a little sway, then leaves: two seed leaves at the top, more true leaves as it gets taller
+    const sw=4+t*6,mid=(GY+top)/2;
+    g+=`<path d="M${CX} ${GY+12} C ${CX-sw} ${mid+20}, ${CX+sw} ${mid-10}, ${CX} ${top}" stroke="#3f8f3a" stroke-width="${3+t*1.6}" fill="none" stroke-linecap="round"/>`;
+    const leaf=(x,y,dir,sz,col)=>`<path d="M${x} ${y} q${dir*sz*.55} ${-sz*.55} ${dir*sz} ${-sz*.1} q${-dir*sz*.4} ${sz*.5} ${-dir*sz} ${sz*.1}Z" fill="${col}" stroke="#2c6b28" stroke-width=".8"/>`;
+    const n=1+Math.floor(t*4);for(let i=0;i<n;i++){const y=GY-(i+1)*(GY-top)/(n+1.3);g+=leaf(CX+(i%2?-1:1),y,i%2?-1:1,14+t*8,"#5aaa4c")}
+    g+=leaf(CX,top,-1,17+t*6,"#7cc35e")+leaf(CX,top,1,17+t*6,"#7cc35e");
+    g+=`<line x1="38" y1="${top}" x2="${CX-6}" y2="${top}" stroke="var(--hot)" stroke-dasharray="3 3"/><rect x="${CX+16}" y="${top-11}" width="50" height="17" rx="8" fill="var(--hot)"/><text x="${CX+41}" y="${top+1}" text-anchor="middle" font-size="10" font-weight="800" fill="#fff">${f2(h)} cm</text>`}
+   else g+=`<text x="${CX}" y="${GY-24}" text-anchor="middle" class="rl-lab">still underground</text>`;
+   g+=`<rect x="62" y="8" width="62" height="20" rx="10" fill="var(--card)" stroke="var(--line)"/><text x="93" y="22" text-anchor="middle" class="rl-lab big">Day ${Math.round(dd)}</text>`;
+   sv.innerHTML=g};
+  const out=()=>{const r=d-3,sq=Math.sqrt(Math.max(0,r)),perf=Number.isInteger(sq);
+   S.math(d<3?[["The rule","h"],"H = √(d − 3) + 4",`= √(${d} − 3) + 4`,["= √(" +(d-3)+") + 4","on"],["You can't take √ of a negative number, so the sprout hasn't broken the soil. It starts on day 3.","n"]]
+    :[["The rule","h"],"H = √(d − 3) + 4",`= √(${d} − 3) + 4`,[`= √${r} + 4`,"on"],[`= ${perf?sq:"≈ "+f2(sq)} + 4`,"on"],[`${perf?"=":"≈"} ${f2(H(d))} cm`,"ans"],[d===3?"Day 3 is the start: √0 = 0, so it's just the 4 cm.":"− 3 inside: starts on day 3. + 4 outside: starts 4 cm tall.","n"]])};
   draw(d);out();rlTry(el);rlSlider(el,"Day",0,16,1,7,v=>{d=v;draw(d);out();return "day "+v});
-  return{play(){rlTween(el,2200,t=>draw(Math.max(0,d*rlEase(t))))}}}},
+  return{play(){rlTween(el,2600,t=>draw(d*rlEase(t)))}}}},
 gstretch:{t:"The swing of a pendulum",use:`A pendulum's swing time in seconds is T ≈ 1.11√L, where L is its length in feet. The 1.11 in front is a vertical stretch of the parent graph √L.`,
  ask:{q:`A pendulum's swing time in seconds is <b>T ≈ 1.11·√L</b>, where L is its length in feet. How long is one swing of a <b>9 ft</b> pendulum?`,c:"about 3.3 seconds",w:["about 10 seconds","about 1.1 seconds"],
   steps:[`T ≈ 1.11 · √9`,`√9 = 3`,`1.11 · 3 ≈ <b>3.3 seconds</b>. The number in front stretches every y-value by 1.11`]},
@@ -2529,7 +2567,7 @@ function resolve(ok){
     else{popup("Missed","var(--bad)",POP_MISS_MS);beep(150,.2,"square",.07);flash("fbad");st.paused=true;showWalk();$("go").classList.remove("hidden");$("why").classList.remove("hidden");setTimeout(()=>$("go").scrollIntoView({behavior:"smooth",block:"nearest"}),60)}
     return}
   const mk=st.cur.key,mo=sk[mk]||{r:0,t:0},xb=xpOf(mk),wasSM=xb>=MX;let mg=0;
-  if(!wasSM){if(ok){mg=MX_GAIN+(mult()>=3?5:0)}else mg=-(st.pk&&st.pk.idk?IDK_LOSS:MX_LOSS)}
+  if(!wasSM){if(ok){mg=MX_GAIN}else mg=-(st.pk&&st.pk.idk?IDK_LOSS:MX_LOSS)}
   mo.t++;if(ok)mo.r++;mo.rec=(mo.rec||[]).concat(ok?1:0).slice(-10);mo.xp=Math.max(0,Math.min(MX,xb+mg));if(mo.xp>=MX)mo.m=true;sk[mk]=mo;LS.set("skills",sk);
   const nowSM=!wasSM&&mo.m;setQM(mk,true);
   if(nowSM){mo.due=Date.now()+2*DAYMS;mo.iv=2}
@@ -2565,7 +2603,7 @@ function resolve(ok){
     st.time-=3;st.miss[st.cur.key]=(st.miss[st.cur.key]||0)+1;
     if(st.review)st.fix={key:st.cur.key,got:0};else st.queue.push({key:st.cur.key,at:st.qn+ri(2,4)});
     let note="−3s";
-    const lost=(!st.training&&!(st.pk&&st.pk.idk))?loseCoins(COIN_LOSS_WRONG):0;if(lost)note+=` · −${lost} 🪙`;
+    const lost=(!st.training&&!(st.pk&&st.pk.idk))?loseCoins(COIN_LOSS_WRONG*coinMult()):0;if(lost)note+=` · −${lost} 🪙`;
     st.streak=0;if(mg<0)note+=` · −${-mg} mastery`
     if(revMsg)note+=" · "+revMsg;
     hudCombo();popup(note,"var(--bad)",POP_MISS_MS);beep(140,.28,"square",.08);buzz([60,40,60]);flash("fbad");
