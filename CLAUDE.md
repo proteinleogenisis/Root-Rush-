@@ -107,3 +107,10 @@ The student asked for a simpler Home with simple icons, keeping everything. One 
 - Type-your-own-answer questions (closer to real tests than multiple choice).
 - Unit 5 mock test mode with a timer and a review list at the end.
 - A homework check-in each time a new worksheet photo arrives.
+
+## Nov 19 changes
+- Rush coin loss on a wrong answer = what a right answer pays at your casino stage (`COIN_LOSS_WRONG` x `coinMult()`; Broke: +8 / -8). Still none in lightning, training, quiz, or "I don't know".
+- Mastery: right +10 (`MX_GAIN`, no combo bonus), miss -15, I don't know -10. Old records without `xp` still recompute with `MX_GAIN_OLD` 20 so nobody's saved mastery dropped.
+- Real life: every card's play-out is a picture of the real thing with the live math beside it (`rlSide(el, viewBox)` -> `{sv, math(lines)}`, CSS `.rl-side`/`.rl-mth`; under 340px it stacks). Reference card: `gshift` (seed in a cutaway pot, `SPROUT_PX_PER_CM`). Screenshot any card: scratchpad `pw/rlshot.mjs <key> <day> <out> dark|light [width]`.
+- Progress tab: "Your skills" (`renderStats`): totals, a podium of the 3 best skills by accuracy (min `STAT_MIN_TRIES` 3 answers), Needs work (worst 3 under 90%, with Practice this), mastery map per unlocked day. Test: `pw/stats.mjs`.
+- "Which two points" walkthroughs (`wkPar`, `wkParWhy`, `wkRuleSteps`, `wkMove`): say why the parent points are picked, one step per number in g, show the arithmetic; `wkG` widens the graph to fit every labeled point. Captions must stay at 10 words or fewer (`hwm/math.mjs` checks it).
