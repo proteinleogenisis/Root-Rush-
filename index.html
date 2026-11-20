@@ -1773,43 +1773,112 @@ const REAL={
 bottom:{t:"Why a piano sounds right",use:`Every piano key vibrates 2<sup>1/${R(12)}</sup> times faster than the key below it. That's a 12th root.`,
  ask:{q:`The A key vibrates <b>440</b> times a second. Each key up multiplies that by 2<sup>1/12</sup>. How fast does the A <b>12 keys up</b> vibrate?`,c:"880 times a second",w:["452 times a second","5,280 times a second"],
   steps:[`440 × (2<sup>1/12</sup>)<sup>12</sup>`,`= 440 × 2<sup>12/12</sup>   (power of a power: multiply)`,`= 440 × 2 = <b>880</b>: twelve keys up, the speed doubles`]},
- ui(el){const row=document.createElement("div");row.className="rl-keys";el.appendChild(row);const o=rlOut(el,"mono");o.textContent="Tap any key";
-  const keys=["A","A#","B","C","C#","D","D#","E","F","F#","G","G#","A"],btns=[];
-  const hit=n=>{const f=440*2**(n/12),b=btns[n];rlTone(f);b.classList.remove("hit");void b.offsetWidth;b.classList.add("hit");o.innerHTML=`${keys[n]}${n===12?" (12 keys up)":""}: 440 × 2<sup>${P(n)}/${R(12)}</sup> = <b>${f2(f)}</b> a second`};
-  keys.forEach((k,n)=>{const b=mkBtn("rl-key"+(k.includes("#")?" blk":""),k,()=>hit(n));btns.push(b);row.appendChild(b)});
-  rlTry(el,"Tap any key to hear it and see its math.");
-  return{play(){const tok=rlTok(el);let n=0;const go=()=>{if(!rlLive(el,tok))return;hit(n);if(++n<=12)setTimeout(go,n===12?450:240)};go()}}}},
+ ui(el){const S=rlSide(el,"0 0 200 230"),sv=S.sv;let n=12;
+  const NAMES=["A","A#","B","C","C#","D","D#","E","F","F#","G","G#","A"];
+  // WH: semitone -> white-key slot; BK: semitone -> the white slot the black key sits to the right of
+  const WH={0:0,2:1,3:2,5:3,7:4,8:5,10:6,12:7},BK={1:0,4:2,6:3,9:5,11:6},WN=["A","B","C","D","E","F","G","A"];
+  const KX=12,KW=22,KY=140,KH=80,BH=50,SY=76;
+  const wave=(cyc,amp)=>{let d="";for(let i=0;i<=82;i++){const u=i/82,y=SY+amp*Math.sin(2*Math.PI*cyc*u)*(.3+.7*Math.sin(Math.PI*u));d+=(i?"L":"M")+(18+u*164).toFixed(1)+" "+y.toFixed(1)}return d};
+  const draw=m=>{const f=440*2**(m/12),cyc=2*f/440,lit=m in WH?WH[m]:-1,litB=m in BK?BK[m]:-1;
+   let g=`<defs><linearGradient id="pnWood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a2c1a"/><stop offset="1" stop-color="#25140b"/></linearGradient>
+    <linearGradient id="pnWhite" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fffdf6"/><stop offset="1" stop-color="#e2dccb"/></linearGradient>
+    <linearGradient id="pnBlack" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a3a42"/><stop offset="1" stop-color="#0c0c10"/></linearGradient>
+    <linearGradient id="pnString" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#b9b9c4"/><stop offset=".5" stop-color="#f4f4fb"/><stop offset="1" stop-color="#b9b9c4"/></linearGradient></defs>
+    <rect width="200" height="230" rx="10" fill="url(#pnWood)"/><rect x="10" y="38" width="180" height="82" rx="6" fill="#120a06" stroke="#6b4426" stroke-width="2"/>`;
+   g+=`<circle cx="14" cy="${SY}" r="3.5" fill="#c9a24a"/><circle cx="186" cy="${SY}" r="3.5" fill="#c9a24a"/>`;
+   if(m>0)g+=`<path d="${wave(2,16)}" fill="none" stroke="#8d7f6a" stroke-width="1.2" stroke-dasharray="3 3"/><text x="186" y="52" text-anchor="end" font-size="8" font-weight="700" fill="#b9a98f">A = 440</text>`;
+   g+=`<path d="${wave(cyc,20)}" fill="none" stroke="url(#pnString)" stroke-width="2.4" opacity=".9"/><path d="${wave(cyc,-20)}" fill="none" stroke="url(#pnString)" stroke-width="1.6" opacity=".4"/>`;
+   const kc=lit>=0?KX+lit*KW+KW/2:KX+(litB+1)*KW;
+   g+=`<line x1="${kc}" y1="${KY}" x2="${kc}" y2="120" stroke="var(--hot)" stroke-width="1.6" stroke-dasharray="3 3"/>`;
+   for(let i=0;i<8;i++){const on=i===lit;g+=`<rect x="${KX+i*KW+.5}" y="${KY+(on?3:0)}" width="${KW-1}" height="${KH-(on?3:0)}" rx="3" fill="${on?"var(--hot)":"url(#pnWhite)"}" stroke="#7a6a58"/><text x="${KX+i*KW+KW/2}" y="${KY+KH-8}" text-anchor="middle" font-size="9" font-weight="800" fill="${on?"#fff":"#6b5f50"}">${WN[i]}</text>`}
+   Object.keys(BK).forEach(s=>{const on=+s===m;g+=`<rect x="${KX+(BK[s]+1)*KW-7}" y="${KY+(on?3:0)}" width="14" height="${BH}" rx="2.5" fill="${on?"var(--hot)":"url(#pnBlack)"}" stroke="#000"/>`});
+   g+=`<rect x="34" y="8" width="132" height="22" rx="11" fill="#f4e6d0"/><text x="100" y="23" text-anchor="middle" font-size="12" font-weight="800" fill="#3a2418">${NAMES[m]} · ${f2(f)} /sec</text>`;
+   sv.innerHTML=g};
+  const out=m=>{const r=2**(m/12),f=440*r,exact=m===0||m===12;
+   S.math([["The rule","h"],`f = 440 × 2<sup>n/12</sup>`,`= 440 × 2<sup>${P(m)}/${R(12)}</sup>`,[`= 440 × ${f2(r)}`,"on"],[`${exact?"=":"≈"} ${f2(f)} a second`,"ans"],[m===12?"Twelve keys up: 2<sup>12/12</sup> = 2, so the string vibrates twice as fast.":m===0?"Zero keys up: 2<sup>0</sup> = 1, the same A.":`Key ${NAMES[m]} is ${m} key${m>1?"s":""} above the A. n = ${m}.`,"n"]])};
+  draw(n);out(n);rlTry(el,"Slide to press a key and see its math.");
+  const sl=rlSlider(el,"Keys above A",0,12,1,12,v=>{n=v;draw(n);out(n);return NAMES[v]+" · "+v+" up"});sl._after=()=>rlTone(440*2**(n/12),.5);
+  return{play(){const tok=rlTok(el);let k=0;const go=()=>{if(!rlLive(el,tok))return;draw(k);out(k);rlTone(440*2**(k/12),.4);if(++k<=n)setTimeout(go,k>n?450:240)};go()}}}},
 entry:{t:"Camera f-stops",use:`The f-numbers on a camera lens (1.4, 2, 2.8, 4, 5.6, 8…) come from 2<sup>n/2</sup>. Each step lets in half the light.`,
  ask:{q:`A lens setting is 2<sup>n/2</sup> at step n. What f-number is step <b>5</b>?`,c:"5.66, so f/5.6",w:["16, so f/16","2.5, so f/2.5"],
   steps:[`Type it with parentheses: 2 ^ ( 5 ÷ 2 )`,`= 5.66 → the lens says <b>f/5.6</b>`,`Without ( ): 2 ^ 5 ÷ 2 = 16, a totally different setting`]},
- ui(el){const sv=rlSvg(el,"0 0 300 110"),o=rlOut(el,"mono"),S=[1,1.4,2,2.8,4,5.6,8,11,16];let n=5;
-  const draw=x=>{const f=2**(x/2),r=40/f,dark=Math.min(.86,1-1/(f*f));
-   sv.innerHTML=`<circle cx="62" cy="52" r="46" fill="#0d0d0d" stroke="var(--line)" stroke-width="3"/><circle cx="62" cy="52" r="${r}" fill="#fff3c4"/><text x="62" y="106" text-anchor="middle" class="rl-lab big">f/${S[Math.round(x)]}</text>
-   <rect x="130" y="10" width="160" height="88" rx="8" fill="#9fd2f5"/><circle cx="252" cy="34" r="12" fill="#ffd34d"/><path d="M130 80 Q180 54 230 78 T290 70 V98 H130Z" fill="#5fa04a"/><rect x="130" y="10" width="160" height="88" rx="8" fill="#000" opacity="${dark}"/>
-   <text x="210" y="106" text-anchor="middle" class="rl-lab">your photo</text>`};
-  const out=()=>{o.innerHTML=`2 ^ ( ${n} ÷ 2 ) = <b>${f2(2**(n/2))}</b> → f/${S[n]} · ${n?"1/"+2**n+" of the light":"all the light"}`};
+ ui(el){const S=rlSide(el,"0 0 200 230"),sv=S.sv,F=[1,1.4,2,2.8,4,5.6,8,11,16];let n=5;
+  const CX=100,CY=58,pt=(r,a)=>[(CX+r*Math.cos(a)).toFixed(1),(CY+r*Math.sin(a)).toFixed(1)];
+  const draw=x=>{const k=Math.round(x),f=2**(x/2),rho=Math.max(2,32/f),dark=Math.min(.9,1-2**-x),beam=Math.min(.55,.07+.5*2**-x);
+   let g=`<defs><radialGradient id="enRing" cx=".4" cy=".35" r=".8"><stop offset="0" stop-color="#5b5b66"/><stop offset="1" stop-color="#17171b"/></radialGradient>
+    <radialGradient id="enGlow"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#ffe9a6"/></radialGradient>
+    <linearGradient id="enSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#79bdf0"/><stop offset="1" stop-color="#cfe9fb"/></linearGradient></defs>
+    <rect width="200" height="230" rx="10" fill="var(--card)"/>`;
+   g+=`<path d="M${CX-rho} 106 L28 152 L172 152 L${CX+rho} 106Z" fill="#ffe08a" opacity="${beam}"/>`;
+   g+=`<circle cx="${CX}" cy="${CY}" r="50" fill="url(#enRing)" stroke="#8a8a96" stroke-width="2"/>`;
+   for(let i=0;i<36;i++){const a=i*Math.PI/18,p=pt(44,a),q=pt(49,a);g+=`<line x1="${p[0]}" y1="${p[1]}" x2="${q[0]}" y2="${q[1]}" stroke="#2a2a30" stroke-width="1.4"/>`}
+   g+=`<circle cx="${CX}" cy="${CY}" r="41" fill="#0e0e12" stroke="#4a4a54"/><circle cx="${CX}" cy="${CY}" r="36" fill="url(#enGlow)"/>`;
+   const oct=[0,1,2,3,4,5,6,7].map(i=>pt(rho,i*Math.PI/4+Math.PI/8));
+   const disc=`M${CX-38} ${CY}a38 38 0 1 0 76 0a38 38 0 1 0 -76 0Z`;
+   g+=`<path fill-rule="evenodd" d="${disc}M${oct.map(p=>p.join(" ")).join("L")}Z" fill="#26262d" stroke="#555"/>`;
+   oct.forEach((p,i)=>{const q=pt(38,i*Math.PI/4+Math.PI/8+1.0);g+=`<line x1="${p[0]}" y1="${p[1]}" x2="${q[0]}" y2="${q[1]}" stroke="#44444d" stroke-width=".8"/>`});
+   g+=`<path d="M${CX-30} ${CY-22} q14 -12 30 -14" stroke="#fff" stroke-width="2" fill="none" opacity=".35" stroke-linecap="round"/>`;
+   g+=`<rect x="68" y="108" width="64" height="20" rx="10" fill="var(--hot)"/><text x="${CX}" y="122" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">f/${F[k]}</text>`;
+   g+=`<rect x="28" y="152" width="144" height="66" rx="5" fill="url(#enSky)"/><circle cx="148" cy="170" r="9" fill="#ffd34d"/><path d="M28 200 Q62 176 100 196 T172 190 V218 H28Z" fill="#5fa04a"/><path d="M28 210 Q70 198 110 208 T172 206 V218 H28Z" fill="#3f7f38"/><rect x="28" y="152" width="144" height="66" rx="5" fill="#000" opacity="${dark}"/><rect x="28" y="152" width="144" height="66" rx="5" fill="none" stroke="var(--mute)" stroke-width="2"/>`;
+   g+=`<text x="${CX}" y="228" text-anchor="middle" class="rl-lab" style="font-size:9px">${k?"1/"+2**k+" of the light":"all the light"}</text>`;
+   sv.innerHTML=g};
+  const out=()=>{const e=n/2,f=2**e;S.math([["The rule","h"],"f = 2<sup>n/2</sup>",`= 2<sup>${P(n)}/${R(2)}</sup>`,[`= 2<sup>${f2(e)}</sup>`,"on"],[`≈ ${f2(f)} → f/${F[n]}`,"ans"],[n?`Each step halves the light: ${n} step${n>1?"s":""} lets in 1/${2**n}.`:"Step 0 is f/1: the lens is wide open.","n"]])};
   draw(n);out();rlTry(el);rlSlider(el,"Step n",0,8,1,5,v=>{n=v;draw(v);out();return "n = "+v});
   return{play(){rlTween(el,2200,t=>draw(Math.min(n,Math.floor(t*(n+1)))))}}}},
 neg:{t:"Signs that mean direction",use:`Below sea level, to the left, backward: a minus sign often means a direction. Odd roots keep it. Even roots can't handle it.`,
  ask:{q:`A diver's depth d (in meters, negative means below sea level) fits d<sup>3</sup> = −8. Where is the diver?`,c:"2 m below sea level",w:["2 m above sea level","Nowhere: it's impossible"],
   steps:[`d = ∛(−8)`,`A cube root is an odd root, so the minus stays: d = −2`,`−2 means <b>2 m below sea level</b>`]},
- ui(el){const sv=rlSvg(el,"0 0 300 120"),o=rlOut(el,"mono");const y=u=>60-u*10;
-  const draw=(v,good,lab)=>{let h=`<rect width="300" height="60" fill="var(--rlsky)"/><rect y="60" width="300" height="60" fill="var(--rlsea)"/><line x1="0" y1="60" x2="300" y2="60" stroke="var(--ink)" stroke-dasharray="4 3"/><text x="292" y="55" text-anchor="end" class="rl-lab">sea level 0</text><line x1="44" y1="8" x2="44" y2="112" stroke="var(--mute)"/>`;
-   for(let u=-5;u<=5;u++)h+=`<line x1="40" y1="${y(u)}" x2="48" y2="${y(u)}" stroke="var(--mute)"/>${u%5===0?`<text x="34" y="${y(u)+4}" text-anchor="end" class="rl-lab">${co(u)}</text>`:""}`;
-   h+=good?`<circle cx="140" cy="${y(v)}" r="10" fill="var(--hot)"/><text x="158" y="${y(v)+5}" class="rl-lab big">${lab||""}</text>`:`<text x="150" y="65" text-anchor="middle" class="rl-lab big" fill="var(--bad)">✗ no spot on the line for it</text>`;sv.innerHTML=h};
-  const go=(v,good,q,a)=>{if(!good){draw(0,false);o.innerHTML=`${q} <span style="color:var(--bad)">${a}</span>`;return}const tok=rlTok(el);rlTween(el,1300,t=>{const u=v*rlEase(t);draw(u,true,t<1?"":`${co(v)} (${-v} below)`)});o.innerHTML=`${q} ${a}`};
-  draw(0,true,"diver");rlTry(el,"Try other roots:");const row=document.createElement("div");row.className="rl-row";el.appendChild(row);
-  [["∛(−8)",-2,true,"= −2 ✓ odd root keeps the minus"],["∛(−125)",-5,true,"= −5 ✓ odd root"],["√(−16)",0,false,"Error: an even root of a negative isn't real"],["∜(−81)",0,false,"Error: even root"]].forEach(([q,v,g,a])=>row.appendChild(mkBtn("small",q,()=>go(v,g,q,a))));
-  return{play(){go(-2,true,"∛(−8)","= −2 ✓ 2 m below sea level")}}}},
+ ui(el){const S=rlSide(el,"0 0 200 230"),sv=S.sv;
+  // NEG_PX_PER_M: how many pixels one meter is drawn; sea level sits at y 70
+  const NEG_PX_PER_M=24,SEA=70,y=u=>SEA-u*NEG_PX_PER_M,DX=118;
+  const CASES=[["∛(−8)",-2,true,"(−2)<sup>3</sup> = −8"],["∛(−125)",-5,true,"(−5)<sup>3</sup> = −125"],["√(−16)",0,false,""],["∜(−81)",0,false,""]];
+  const diver=(x,yy)=>`<g><ellipse cx="${x-12}" cy="${yy}" rx="4" ry="11" fill="#e0b341" stroke="#9a7a1e" stroke-width=".8"/><ellipse cx="${x}" cy="${yy}" rx="9" ry="13" fill="#f2842c" stroke="#b25a12"/><path d="M${x-4} ${yy+10} L${x-9} ${yy+24} L${x-1} ${yy+25}Z M${x+4} ${yy+10} L${x+9} ${yy+24} L${x+1} ${yy+25}Z" fill="#26262d"/><path d="M${x-9} ${yy+23} h-6 l3 6 h9Z M${x+9} ${yy+23} h6 l-3 6 h-9Z" fill="#1a1a1f"/><path d="M${x-8} ${yy-4} q-8 8 -4 14 M${x+8} ${yy-4} q8 8 4 14" stroke="#f2842c" stroke-width="4" fill="none" stroke-linecap="round"/><circle cx="${x}" cy="${yy-18}" r="7" fill="#f1c7a0" stroke="#b58a62" stroke-width=".8"/><rect x="${x-6}" y="${yy-21}" width="12" height="7" rx="3" fill="#8fd6ff" stroke="#111" stroke-width="1.2"/></g>`;
+  const draw=(v,good)=>{let g=`<defs><linearGradient id="ngSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--rlsky)"/><stop offset="1" stop-color="var(--bg)"/></linearGradient>
+    <linearGradient id="ngSea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--rlsea)"/><stop offset="1" stop-color="#0a3d6b"/></linearGradient></defs>
+    <rect width="200" height="${SEA}" fill="url(#ngSky)"/><circle cx="170" cy="24" r="10" fill="#ffd45a"/>
+    <path d="M52 ${SEA-12} L128 ${SEA-12} L118 ${SEA+8} L62 ${SEA+8}Z" fill="#b5442f"/><rect x="62" y="${SEA-30}" width="26" height="18" rx="2" fill="#f1ece0" stroke="#999"/><rect x="67" y="${SEA-26}" width="7" height="7" fill="#7fb6e0"/><line x1="108" y1="${SEA-12}" x2="108" y2="${SEA-34}" stroke="#555" stroke-width="1.5"/><path d="M108 ${SEA-34} h12 l-4 4 l4 4 h-12Z" fill="#e63946"/>
+    <rect y="${SEA}" width="200" height="${230-SEA}" fill="url(#ngSea)" opacity=".92"/><path d="M0 ${SEA} q12 -5 25 0 t25 0 t25 0 t25 0 t25 0 t25 0 t25 0 t25 0" fill="none" stroke="#fff" stroke-width="1.6" opacity=".8"/>
+    <path d="M0 222 Q50 214 100 220 T200 218 V230 H0Z" fill="var(--rlsand)"/>
+    <line x1="0" y1="${SEA}" x2="200" y2="${SEA}" stroke="var(--ink)" stroke-dasharray="4 3" opacity=".7"/><text x="196" y="${SEA-4}" text-anchor="end" class="rl-lab" style="font-size:9px">sea level 0</text>
+    <rect x="1" y="${y(2)-6}" width="30" height="${y(-5)-y(2)+12}" rx="4" fill="var(--card)" opacity=".85"/><line x1="26" y1="${y(2)}" x2="26" y2="${y(-5)}" stroke="var(--mute)"/>`;
+   for(let u=2;u>=-5;u--)g+=`<line x1="22" y1="${y(u)}" x2="30" y2="${y(u)}" stroke="var(--mute)"/><text x="19" y="${y(u)+3}" text-anchor="end" class="rl-lab" style="font-size:9px">${co(u)}</text>`;
+   if(good){const yy=y(v);g+=`<line x1="104" y1="${SEA+4}" x2="${DX}" y2="${yy-26}" stroke="#fff" stroke-dasharray="3 3" opacity=".6"/><line x1="30" y1="${yy}" x2="${DX-16}" y2="${yy}" stroke="var(--hot)" stroke-dasharray="3 3"/>`+diver(DX,yy)+`<circle cx="${DX+6}" cy="${yy-34}" r="2.5" fill="none" stroke="#fff" opacity=".8"/><circle cx="${DX+11}" cy="${yy-42}" r="3.5" fill="none" stroke="#fff" opacity=".8"/>`;
+    if(v<0)g+=`<rect x="${DX+18}" y="${yy-9}" width="52" height="18" rx="9" fill="var(--hot)"/><text x="${DX+44}" y="${yy+4}" text-anchor="middle" font-size="11" font-weight="800" fill="#fff">${co(v)} m</text>`}
+   else g+=`<g stroke="var(--bad)" stroke-width="5" stroke-linecap="round"><line x1="${DX-18}" y1="${y(-2.5)-18}" x2="${DX+18}" y2="${y(-2.5)+18}"/><line x1="${DX+18}" y1="${y(-2.5)-18}" x2="${DX-18}" y2="${y(-2.5)+18}"/></g><text x="${DX}" y="${y(-4.2)}" text-anchor="middle" class="rl-lab" style="font-size:9px">no spot for a diver</text>`;
+   sv.innerHTML=g};
+  const out=i=>{const [q,v,good,chk]=CASES[i];
+   S.math(good?[["Solve for the depth","h"],`d = ${q}`,["An odd root keeps the minus sign.","n"],[`d = ${co(v)}`,"on"],`check: ${chk}`,[`${co(v)} m`,"ans"],[`${-v} m below sea level`,"n"]]
+    :[["Solve for the depth","h"],`d = ${q}`,["An even root of a negative number has no real answer.","n"],["no real answer","ans"],["No number times itself an even number of times is below zero, so the diver has no spot.","n"]])};
+  let cur=0;draw(CASES[0][1],true);out(0);
+  const go=i=>{cur=i;const [,v,good]=CASES[i];out(i);if(!good){rlTok(el);draw(0,false);return}rlTok(el);rlTween(el,1300,t=>draw(v*rlEase(t),true))};
+  rlTry(el,"Try other roots:");const row=document.createElement("div");row.className="rl-row";el.appendChild(row);
+  CASES.forEach(([q],i)=>row.appendChild(mkBtn("small",q,()=>go(i))));
+  return{play(){go(cur)}}}},
 sols:{t:"How long a fall takes",use:`A dropped object falls 16t<sup>2</sup> feet in t seconds. Divers, stunt crews and ride designers use this.`,
  ask:{q:`You drop your phone from <b>64 ft</b> up. It falls 16t<sup>2</sup> feet in t seconds. How long until it hits the ground?`,c:"2 seconds",w:["±2 seconds","4 seconds"],
   steps:[`16t<sup>2</sup> = 64`,`t<sup>2</sup> = 4`,`t = ±2, but time can't be negative`,`<b>2 seconds</b>`]},
- ui(el){const sv=rlSvg(el,"0 0 300 150"),o=rlOut(el,"mono");let h=64;
-  const draw=(tt,done)=>{const H=24+h/400*106,top=140-H,T=Math.sqrt(h/16),fall=Math.min(h,16*tt*tt),py=top+fall/h*H-6;
-   sv.innerHTML=`<rect width="300" height="150" fill="var(--rlsky)"/><rect x="0" y="140" width="300" height="10" fill="var(--rlgrass)"/><rect x="24" y="${top}" width="56" height="${H}" fill="var(--ink)" opacity=".8" rx="2"/>
-   <text x="52" y="${top-6}" text-anchor="middle" class="rl-lab">${h} ft</text><rect x="96" y="${py-6}" width="10" height="16" rx="2" fill="var(--hot)"/>
-   <text x="290" y="24" text-anchor="end" class="rl-lab big">t = ${f2(Math.min(tt,T))} s${done?" · landed":""}</text>`};
-  const out=()=>{const T=Math.sqrt(h/16);o.innerHTML=`16t<sup>2</sup> = ${h} → t<sup>2</sup> = ${f2(h/16)} → t = ±${f2(T)} → <b>${f2(T)} seconds</b>`};
+ ui(el){const S=rlSide(el,"0 0 200 230"),sv=S.sv;let h=64;
+  // FALL_PX_PER_FT: drawn height of the building per foot (plus a small base so 16 ft is still visible)
+  const FALL_PX_PER_FT=.41,BASE_PX=12,GR=205,TX=80,WX=166,WY=36;
+  const draw=(tt,done)=>{const H=BASE_PX+h*FALL_PX_PER_FT,top=GR-H,T=Math.sqrt(h/16),fall=Math.min(h,16*tt*tt),py=top+fall/h*H,ts=Math.min(tt,T);
+   let g=`<defs><linearGradient id="slSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--rlsky)"/><stop offset="1" stop-color="var(--bg)"/></linearGradient>
+    <linearGradient id="slWall" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#9aa0aa"/><stop offset="1" stop-color="#6a707a"/></linearGradient></defs>
+    <rect width="200" height="230" fill="url(#slSky)"/><rect y="${GR}" width="200" height="25" fill="var(--rlgrass)"/>
+    <rect x="14" y="${top}" width="48" height="${H}" fill="url(#slWall)"/><rect x="11" y="${top-3}" width="54" height="4" rx="1" fill="#4d5158"/>`;
+   for(let yy=top+7,r=0;yy<GR-12;yy+=14,r++)for(let c=0;c<3;c++)g+=`<rect x="${20+c*14}" y="${yy}" width="8" height="8" rx="1" fill="${(r+c)%3===0?"#ffd88a":"#2a3340"}"/>`;
+   g+=`<rect x="32" y="${GR-12}" width="12" height="12" fill="#3a2a1c"/>`;
+   g+=`<text x="38" y="${top-8}" text-anchor="middle" class="rl-lab big">${h} ft</text><line x1="6" y1="${top}" x2="6" y2="${GR}" stroke="var(--hot)" stroke-width="1.5"/><line x1="3" y1="${top}" x2="9" y2="${top}" stroke="var(--hot)" stroke-width="1.5"/><line x1="3" y1="${GR}" x2="9" y2="${GR}" stroke="var(--hot)" stroke-width="1.5"/>`;
+   g+=`<line x1="${TX}" y1="${top}" x2="${TX}" y2="${GR}" stroke="var(--mute)" stroke-dasharray="3 4"/>`;
+   for(let k=1;16*k*k<=h;k++){const yk=top+16*k*k/h*H;g+=`<line x1="${TX-5}" y1="${yk}" x2="${TX+5}" y2="${yk}" stroke="var(--ink)"/><text x="${TX+9}" y="${yk+3}" class="rl-lab" style="font-size:8px">${k} s · ${16*k*k} ft</text>`}
+   if(tt>0&&!done)g+=`<g stroke="var(--mute)" stroke-width="1.2" stroke-linecap="round"><line x1="${TX-2}" y1="${py-22}" x2="${TX-2}" y2="${py-30}"/><line x1="${TX+2}" y1="${py-22}" x2="${TX+2}" y2="${py-34}"/></g>`;
+   g+=`<rect x="${TX-4}" y="${py-14}" width="8" height="14" rx="2" fill="#1c1c22" stroke="#8a8a94"/><rect x="${TX-3}" y="${py-12}" width="6" height="10" rx="1" fill="#6aa8ff"/>`;
+   if(done)g+=`<ellipse cx="${TX}" cy="${GR+1}" rx="14" ry="3" fill="#fff" opacity=".35"/>`;
+   g+=`<rect x="${WX-4}" y="${WY-27}" width="8" height="6" rx="1.5" fill="#555"/><circle cx="${WX}" cy="${WY}" r="21" fill="#f0f0f5" stroke="#555" stroke-width="2.5"/>`;
+   for(let i=0;i<12;i++){const a=i*Math.PI/6;g+=`<line x1="${(WX+16*Math.sin(a)).toFixed(1)}" y1="${(WY-16*Math.cos(a)).toFixed(1)}" x2="${(WX+19*Math.sin(a)).toFixed(1)}" y2="${(WY-19*Math.cos(a)).toFixed(1)}" stroke="#555"/>`}
+   const a=ts*72*Math.PI/180;g+=`<line x1="${WX}" y1="${WY}" x2="${(WX+15*Math.sin(a)).toFixed(1)}" y2="${(WY-15*Math.cos(a)).toFixed(1)}" stroke="#d9304f" stroke-width="2" stroke-linecap="round"/><circle cx="${WX}" cy="${WY}" r="2.5" fill="#333"/>`;
+   g+=`<text x="${WX}" y="${WY+38}" text-anchor="middle" class="rl-lab big">t = ${f2(ts)} s</text>`+(done?`<text x="${WX}" y="${WY+51}" text-anchor="middle" class="rl-lab" style="font-size:9px">landed</text>`:"");
+   sv.innerHTML=g};
+  const out=()=>{const q=h/16,T=Math.sqrt(q),sq=Number.isInteger(T);S.math([["Solve for t","h"],`16t<sup>2</sup> = ${h}`,`t<sup>2</sup> = ${q}`,[`t = ±√${q}`,"on"],[`${sq?"=":"≈"} ±${f2(T)}`,"on"],[`t = ${f2(T)} seconds`,"ans"],["Time can't be negative, so only the + answer counts.","n"]])};
   draw(0);out();rlTry(el);rlSlider(el,"Height (ft)",16,400,16,64,v=>{h=v;draw(0);out();return v+" ft"});
   return{play(){const T=Math.sqrt(h/16);rlTween(el,T*1000,t=>draw(t*T,t>=1))}}}},
 iso:{t:"How big a ball is",use:`A ball's volume is V = (4/3)πr<sup>3</sup>. Ball makers work backward from the air inside to the size.`,
